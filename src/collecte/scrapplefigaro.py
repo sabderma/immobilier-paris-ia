@@ -22,7 +22,7 @@ driver.get(URL)
 print("\nAccepte les cookies manuellement si besoin.\n")
 
 # ---------------- CSV ----------------
-with open("annonces_lefigaro_paris.csv", "w", newline="", encoding="utf-8") as f:
+with open("data/raw/scraping/annonces_lefigaro_paris.csv", "w", newline="", encoding="utf-8") as f:
 
     w = csv.writer(f)
 
