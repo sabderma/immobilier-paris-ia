@@ -1,3 +1,7 @@
+
+
+------------------------- Partie sql source data 
+
 -- Voir les 10 premières annonces
 SELECT *
 FROM source_data_scraping;
@@ -30,3 +34,13 @@ SELECT
     COUNT(*) FILTER (WHERE localisation IS NULL) AS localisation_null,
     COUNT(*) FILTER (WHERE source IS NULL) AS source_null
 FROM source_data_scraping;
+
+
+
+
+------------------------------------Partie sql master data 
+
+
+
+
+------------------------------------Partie sql golden data 
