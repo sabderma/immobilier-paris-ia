@@ -85,3 +85,9 @@ FROM dvf_paris_appartements
 WHERE nombre_pieces_principales <= 0
    OR surface_reelle_bati / NULLIF(nombre_pieces_principales, 0) < 8
    OR surface_reelle_bati / NULLIF(nombre_pieces_principales, 0) > 80;
+
+
+
+
+
+

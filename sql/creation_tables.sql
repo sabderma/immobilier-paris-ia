@@ -40,7 +40,7 @@ DROP TABLE IF EXISTS golden_data_scraping;
 
 CREATE TABLE golden_data_scraping (
     id SERIAL PRIMARY KEY,
-    
+
     source VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL,
     prix NUMERIC(12,2) NOT NULL,
@@ -48,7 +48,6 @@ CREATE TABLE golden_data_scraping (
     nb_pieces INTEGER NOT NULL,
     localisation VARCHAR(100) NOT NULL,
     prix_m2 NUMERIC(12,2) NOT NULL,
-
     date_scraping TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
