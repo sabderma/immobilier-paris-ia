@@ -1,0 +1,28 @@
+{
+  "meilleur_modele": "XGBRegressor",
+  "critere": "RMSE le plus faible",
+  "resultats": [
+    {
+      "modele": "RandomForestRegressor",
+      "cible": "valeur_fonciere",
+      "features": "surface_reelle_bati, nombre_pieces_principales, arrondissement",
+      "lignes_total": 152431,
+      "lignes_train": 121944,
+      "lignes_test": 30487,
+      "r2_score": 0.8425,
+      "mae_euros": 114790.87,
+      "rmse_euros": 205470.48
+    },
+    {
+      "modele": "XGBRegressor",
+      "cible": "valeur_fonciere",
+      "features": "surface_reelle_bati, nombre_pieces_principales, arrondissement",
+      "lignes_total": 152431,
+      "lignes_train": 121944,
+      "lignes_test": 30487,
+      "r2_score": 0.8538,
+      "mae_euros": 111078.36,
+      "rmse_euros": 197974.42
+    }
+  ]
+}

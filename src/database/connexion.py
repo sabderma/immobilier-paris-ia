@@ -1,19 +1,9 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
-
-
-USER = "postgres"
-PASSWORD = "12345"
-HOST = "localhost"
-PORT = "5433"
-DATABASE = "immobilier_paris"
-
-
+from db_config import construire_engine
 
 try:
-    engine = create_engine(
-        f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-    )
+    engine = construire_engine()
 
     with engine.connect() as connexion:
         result = connexion.execute(text("SELECT version();"))

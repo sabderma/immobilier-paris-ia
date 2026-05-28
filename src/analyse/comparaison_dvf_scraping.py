@@ -1,21 +1,52 @@
+from pathlib import Path
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 import os
 
 # ================================
 # CONFIGURATION POSTGRESQL
 # ================================
 
-USER = "postgres"
-PASSWORD = "12345"
-HOST = "localhost"
-PORT = "5433"
-DATABASE = "immobilier_paris"
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
-engine = create_engine(
-    f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-)
+
+def charger_env() -> None:
+    """Charge les variables du fichier .env local si elles existent."""
+    env_path = ROOT_DIR / ".env"
+    if not env_path.exists():
+        return
+
+    for ligne in env_path.read_text(encoding="utf-8").splitlines():
+        ligne = ligne.strip()
+        if not ligne or ligne.startswith("#") or "=" not in ligne:
+            continue
+
+        cle, valeur = ligne.split("=", 1)
+        os.environ.setdefault(cle.strip(), valeur.strip().strip('"').strip("'"))
+
+
+def construire_engine():
+    charger_env()
+
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return create_engine(database_url)
+
+    url = URL.create(
+        "postgresql+psycopg2",
+        username=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "5433")),
+        database=os.getenv("DB_NAME", "immobilier_paris"),
+    )
+    return create_engine(url)
+
+
+engine = construire_engine()
 
 # ================================
 # DOSSIER DE SORTIE

@@ -1,0 +1,182 @@
+from __future__ import annotations
+
+import os
+from pathlib import Path
+import sys
+import unittest
+from unittest.mock import Mock, patch
+
+import pandas as pd
+from fastapi.testclient import TestClient
+
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
+
+os.environ["API_KEY"] = "test-api-key"
+
+from api import main  # noqa: E402
+
+
+client = TestClient(main.app)
+AUTH_HEADERS = {"X-API-Key": "test-api-key"}
+
+
+def fake_lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
+    if "FROM dvf_paris_appartements" in query:
+        return pd.DataFrame(
+            [
+                {
+                    "id": 1,
+                    "id_mutation": "2024-1",
+                    "date_mutation": "2024-01-15",
+                    "annee_vente": 2024,
+                    "mois_vente": 1,
+                    "valeur_fonciere": 450000.0,
+                    "prix_m2": 10000.0,
+                    "surface_reelle_bati": 45.0,
+                    "nombre_pieces_principales": 2,
+                    "type_local": "Appartement",
+                    "code_postal": "75011",
+                    "arrondissement": 11,
+                    "nom_commune": "Paris",
+                    "adresse_nom_voie": "Rue de test",
+                    "longitude": 2.38,
+                    "latitude": 48.85,
+                }
+            ]
+        )
+
+    return pd.DataFrame()
+
+
+class TestApiSecurity(unittest.TestCase):
+    def test_accueil_est_public(self):
+        response = client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json()["message"],
+            "API Immobilier Paris fonctionne",
+        )
+
+    def test_points_dvf_refuse_une_requete_sans_cle_api(self):
+        response = client.get("/dvf/points")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()["detail"], "Clé API manquante")
+
+    def test_points_dvf_refuse_une_mauvaise_cle_api(self):
+        response = client.get("/dvf/points", headers={"X-API-Key": "mauvaise-cle"})
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"], "Clé API invalide")
+
+    def test_points_dvf_accepte_une_bonne_cle_api(self):
+        with patch.object(main, "lire_sql", side_effect=fake_lire_sql):
+            response = client.get("/dvf/points?limit=1", headers=AUTH_HEADERS)
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["nombre_resultats"], 1)
+        self.assertEqual(payload["limite"], 1)
+        self.assertEqual(payload["data"][0]["arrondissement"], 11)
+
+    def test_routes_non_utilisees_ne_sont_plus_exposees(self):
+        for path in ["/annonces", "/dvf", "/stats/dvf/evolution-annuelle"]:
+            with self.subTest(path=path):
+                response = client.get(path, headers=AUTH_HEADERS)
+
+                self.assertEqual(response.status_code, 404)
+
+    def test_resume_dvf_retourne_les_indicateurs_attendus(self):
+        def fake_resume_sql(query: str, params: dict | None = None) -> pd.DataFrame:
+            return pd.DataFrame(
+                [
+                    {
+                        "nombre_ventes": 10,
+                        "prix_m2_median": 10500.0,
+                        "prix_moyen_vente": 520000.0,
+                        "surface_moyenne": 48.5,
+                    }
+                ]
+            )
+
+        with patch.object(main, "lire_sql", side_effect=fake_resume_sql):
+            response = client.get("/stats/dvf/resume", headers=AUTH_HEADERS)
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(payload),
+            {
+                "nombre_ventes",
+                "prix_m2_median",
+                "prix_moyen_vente",
+                "surface_moyenne",
+            },
+        )
+
+    def test_export_csv_demande_une_cle_api(self):
+        response = client.get("/dvf/export.csv")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_prediction_prix_retourne_un_prix_estime(self):
+        payload = {
+            "surface": 45,
+            "nombre_pieces": 2,
+            "arrondissement": 11,
+        }
+
+        with patch.object(main, "predire_prix_xgboost", return_value=465328.0):
+            response = client.post(
+                "/prediction/prix",
+                json=payload,
+                headers=AUTH_HEADERS,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["prix_estime"], 465328.0)
+        self.assertEqual(response.json()["modele"], "XGBRegressor")
+
+    def test_commerces_paris_retourne_un_arrondissement_normalise(self):
+        reponse_api = Mock()
+        reponse_api.raise_for_status.return_value = None
+        reponse_api.json.return_value = {
+            "results": [
+                {
+                    "departement_commune": 75111,
+                    "libelle_de_commune": ["Paris 11e Arrondissement"],
+                    "population_2010": 153202,
+                    "supermarche": 28,
+                    "superette": 29,
+                    "epicerie": 154,
+                    "boulangerie": 128,
+                    "boucherie_charcuterie": 68,
+                    "poissonnerie": 7,
+                    "fleuriste": 54,
+                    "geo_point_2d": {"lat": 48.8594, "lon": 2.3787},
+                }
+            ]
+        }
+
+        main.charger_commerces_paris.cache_clear()
+        with patch.object(main.requests, "get", return_value=reponse_api):
+            response = client.get(
+                "/commerces/paris?arrondissement=11",
+                headers=AUTH_HEADERS,
+            )
+        main.charger_commerces_paris.cache_clear()
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["nombre_resultats"], 1)
+        self.assertEqual(payload["data"][0]["arrondissement"], 11)
+        self.assertEqual(payload["data"][0]["nom_arrondissement"], "Paris 11e Arrondissement")
+        self.assertEqual(payload["data"][0]["commerces_alimentaires"], 386)
+        self.assertEqual(payload["data"][0]["note_commerces_sur_10"], 10.0)
+
+
+if __name__ == "__main__":
+    unittest.main()

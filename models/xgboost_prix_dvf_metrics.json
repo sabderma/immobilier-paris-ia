@@ -1,0 +1,18 @@
+{
+  "modele": "XGBRegressor",
+  "type_probleme": "regression",
+  "cible": "valeur_fonciere",
+  "features": [
+    "surface_reelle_bati",
+    "nombre_pieces_principales",
+    "arrondissement"
+  ],
+  "lignes_total": 152431,
+  "lignes_train": 121944,
+  "lignes_test": 30487,
+  "r2_score": 0.8538,
+  "mae_euros": 111078.36,
+  "rmse_euros": 197974.42,
+  "test_size": 0.2,
+  "random_state": 42
+}

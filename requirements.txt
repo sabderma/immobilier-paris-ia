@@ -1,10 +1,15 @@
 fastapi
 folium
+joblib
+matplotlib
 pandas
 plotly
 psycopg2-binary
 requests
+scikit-learn
+seaborn
 sqlalchemy
 streamlit
 streamlit-folium
 uvicorn
+xgboost

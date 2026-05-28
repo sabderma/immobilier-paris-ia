@@ -1,30 +1,20 @@
 """
-Carte Folium DVF de Paris alimentée par PostgreSQL.
+Utilitaires Folium pour la carte DVF de Paris.
 
 Comportement :
 - au chargement : prix médian au m² par arrondissement ;
 - au clic sur un arrondissement : zoom et affichage des sections cadastrales ;
 - à fort zoom : affichage automatique du parcellaire cadastral officiel.
-- à partir du zoom 18 : points d'appartements plus lisibles avec popup détaillé.
-
-La carte lit les ventes depuis la table SQL `dvf_paris_appartements`.
+Les données sont fournies par l'appelant, par exemple Streamlit.
 Les sections cadastrales viennent du cadastre ouvert Etalab et sont mises en
 cache localement après le premier téléchargement.
-
-Exécution :
-    python3 src/analyse/carte_paris.py
 """
 
 from __future__ import annotations
 
-import argparse
-import gzip
 import json
-import os
 from pathlib import Path
 from typing import Any, Iterable
-from urllib.error import URLError
-from urllib.request import Request, urlopen
 
 import folium
 import numpy as np
@@ -32,65 +22,15 @@ import pandas as pd
 from branca.colormap import LinearColormap
 from branca.element import Element
 from folium.features import DivIcon, GeoJson, GeoJsonTooltip
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Engine
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_OUTPUT_PATH = ROOT_DIR / "data/visuals/carte_paris_dvf.html"
 ARRONDISSEMENTS_CACHE = ROOT_DIR / "data/raw/arrondissements_paris.geojson"
 SECTIONS_CACHE_DIR = ROOT_DIR / "data/raw/cadastre_sections_paris"
-
-ARRONDISSEMENTS_URL = (
-    "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/"
-    "arrondissements/exports/geojson?lang=fr&timezone=Europe%2FParis"
-)
-SECTIONS_URL_TEMPLATE = (
-    "https://cadastre.data.gouv.fr/data/etalab-cadastre/latest/geojson/"
-    "communes/75/{code_commune}/cadastre-{code_commune}-sections.json.gz"
-)
-PARCELLAIRE_WMS_URL = "https://data.geopf.fr/wms-r/ows"
 
 PARIS_CENTER = [48.8566, 2.3522]
 ARRONDISSEMENTS = range(1, 21)
 PALETTE = ["#2f8f6f", "#93c35c", "#f1e85a", "#eba148", "#c83d35"]
-
-
-QUERY_STATS_ARRONDISSEMENTS = text(
-    """
-    SELECT
-        arrondissement,
-        COUNT(*)::INTEGER AS nb_ventes,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY prix_m2)::FLOAT
-            AS prix_m2_median
-    FROM dvf_paris_appartements
-    WHERE prix_m2 IS NOT NULL
-      AND arrondissement BETWEEN 1 AND 20
-    GROUP BY arrondissement
-    ORDER BY arrondissement;
-    """
-)
-
-QUERY_POINTS_DVF = text(
-    """
-    SELECT
-        id_mutation,
-        TO_CHAR(date_mutation, 'DD/MM/YYYY') AS date_mutation,
-        arrondissement,
-        longitude::FLOAT AS longitude,
-        latitude::FLOAT AS latitude,
-        valeur_fonciere::FLOAT AS valeur_fonciere,
-        surface_reelle_bati::FLOAT AS surface_reelle_bati,
-        nombre_pieces_principales::INTEGER AS nombre_pieces_principales,
-        prix_m2::FLOAT AS prix_m2,
-        adresse_nom_voie
-    FROM dvf_paris_appartements
-    WHERE prix_m2 IS NOT NULL
-      AND longitude IS NOT NULL
-      AND latitude IS NOT NULL
-      AND arrondissement BETWEEN 1 AND 20;
-    """
-)
 
 
 def format_int(value: float | int) -> str:
@@ -103,71 +43,20 @@ def format_euros(value: float | int) -> str:
     return f"{format_int(value)}€"
 
 
-def construire_engine(database_url: str | None = None) -> Engine:
-    """Construit la connexion PostgreSQL à partir de l'URL ou des variables d'env."""
-    if database_url:
-        return create_engine(database_url)
-
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "12345")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5433")
-    database = os.getenv("DB_NAME", "immobilier_paris")
-    return create_engine(
-        f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
-    )
-
-
-def lire_donnees_sql(engine: Engine) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Charge depuis PostgreSQL les agrégats arrondissement et les points DVF."""
-    with engine.connect() as conn:
-        stats_arr = pd.read_sql(QUERY_STATS_ARRONDISSEMENTS, conn)
-        points = pd.read_sql(QUERY_POINTS_DVF, conn)
-
-    if stats_arr.empty:
-        raise RuntimeError(
-            "La table dvf_paris_appartements est vide ou ne contient aucun prix_m2."
-        )
-
-    stats_arr["arrondissement"] = stats_arr["arrondissement"].astype(int)
-    points["arrondissement"] = points["arrondissement"].astype(int)
-    return stats_arr, points
-
-
 def charger_geojson(
     cache_path: Path,
-    url: str,
-    *,
-    compressed: bool = False,
 ) -> dict[str, Any]:
-    """Charge un GeoJSON depuis le cache local ou depuis son URL officielle."""
-    if cache_path.exists():
-        with cache_path.open("r", encoding="utf-8") as file:
-            return json.load(file)
+    """Charge un GeoJSON déjà présent dans les données locales du projet."""
+    if not cache_path.exists():
+        raise FileNotFoundError(f"GeoJSON local introuvable : {cache_path}")
 
-    request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
-
-    try:
-        with urlopen(request, timeout=30) as response:
-            payload = response.read()
-    except URLError as exc:
-        raise RuntimeError(
-            f"Impossible de télécharger la géométrie nécessaire : {url}"
-        ) from exc
-
-    if compressed or payload[:2] == b"\x1f\x8b":
-        payload = gzip.decompress(payload)
-
-    geojson = json.loads(payload.decode("utf-8"))
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    with cache_path.open("w", encoding="utf-8") as file:
-        json.dump(geojson, file, ensure_ascii=False)
-    return geojson
+    with cache_path.open("r", encoding="utf-8") as file:
+        return json.load(file)
 
 
 def charger_arrondissements() -> dict[str, Any]:
     """Charge les limites officielles des arrondissements parisiens."""
-    return charger_geojson(ARRONDISSEMENTS_CACHE, ARRONDISSEMENTS_URL)
+    return charger_geojson(ARRONDISSEMENTS_CACHE)
 
 
 def charger_sections() -> dict[int, dict[str, Any]]:
@@ -177,12 +66,7 @@ def charger_sections() -> dict[int, dict[str, Any]]:
     for arrondissement in ARRONDISSEMENTS:
         code_commune = f"751{arrondissement:02d}"
         cache_path = SECTIONS_CACHE_DIR / f"cadastre-{code_commune}-sections.geojson"
-        url = SECTIONS_URL_TEMPLATE.format(code_commune=code_commune)
-        sections_par_arrondissement[arrondissement] = charger_geojson(
-            cache_path,
-            url,
-            compressed=True,
-        )
+        sections_par_arrondissement[arrondissement] = charger_geojson(cache_path)
 
     return sections_par_arrondissement
 
@@ -272,9 +156,9 @@ def attribuer_sections_aux_points(
     """
     Associe chaque point DVF à une section cadastrale à partir de ses coordonnées.
 
-    La table SQL actuelle n'a pas `id_parcelle`; on fait donc ici le rattachement
-    spatial depuis latitude/longitude. Si `id_parcelle` est ajouté plus tard en
-    base, cette étape pourra être remplacée par une agrégation SQL directe.
+    Les données DVF n'ont pas `id_parcelle`; on fait donc ici le rattachement
+    spatial depuis latitude/longitude. Si `id_parcelle` est ajouté plus tard,
+    cette étape pourra être remplacée par une agrégation dédiée en amont.
     """
     morceaux: list[pd.DataFrame] = []
 
@@ -336,7 +220,7 @@ def enrichir_arrondissements(
     geojson: dict[str, Any],
     stats_arr: pd.DataFrame,
 ) -> dict[str, Any]:
-    """Ajoute les statistiques SQL aux polygones d'arrondissement."""
+    """Ajoute les statistiques fournies aux polygones d'arrondissement."""
     stats = stats_arr.set_index("arrondissement")
 
     for feature in geojson["features"]:
@@ -422,22 +306,6 @@ def css_carte() -> str:
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
             white-space: nowrap;
         }
-
-        .appartement-popup {
-            min-width: 180px;
-            font-size: 13px;
-            line-height: 1.45;
-        }
-
-        .appartement-popup strong {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .appartement-popup .muted {
-            color: #6b7280;
-        }
     </style>
     """
 
@@ -446,157 +314,45 @@ def javascript_interactions(
     map_name: str,
     arrondissements_layer_name: str,
     sections_layer_names: dict[int, str],
-    parcellaire_layer_name: str,
-    points_appartements: pd.DataFrame,
 ) -> str:
-    """Gère le clic arrondissement -> sections et l'affichage du parcellaire."""
+    """Gère le clic arrondissement -> sections."""
     sections_js = ",\n".join(
         f'            "{arrondissement}": {layer_name}'
         for arrondissement, layer_name in sections_layer_names.items()
     )
-    points_js = json.dumps(
-        [
-            [
-                round(float(row.latitude), 6),
-                round(float(row.longitude), 6),
-                format_euros(row.valeur_fonciere),
-                f"{float(row.surface_reelle_bati):.0f} m²",
-                int(row.nombre_pieces_principales),
-                format_euros(row.prix_m2),
-                row.date_mutation,
-                row.adresse_nom_voie,
-            ]
-            for row in points_appartements.itertuples(index=False)
-        ],
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
 
     return f"""
     <script>
-        window.addEventListener("load", () => {{
-            const carte = {map_name};
-            const coucheArrondissements = {arrondissements_layer_name};
-            const couchesSections = {{
+        const carte = {map_name};
+        const coucheArrondissements = {arrondissements_layer_name};
+        const couchesSections = {{
 {sections_js}
-            }};
-            const coucheParcellaire = {parcellaire_layer_name};
-            const appartements = {points_js};
-            const coucheAppartements = L.layerGroup();
-            let arrondissementActif = null;
+        }};
 
-            function masquerSections() {{
-                Object.values(couchesSections).forEach((couche) => {{
-                    if (carte.hasLayer(couche)) {{
-                        carte.removeLayer(couche);
-                    }}
-                }});
-            }}
-
-            function afficherSections(arrondissement, bounds) {{
-                masquerSections();
-                const couche = couchesSections[String(arrondissement)];
-                if (couche) {{
-                    couche.addTo(carte);
+        function masquerSections() {{
+            Object.values(couchesSections).forEach((couche) => {{
+                if (carte.hasLayer(couche)) {{
+                    carte.removeLayer(couche);
                 }}
-                arrondissementActif = String(arrondissement);
-                carte.fitBounds(bounds, {{ maxZoom: 14 }});
-            }}
-
-            coucheArrondissements.eachLayer((layer) => {{
-                layer.on("click", () => {{
-                    afficherSections(
-                        layer.feature.properties.arrondissement_code,
-                        layer.getBounds()
-                    );
-                }});
             }});
+        }}
 
-            function mettreAJourParcellaire() {{
-                if (carte.getZoom() >= 17) {{
-                    if (carte.hasLayer(coucheArrondissements)) {{
-                        carte.removeLayer(coucheArrondissements);
-                    }}
-                    masquerSections();
-                    if (!carte.hasLayer(coucheParcellaire)) {{
-                        coucheParcellaire.addTo(carte);
-                    }}
-                }} else {{
-                    if (!carte.hasLayer(coucheArrondissements)) {{
-                        coucheArrondissements.addTo(carte);
-                    }}
-                    if (carte.hasLayer(coucheParcellaire)) {{
-                        carte.removeLayer(coucheParcellaire);
-                    }}
-                    if (carte.getZoom() <= 11) {{
-                        arrondissementActif = null;
-                        masquerSections();
-                    }} else if (arrondissementActif) {{
-                        masquerSections();
-                        couchesSections[arrondissementActif].addTo(carte);
-                    }}
-                }}
+        function afficherSections(arrondissement, bounds) {{
+            masquerSections();
+            const couche = couchesSections[String(arrondissement)];
+            if (couche) {{
+                couche.addTo(carte);
             }}
+            carte.fitBounds(bounds, {{ maxZoom: 14 }});
+        }}
 
-            function echapperHtml(value) {{
-                return String(value ?? "")
-                    .replaceAll("&", "&amp;")
-                    .replaceAll("<", "&lt;")
-                    .replaceAll(">", "&gt;")
-                    .replaceAll('"', "&quot;")
-                    .replaceAll("'", "&#039;");
-            }}
-
-            function popupAppartement(point) {{
-                const [lat, lon, prix, surface, pieces, prixM2, date, adresse] = point;
-                return `
-                    <div class="appartement-popup">
-                        <strong>Appartement</strong>
-                        <div><b>Prix :</b> ${{echapperHtml(prix)}}</div>
-                        <div><b>Surface :</b> ${{echapperHtml(surface)}}</div>
-                        <div><b>Pièces :</b> ${{echapperHtml(pieces)}}</div>
-                        <div><b>Prix au m² :</b> ${{echapperHtml(prixM2)}}</div>
-                        <div class="muted">${{echapperHtml(date)}} · ${{echapperHtml(adresse)}}</div>
-                    </div>
-                `;
-            }}
-
-            function mettreAJourAppartements() {{
-                coucheAppartements.clearLayers();
-                if (carte.getZoom() < 18) {{
-                    if (carte.hasLayer(coucheAppartements)) {{
-                        carte.removeLayer(coucheAppartements);
-                    }}
-                    return;
-                }}
-
-                const bounds = carte.getBounds();
-                appartements.forEach((point) => {{
-                    const [lat, lon] = point;
-                    if (!bounds.contains([lat, lon])) {{
-                        return;
-                    }}
-                    L.circleMarker([lat, lon], {{
-                        radius: 7,
-                        color: "#ffffff",
-                        weight: 2,
-                        fillColor: "#b81f6f",
-                        fillOpacity: 0.95,
-                    }})
-                        .bindPopup(popupAppartement(point))
-                        .addTo(coucheAppartements);
-                }});
-
-                if (!carte.hasLayer(coucheAppartements)) {{
-                    coucheAppartements.addTo(carte);
-                }}
-            }}
-
-            carte.on("zoomend", mettreAJourParcellaire);
-            carte.on("zoomend", mettreAJourAppartements);
-            carte.on("moveend", mettreAJourAppartements);
-            mettreAJourParcellaire();
-            mettreAJourAppartements();
+        coucheArrondissements.eachLayer((layer) => {{
+            layer.on("click", () => {{
+                afficherSections(
+                    layer.feature.properties.arrondissement_code,
+                    layer.getBounds()
+                );
+            }});
         }});
     </script>
     """
@@ -630,7 +386,7 @@ def creer_carte(
 
     carte = folium.Map(
         location=PARIS_CENTER,
-        zoom_start=12,
+        zoom_start=11,
         tiles="OpenStreetMap",
         control_scale=True,
         zoom_control=True,
@@ -717,18 +473,6 @@ def creer_carte(
 
         section_layers[arrondissement] = groupe
 
-    parcellaire = folium.raster_layers.WmsTileLayer(
-        url=PARCELLAIRE_WMS_URL,
-        layers="CADASTRALPARCELS.PARCELLAIRE_EXPRESS",
-        name="Parcelles cadastrales",
-        fmt="image/png",
-        transparent=True,
-        overlay=True,
-        control=False,
-        show=False,
-        opacity=0.8,
-    ).add_to(carte)
-
     carte.get_root().header.add_child(Element(css_carte()))
     carte.get_root().html.add_child(
         Element(
@@ -739,8 +483,6 @@ def creer_carte(
                     arrondissement: groupe.get_name()
                     for arrondissement, groupe in section_layers.items()
                 },
-                parcellaire.get_name(),
-                points,
             )
         )
     )
@@ -748,41 +490,3 @@ def creer_carte(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     carte.save(output_path)
     return output_path
-
-
-def parser_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Génère une carte Folium DVF de Paris alimentée par SQL."
-    )
-    parser.add_argument(
-        "--database-url",
-        default=None,
-        help="URL SQLAlchemy PostgreSQL optionnelle.",
-    )
-    parser.add_argument(
-        "--output",
-        type=Path,
-        default=DEFAULT_OUTPUT_PATH,
-        help="Fichier HTML de sortie.",
-    )
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parser_arguments()
-    engine = construire_engine(args.database_url)
-    stats_arr, points = lire_donnees_sql(engine)
-    arrondissements = charger_arrondissements()
-    sections = charger_sections()
-    output_path = creer_carte(
-        stats_arr,
-        points,
-        arrondissements,
-        sections,
-        args.output,
-    )
-    print(f"Carte générée : {output_path}")
-
-
-if __name__ == "__main__":
-    main()

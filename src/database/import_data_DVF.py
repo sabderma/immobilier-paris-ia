@@ -1,19 +1,12 @@
 import pandas as pd
-from sqlalchemy import create_engine
+
+from db_config import construire_engine
 
 # =========================================
 # CONFIGURATION POSTGRESQL
 # =========================================
 
-USER = "postgres"
-PASSWORD = "12345"
-HOST = "localhost"
-PORT = "5433"
-DATABASE = "immobilier_paris"
-
-engine = create_engine(
-    f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
-)
+engine = construire_engine()
 
 # =========================================
 # IMPORT DU FICHIER DVF NETTOYÉ
