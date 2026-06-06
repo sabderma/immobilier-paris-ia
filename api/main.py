@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
 import os
+import re
+import time
 from functools import lru_cache
 from hmac import compare_digest
 from io import StringIO
@@ -14,6 +17,13 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.security import APIKeyHeader
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Gauge,
+    Histogram,
+    generate_latest,
+)
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine, URL
@@ -22,6 +32,7 @@ from sqlalchemy.engine import Engine, URL
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DVF_CSV_PATH = ROOT_DIR / "data/final/dvf_paris_clean_2021_2025.csv"
 PREDICTION_MODEL_PATH = ROOT_DIR / "models/xgboost_prix_dvf.joblib"
+PREDICTION_METRICS_PATH = ROOT_DIR / "models/xgboost_prix_dvf_metrics.json"
 COMMERCES_PARIS_API_URL = (
     "https://data.iledefrance.fr/api/explore/v2.1/catalog/datasets/"
     "les-commerces-par-commune-ou-arrondissement-base-permanente-des-equipements/"
@@ -29,6 +40,92 @@ COMMERCES_PARIS_API_URL = (
 )
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 modele_prediction: Any | None = None
+
+MODEL_PREDICTIONS_TOTAL = Counter(
+    "model_predictions_total",
+    "Nombre total de predictions realisees par le modele.",
+    ["model"],
+)
+MODEL_PREDICTIONS_BY_ARRONDISSEMENT = Counter(
+    "model_predictions_by_arrondissement_total",
+    "Nombre total de predictions par arrondissement.",
+    ["arrondissement"],
+)
+MODEL_PREDICTION_ERRORS_TOTAL = Counter(
+    "model_prediction_errors_total",
+    "Nombre total d'erreurs pendant les predictions du modele.",
+    ["model"],
+)
+MODEL_PREDICTION_DURATION_SECONDS = Histogram(
+    "model_prediction_duration_seconds",
+    "Temps necessaire pour realiser une prediction.",
+    ["model"],
+)
+MODEL_PREDICTED_PRICE_EUROS = Gauge(
+    "model_predicted_price_euros",
+    "Dernier prix estime par le modele.",
+    ["arrondissement"],
+)
+MODEL_INPUT_SURFACE_M2 = Gauge(
+    "model_input_surface_m2",
+    "Derniere surface envoyee au modele.",
+    ["arrondissement"],
+)
+MODEL_EVALUATION_MAE_EUROS = Gauge(
+    "model_evaluation_mae_euros",
+    "Erreur moyenne absolue du modele sur les donnees de test, en euros.",
+    ["model"],
+)
+MODEL_EVALUATION_RMSE_EUROS = Gauge(
+    "model_evaluation_rmse_euros",
+    "Racine de l'erreur quadratique moyenne sur les donnees de test, en euros.",
+    ["model"],
+)
+MODEL_EVALUATION_R2_SCORE = Gauge(
+    "model_evaluation_r2_score",
+    "Score R2 du modele sur les donnees de test.",
+    ["model"],
+)
+MODEL_EVALUATION_TEST_SAMPLES = Gauge(
+    "model_evaluation_test_samples",
+    "Nombre de ventes utilisees pour evaluer le modele.",
+    ["model"],
+)
+
+
+def charger_metriques_evaluation(
+    metrics_path: Path = PREDICTION_METRICS_PATH,
+) -> None:
+    """Expose dans Prometheus les resultats produits lors de l'entrainement."""
+    if not metrics_path.exists():
+        return
+
+    try:
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return
+
+    nom_modele = str(metrics.get("modele", "XGBRegressor"))
+    metriques_prometheus = (
+        (MODEL_EVALUATION_MAE_EUROS, "mae_euros"),
+        (MODEL_EVALUATION_RMSE_EUROS, "rmse_euros"),
+        (MODEL_EVALUATION_R2_SCORE, "r2_score"),
+        (MODEL_EVALUATION_TEST_SAMPLES, "lignes_test"),
+    )
+    for gauge, cle in metriques_prometheus:
+        valeur = metrics.get(cle)
+        if isinstance(valeur, (int, float)):
+            gauge.labels(model=nom_modele).set(valeur)
+
+
+MODEL_PREDICTIONS_TOTAL.labels(model="XGBRegressor")
+MODEL_PREDICTION_ERRORS_TOTAL.labels(model="XGBRegressor")
+MODEL_PREDICTION_DURATION_SECONDS.labels(model="XGBRegressor")
+for arrondissement in range(1, 21):
+    MODEL_PREDICTIONS_BY_ARRONDISSEMENT.labels(
+        arrondissement=str(arrondissement)
+    )
+charger_metriques_evaluation()
 
 CHAMPS_COMMERCES = [
     "hypermarche",
@@ -69,7 +166,7 @@ def charger_env() -> None:
             continue
 
         cle, valeur = ligne.split("=", 1)
-        os.environ.setdefault(cle.strip(), valeur.strip().strip('"').strip("'"))
+        os.environ[cle.strip()] = valeur.strip().strip('"').strip("'")
 
 
 def construire_engine(database_url: str | None = None) -> Engine:
@@ -119,6 +216,83 @@ class PredictionPrixResponse(BaseModel):
     arrondissement: int
     prix_estime: float
     modele: str
+
+
+class AdresseScoreRequest(BaseModel):
+    adresse: str = Field(min_length=3, max_length=200, description="Adresse exacte")
+    arrondissement: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=20,
+        description="Arrondissement parisien optionnel",
+    )
+
+
+GEMINI_CATEGORIE_LIEUX_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "score": {"type": "integer"},
+        "nombre_trouve": {"type": "integer"},
+        "elements": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "nom": {"type": "string"},
+                    "type": {"type": "string"},
+                    "lignes": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "distance_estimee": {"type": "string"},
+                    "temps_a_pied": {"type": "string"},
+                    "impact": {"type": "string"},
+                    "commentaire": {"type": "string"},
+                },
+            },
+        },
+    },
+}
+
+
+GEMINI_ADRESSE_SCORE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "adresse_analysee": {"type": "string"},
+        "score_global": {"type": "integer"},
+        "niveau": {"type": "string"},
+        "resume": {"type": "string"},
+        "details": {
+            "type": "object",
+            "properties": {
+                "transports": GEMINI_CATEGORIE_LIEUX_SCHEMA,
+                "commerces": GEMINI_CATEGORIE_LIEUX_SCHEMA,
+                "ecoles": GEMINI_CATEGORIE_LIEUX_SCHEMA,
+                "espaces_verts": GEMINI_CATEGORIE_LIEUX_SCHEMA,
+                "sante": GEMINI_CATEGORIE_LIEUX_SCHEMA,
+                "tourisme_frequentation": GEMINI_CATEGORIE_LIEUX_SCHEMA,
+                "tranquillite": {
+                    "type": "object",
+                    "properties": {
+                        "score": {"type": "integer"},
+                        "avis": {"type": "string"},
+                        "risques": {"type": "array", "items": {"type": "string"}},
+                    },
+                },
+                "attractivite_immobiliere": {
+                    "type": "object",
+                    "properties": {
+                        "score": {"type": "integer"},
+                        "avis": {"type": "string"},
+                    },
+                },
+            },
+        },
+        "points_forts": {"type": "array", "items": {"type": "string"}},
+        "points_faibles": {"type": "array", "items": {"type": "string"}},
+        "conclusion_acheteur": {"type": "string"},
+    },
+}
 
 
 def construire_where_dvf(
@@ -237,6 +411,144 @@ def predire_prix_xgboost(
         ]
     )
     return float(modele.predict(donnees)[0])
+
+
+def adresse_hors_paris(adresse: str) -> bool:
+    codes_postaux = re.findall(r"\b\d{5}\b", adresse)
+    return bool(codes_postaux) and not any(code.startswith("75") for code in codes_postaux)
+
+
+def arrondissement_dans_adresse(adresse: str) -> int | None:
+    code_postal = re.search(r"\b750([1-9]|1[0-9]|20)\b", adresse)
+    if code_postal:
+        return int(code_postal.group(1))
+
+    paris_arrondissement = re.search(
+        r"\bparis\s*([1-9]|1[0-9]|20)\s*(?:e|er|eme|ème)?\b",
+        adresse,
+        flags=re.IGNORECASE,
+    )
+    if paris_arrondissement:
+        return int(paris_arrondissement.group(1))
+
+    return None
+
+
+def normaliser_adresse_paris(adresse: str, arrondissement: int | None = None) -> str:
+    adresse_nettoyee = " ".join(adresse.strip().rstrip(",").split())
+    if "paris" in adresse_nettoyee.lower():
+        return adresse_nettoyee
+    if arrondissement is None:
+        return adresse_nettoyee
+    return f"{adresse_nettoyee}, Paris {arrondissement}"
+
+
+def construire_prompt_score_adresse(adresse: str, arrondissement: int | None) -> str:
+    arrondissement_texte = f"Paris {arrondissement}" if arrondissement else "non fourni"
+    return f"""
+Tu es un assistant specialise dans l'analyse de localisation immobiliere a Paris.
+
+Objectif :
+Analyser une adresse exacte situee uniquement a Paris et produire un score
+d'emplacement immobilier sur 100.
+
+Adresse a analyser :
+{adresse}
+
+Arrondissement detecte :
+{arrondissement_texte}
+
+Regles obligatoires :
+- Tu dois accepter uniquement les adresses situees a Paris intra-muros.
+- Si l'adresse n'est pas a Paris, retourne uniquement ce JSON :
+  {{"erreur": "Adresse non valide", "message": "Il faut saisir une adresse situee a Paris."}}
+- Si l'adresse ne precise pas Paris, un code postal 75001 a 75020, ou un arrondissement parisien,
+  retourne uniquement ce JSON :
+  {{"erreur": "Adresse incomplète", "message": "Il faut saisir une adresse complète avec Paris et l'arrondissement."}}
+- Ne jamais analyser une adresse hors Paris.
+- Ne jamais ecrire "a verifier", "à vérifier" ou une distance vide.
+- Pour chaque lieu trouve, donne une distance exacte si tu la connais, sinon une distance approximative.
+- Les distances doivent etre ecrites comme "120 m", "environ 300 m" ou "environ 8 min a pied".
+- Donne les noms concrets des stations, lignes de transport, ecoles, commerces, espaces verts et services de sante.
+- Si tu ne connais pas assez d'elements dans une categorie, mets moins d'elements, mais ne les invente pas.
+- Reponds uniquement en JSON valide, sans texte avant ou apres.
+
+Analyse les categories suivantes :
+1. Transports a proximite
+2. Commerces et supermarches
+3. Ecoles
+4. Espaces verts
+5. Sante
+6. Zones touristiques ou tres frequentees
+7. Tranquillite
+8. Attractivite immobiliere
+
+Pour chaque categorie :
+- donne un score sur 100
+- donne le nombre d'elements trouves
+- donne les noms precis
+- donne les distances exactes ou approximatives
+- donne un commentaire utile pour un acheteur immobilier
+""".strip()
+
+
+def extraire_json_gemini(texte: str) -> dict[str, Any]:
+    contenu = texte.strip()
+    if contenu.startswith("```"):
+        contenu = re.sub(r"^```(?:json)?", "", contenu, flags=re.IGNORECASE).strip()
+        contenu = re.sub(r"```$", "", contenu).strip()
+
+    try:
+        return json.loads(contenu)
+    except json.JSONDecodeError:
+        debut = contenu.find("{")
+        fin = contenu.rfind("}")
+        if debut == -1 or fin == -1 or fin <= debut:
+            raise
+        return json.loads(contenu[debut : fin + 1])
+
+
+def generer_score_adresse_gemini(
+    adresse: str,
+    arrondissement: int | None,
+) -> dict[str, Any]:
+    charger_env()
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="GEMINI_API_KEY n'est pas configurée dans le fichier .env",
+        )
+
+    try:
+        from google import genai
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="La dépendance google-genai est manquante. Réinstallez requirements.txt.",
+        ) from exc
+
+    prompt = construire_prompt_score_adresse(adresse, arrondissement)
+    modele = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    client = genai.Client(api_key=api_key)
+
+    try:
+        response = client.models.generate_content(
+            model=modele,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_json_schema": GEMINI_ADRESSE_SCORE_SCHEMA,
+            },
+        )
+        resultat = extraire_json_gemini(response.text or "")
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Impossible de générer la note avec Gemini : {exc}",
+        ) from exc
+
+    return resultat
 
 
 def valeur_entier(donnees: dict[str, Any], champ: str) -> int:
@@ -386,24 +698,84 @@ def health_check() -> dict[str, str]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.get("/metrics")
+def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.post("/prediction/prix", response_model=PredictionPrixResponse)
 def prediction_prix(
     payload: PredictionPrixRequest,
     _: None = Depends(verifier_cle_api),
 ) -> PredictionPrixResponse:
-    prix_estime = predire_prix_xgboost(
-        surface=payload.surface,
-        nombre_pieces=payload.nombre_pieces,
-        arrondissement=payload.arrondissement,
+    nom_modele = "XGBRegressor"
+    arrondissement = str(payload.arrondissement)
+    debut_prediction = time.perf_counter()
+
+    try:
+        prix_estime = predire_prix_xgboost(
+            surface=payload.surface,
+            nombre_pieces=payload.nombre_pieces,
+            arrondissement=payload.arrondissement,
+        )
+    except Exception:
+        MODEL_PREDICTION_ERRORS_TOTAL.labels(model=nom_modele).inc()
+        MODEL_PREDICTION_DURATION_SECONDS.labels(model=nom_modele).observe(
+            time.perf_counter() - debut_prediction
+        )
+        raise
+
+    MODEL_PREDICTION_DURATION_SECONDS.labels(model=nom_modele).observe(
+        time.perf_counter() - debut_prediction
     )
+    MODEL_PREDICTIONS_TOTAL.labels(model=nom_modele).inc()
+    MODEL_PREDICTIONS_BY_ARRONDISSEMENT.labels(arrondissement=arrondissement).inc()
+    MODEL_PREDICTED_PRICE_EUROS.labels(arrondissement=arrondissement).set(prix_estime)
+    MODEL_INPUT_SURFACE_M2.labels(arrondissement=arrondissement).set(payload.surface)
 
     return PredictionPrixResponse(
         surface=payload.surface,
         nombre_pieces=payload.nombre_pieces,
         arrondissement=payload.arrondissement,
         prix_estime=round(prix_estime, 2),
-        modele="XGBRegressor",
+        modele=nom_modele,
     )
+
+
+@app.post("/ia/noter-adresse")
+def noter_adresse(
+    payload: AdresseScoreRequest,
+    _: None = Depends(verifier_cle_api),
+) -> dict[str, Any]:
+    if adresse_hors_paris(payload.adresse):
+        return {
+            "erreur": "Adresse non valide",
+            "message": "Il faut saisir une adresse située à Paris.",
+        }
+
+    arrondissement_detecte = arrondissement_dans_adresse(payload.adresse)
+    if (
+        arrondissement_detecte is not None
+        and payload.arrondissement is not None
+        and arrondissement_detecte != payload.arrondissement
+    ):
+        return {
+            "erreur": "Arrondissement incohérent",
+            "message": (
+                f"L'adresse indique Paris {arrondissement_detecte}, "
+                f"mais l'arrondissement sélectionné est Paris {payload.arrondissement}."
+            ),
+        }
+
+    arrondissement = arrondissement_detecte or payload.arrondissement
+    if arrondissement is None:
+        return {
+            "erreur": "Adresse incomplète",
+            "message": "Il faut saisir une adresse complète avec Paris et l'arrondissement.",
+        }
+
+    adresse_complete = normaliser_adresse_paris(payload.adresse, arrondissement)
+    return generer_score_adresse_gemini(adresse_complete, arrondissement)
 
 
 @app.get("/commerces/paris")

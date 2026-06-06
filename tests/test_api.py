@@ -19,7 +19,7 @@ from api import main  # noqa: E402
 
 
 client = TestClient(main.app)
-AUTH_HEADERS = {"X-API-Key": "test-api-key"}
+AUTH_HEADERS = {"X-API-Key": os.environ["API_KEY"]}
 
 
 def fake_lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
@@ -139,6 +139,82 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["prix_estime"], 465328.0)
         self.assertEqual(response.json()["modele"], "XGBRegressor")
+
+    def test_metrics_expose_erreur_moyenne_modele(self):
+        response = client.get("/metrics")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            'model_evaluation_mae_euros{model="XGBRegressor"}',
+            response.text,
+        )
+        self.assertIn(
+            'model_evaluation_test_samples{model="XGBRegressor"}',
+            response.text,
+        )
+
+    def test_noter_adresse_refuse_une_adresse_hors_paris(self):
+        response = client.post(
+            "/ia/noter-adresse",
+            json={"adresse": "10 rue Victor Hugo, 69002 Lyon", "arrondissement": 11},
+            headers=AUTH_HEADERS,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["erreur"], "Adresse non valide")
+        self.assertEqual(
+            response.json()["message"],
+            "Il faut saisir une adresse située à Paris.",
+        )
+
+    def test_noter_adresse_refuse_un_arrondissement_incoherent(self):
+        response = client.post(
+            "/ia/noter-adresse",
+            json={"adresse": "71 rue de Passy, Paris 16e", "arrondissement": 2},
+            headers=AUTH_HEADERS,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["erreur"], "Arrondissement incohérent")
+        self.assertIn("Paris 16", response.json()["message"])
+        self.assertIn("Paris 2", response.json()["message"])
+
+    def test_noter_adresse_demande_une_adresse_complete(self):
+        response = client.post(
+            "/ia/noter-adresse",
+            json={"adresse": "71 rue de Passy"},
+            headers=AUTH_HEADERS,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["erreur"], "Adresse incomplète")
+
+    def test_noter_adresse_appelle_gemini_pour_une_adresse_parisienne(self):
+        resultat_gemini = {
+            "adresse_analysee": "71 rue de Passy, Paris 16",
+            "score_global": 92,
+            "niveau": "excellent",
+            "resume": "Adresse très bien située.",
+            "details": {},
+            "points_forts": ["Transports proches"],
+            "points_faibles": ["Rue commerçante"],
+            "conclusion_acheteur": "Très bon emplacement.",
+        }
+
+        with patch.object(
+            main,
+            "generer_score_adresse_gemini",
+            return_value=resultat_gemini,
+        ) as gemini:
+            response = client.post(
+                "/ia/noter-adresse",
+                json={"adresse": "71 rue de Passy, Paris 16e"},
+                headers=AUTH_HEADERS,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["score_global"], 92)
+        gemini.assert_called_once_with("71 rue de Passy, Paris 16e", 16)
 
     def test_commerces_paris_retourne_un_arrondissement_normalise(self):
         reponse_api = Mock()

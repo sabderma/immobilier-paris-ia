@@ -1,5 +1,6 @@
 fastapi
 folium
+google-genai
 joblib
 matplotlib
 pandas
@@ -13,3 +14,4 @@ streamlit
 streamlit-folium
 uvicorn
 xgboost
+prometheus-client

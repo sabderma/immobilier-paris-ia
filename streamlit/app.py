@@ -15,11 +15,9 @@ from folium.features import GeoJsonTooltip
 from streamlit_folium import st_folium
 
 from src.analyse import carte_paris, graphiques
-from src.prediction.prediction import charger_modele, predire_prix_avec_modele
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-MODELE_PREDICTION_PATH = ROOT_DIR / "models" / "xgboost_prix_dvf.joblib"
 API_BASE_URL = "http://127.0.0.1:8000"
 API_ENDPOINTS = {
     "health": "/health",
@@ -31,6 +29,8 @@ API_ENDPOINTS = {
     "points": "/dvf/points",
     "csv": "/dvf/export.csv",
     "commerces": "/commerces/paris",
+    "adresse_score": "/ia/noter-adresse",
+    "prediction_prix": "/prediction/prix",
 }
 PALETTE = ["#2f8f6f", "#93c35c", "#f1e85a", "#eba148", "#c83d35"]
 ZOOM_POINTS = 15
@@ -49,7 +49,7 @@ def charger_env() -> None:
             continue
 
         cle, valeur = ligne.split("=", 1)
-        os.environ.setdefault(cle.strip(), valeur.strip().strip('"').strip("'"))
+        os.environ[cle.strip()] = valeur.strip().strip('"').strip("'")
 
 
 def headers_api() -> dict[str, str]:
@@ -80,6 +80,17 @@ def api_get_json(path: str, params: dict[str, Any] | None = None) -> Any:
         )
         response.raise_for_status()
         return response.json()
+    except requests.exceptions.HTTPError as exc:
+        detail = None
+        response = exc.response
+        if response is not None:
+            try:
+                detail = response.json().get("detail")
+            except ValueError:
+                detail = response.text
+        message = detail or str(exc)
+        st.error(f"Erreur API sur {path} : {message}")
+        st.stop()
     except requests.exceptions.RequestException as exc:
         st.error(f"Erreur API sur {path} : {exc}")
         st.stop()
@@ -95,6 +106,43 @@ def api_get_csv(path: str, params: dict[str, Any] | None = None) -> bytes:
         )
         response.raise_for_status()
         return response.content
+    except requests.exceptions.HTTPError as exc:
+        detail = None
+        response = exc.response
+        if response is not None:
+            try:
+                detail = response.json().get("detail")
+            except ValueError:
+                detail = response.text
+        message = detail or str(exc)
+        st.error(f"Erreur API sur {path} : {message}")
+        st.stop()
+    except requests.exceptions.RequestException as exc:
+        st.error(f"Erreur API sur {path} : {exc}")
+        st.stop()
+
+
+def api_post_json(path: str, payload: dict[str, Any]) -> Any:
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}{path}",
+            json=payload,
+            headers=headers_api(),
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as exc:
+        detail = None
+        response = exc.response
+        if response is not None:
+            try:
+                detail = response.json().get("detail")
+            except ValueError:
+                detail = response.text
+        message = detail or str(exc)
+        st.error(f"Erreur API sur {path} : {message}")
+        st.stop()
     except requests.exceptions.RequestException as exc:
         st.error(f"Erreur API sur {path} : {exc}")
         st.stop()
@@ -145,9 +193,11 @@ def charger_commerces_paris() -> pd.DataFrame:
     return pd.DataFrame(payload.get("data", []))
 
 
-@st.cache_resource(show_spinner=False)
-def charger_modele_prediction() -> Any:
-    return charger_modele(MODELE_PREDICTION_PATH)
+def noter_adresse_gemini(adresse: str) -> dict[str, Any]:
+    return api_post_json(
+        API_ENDPOINTS["adresse_score"],
+        {"adresse": adresse},
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -237,10 +287,25 @@ def styles() -> None:
                 border-color: #cbd5e1 !important;
                 color: #111827 !important;
             }
+            [data-testid="stTextInput"] [data-baseweb="input"],
+            [data-testid="stTextInput"] [data-baseweb="base-input"] {
+                background: #ffffff !important;
+                border-color: #cbd5e1 !important;
+                color: #111827 !important;
+            }
             [data-testid="stNumberInput"] input {
                 background: #ffffff !important;
                 color: #111827 !important;
                 -webkit-text-fill-color: #111827 !important;
+            }
+            [data-testid="stTextInput"] input {
+                background: #ffffff !important;
+                color: #111827 !important;
+                -webkit-text-fill-color: #111827 !important;
+            }
+            [data-testid="stTextInput"] input::placeholder {
+                color: #94a3b8 !important;
+                -webkit-text-fill-color: #94a3b8 !important;
             }
             [data-testid="stNumberInput"] button {
                 background: #ffffff !important;
@@ -432,6 +497,16 @@ def styles() -> None:
             }
             .info-table td:last-child {
                 font-weight: 800;
+            }
+            .address-warning {
+                background: #fff7ed;
+                border: 1px solid #fed7aa;
+                border-radius: 0.5rem;
+                color: #9a3412;
+                font-size: 0.92rem;
+                font-weight: 750;
+                margin-top: 0.8rem;
+                padding: 0.75rem 0.85rem;
             }
             .prediction-result {
                 border: 1px solid #fecdd3;
@@ -809,13 +884,6 @@ def afficher_tableau(csv_bytes: bytes) -> None:
 def afficher_prediction(options: dict[str, Any]) -> None:
     st.markdown("### Prédire le prix d’un appartement")
 
-    if not MODELE_PREDICTION_PATH.exists():
-        st.error(
-            "Le modèle de prédiction est introuvable. Lance d’abord "
-            "`python src/prediction/entrainement_xgboost_prix.py`."
-        )
-        return
-
     arrondissements = [int(a) for a in options.get("arrondissements", range(1, 21))]
     arrondissements = sorted(set(arrondissements))
 
@@ -828,16 +896,12 @@ def afficher_prediction(options: dict[str, Any]) -> None:
         with col1:
             surface = st.number_input(
                 "Surface de l’appartement (m²)",
-                min_value=1.0,
-                max_value=float(max(surface_max, 300)),
                 value=float(surface_defaut),
                 step=1.0,
             )
         with col2:
             nombre_pieces = st.number_input(
                 "Nombre de pièces",
-                min_value=1,
-                max_value=10,
                 value=2,
                 step=1,
             )
@@ -855,14 +919,27 @@ def afficher_prediction(options: dict[str, Any]) -> None:
         st.info("Renseigne les paramètres de ton appartement puis lance la prédiction.")
         return
 
+    erreurs_saisie = []
+    if surface <= 0:
+        erreurs_saisie.append("La surface doit être strictement supérieure à 0 m².")
+    if nombre_pieces <= 0:
+        erreurs_saisie.append("Le nombre de pièces doit être strictement supérieur à 0.")
+
+    if erreurs_saisie:
+        for erreur in erreurs_saisie:
+            st.error(erreur)
+        return
+
     try:
-        modele = charger_modele_prediction()
-        prix_estime = predire_prix_avec_modele(
-            modele,
-            surface=surface,
-            nombre_pieces=nombre_pieces,
-            arrondissement=arrondissement,
+        resultat_prediction = api_post_json(
+            API_ENDPOINTS["prediction_prix"],
+            {
+                "surface": surface,
+                "nombre_pieces": nombre_pieces,
+                "arrondissement": arrondissement,
+            },
         )
+        prix_estime = float(resultat_prediction["prix_estime"])
     except Exception as exc:
         st.error(f"Impossible de calculer la prédiction : {exc}")
         return
@@ -888,22 +965,130 @@ def afficher_prediction(options: dict[str, Any]) -> None:
     )
 
 
-def afficher_noter_endroit() -> None:
-    st.markdown("### Noter votre endroit")
+def libelle_categorie(categorie: str) -> str:
+    libelles = {
+        "transports": "Transports",
+        "commerces": "Commerces",
+        "ecoles": "Écoles",
+        "espaces_verts": "Espaces verts",
+        "sante": "Santé",
+        "tourisme_frequentation": "Tourisme / fréquentation",
+    }
+    return libelles.get(categorie, categorie.replace("_", " ").title())
 
-    commerces = charger_commerces_paris()
-    if commerces.empty:
-        st.info("Aucune donnée commerce disponible pour Paris.")
+
+def lignes_resultat_adresse(resultat: dict[str, Any]) -> list[dict[str, str]]:
+    lignes = []
+    details = resultat.get("details", {})
+    if not isinstance(details, dict):
+        return lignes
+
+    for categorie, donnees in details.items():
+        if not isinstance(donnees, dict):
+            continue
+
+        elements = donnees.get("elements", [])
+        if not isinstance(elements, list):
+            continue
+
+        for element in elements:
+            if not isinstance(element, dict):
+                continue
+
+            lignes_transport = element.get("lignes", [])
+            if isinstance(lignes_transport, list):
+                lignes_transport = ", ".join(str(ligne) for ligne in lignes_transport)
+
+            commentaire = element.get("commentaire") or element.get("impact") or ""
+            lignes.append(
+                {
+                    "Catégorie": libelle_categorie(categorie),
+                    "Nom": str(element.get("nom") or "Non renseigné"),
+                    "Type": str(element.get("type") or "Non renseigné"),
+                    "Lignes": str(lignes_transport or ""),
+                    "Distance": str(
+                        element.get("distance_estimee")
+                        or "Distance approximative non renseignée"
+                    ),
+                    "Temps à pied": str(element.get("temps_a_pied") or ""),
+                    "Avis": str(commentaire),
+                }
+            )
+
+    return lignes
+
+
+def afficher_resultat_adresse_gemini(resultat: dict[str, Any]) -> None:
+    if resultat.get("erreur"):
+        st.error(resultat.get("message", "Il faut saisir une adresse située à Paris."))
         return
 
-    arrondissements = sorted(commerces["arrondissement"].astype(int).tolist())
-    valeur_defaut = 11 if 11 in arrondissements else arrondissements[0]
-    arrondissement = st.selectbox(
-        "Choisir un arrondissement",
-        arrondissements,
-        index=arrondissements.index(valeur_defaut),
-    )
+    st.markdown("#### Résultat Gemini")
+    score = resultat.get("score_global")
+    niveau = resultat.get("niveau", "—")
 
+    col_score, col_niveau = st.columns(2)
+    with col_score:
+        st.metric("Score emplacement", f"{score}/100" if score is not None else "—")
+    with col_niveau:
+        st.metric("Niveau", str(niveau).capitalize())
+
+    resume = resultat.get("resume")
+    if resume:
+        st.markdown(str(resume))
+
+    lignes = lignes_resultat_adresse(resultat)
+    if lignes:
+        tableau = pd.DataFrame(lignes)
+        st.markdown(
+            tableau.to_html(index=False, escape=True, classes="info-table"),
+            unsafe_allow_html=True,
+        )
+
+    details = resultat.get("details", {})
+    if isinstance(details, dict):
+        tranquillite = details.get("tranquillite", {})
+        if isinstance(tranquillite, dict) and tranquillite.get("avis"):
+            st.markdown("#### Tranquillité")
+            st.write(tranquillite["avis"])
+
+        attractivite = details.get("attractivite_immobiliere", {})
+        if isinstance(attractivite, dict) and attractivite.get("avis"):
+            st.markdown("#### Attractivité immobilière")
+            st.write(attractivite["avis"])
+
+    points_forts = resultat.get("points_forts", [])
+    points_faibles = resultat.get("points_faibles", [])
+    if points_forts or points_faibles:
+        st.markdown("#### Synthèse")
+        max_lignes = max(len(points_forts), len(points_faibles))
+        synthese = pd.DataFrame(
+            {
+                "Points forts": [
+                    points_forts[index] if index < len(points_forts) else ""
+                    for index in range(max_lignes)
+                ],
+                "Points faibles": [
+                    points_faibles[index] if index < len(points_faibles) else ""
+                    for index in range(max_lignes)
+                ],
+            }
+        )
+        st.markdown(
+            synthese.to_html(index=False, escape=True, classes="info-table"),
+            unsafe_allow_html=True,
+        )
+
+    conclusion = resultat.get("conclusion_acheteur")
+    if conclusion:
+        st.markdown("#### Conclusion acheteur")
+        st.write(conclusion)
+
+
+def afficher_resultat_arrondissement(
+    commerces: pd.DataFrame,
+    arrondissement: int,
+) -> None:
     selection = commerces[commerces["arrondissement"].astype(int) == arrondissement]
     if selection.empty:
         st.info("Aucune information disponible pour cet arrondissement.")
@@ -911,6 +1096,10 @@ def afficher_noter_endroit() -> None:
 
     donnees = selection.iloc[0]
     st.markdown(f"#### {donnees['nom_arrondissement']}")
+    st.caption(
+        "La note compare la densité de commerces de cet arrondissement à celle "
+        "des autres arrondissements parisiens."
+    )
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -958,7 +1147,133 @@ def afficher_noter_endroit() -> None:
         tableau.to_html(index=False, escape=True, classes="info-table"),
         unsafe_allow_html=True,
     )
-    st.caption("Source : Open data Ile-de-France, Base permanente des équipements 2012.")
+    st.caption("Source : Open Data Île-de-France, Base permanente des équipements 2012.")
+
+
+def afficher_noter_endroit() -> None:
+    st.markdown("### Noter votre endroit")
+
+    commerces = charger_commerces_paris()
+    if commerces.empty:
+        st.info("Aucune donnée commerce disponible pour Paris.")
+        return
+
+    arrondissements = sorted(commerces["arrondissement"].astype(int).tolist())
+    with st.container(border=True):
+        st.markdown("#### Noter votre arrondissement")
+        arrondissement = st.selectbox(
+            "Choisir votre arrondissement",
+            arrondissements,
+            index=None,
+            placeholder="",
+            key="noter_arrondissement_select",
+        )
+        noter_arrondissement = st.button(
+            "Noter cet arrondissement",
+            type="primary",
+            key="noter_arrondissement_bouton",
+        )
+
+    with st.container(border=True):
+        st.markdown("#### Noter votre adresse exacte")
+        adresse_exacte = st.text_input(
+            "Adresse exacte à Paris",
+            placeholder="Ex : 71 rue de Passy, Paris 16e",
+            key="noter_adresse_exacte",
+        )
+        st.markdown(
+            '<div class="address-warning">Veuillez entrer une adresse à Paris uniquement.</div>',
+            unsafe_allow_html=True,
+        )
+        analyser_adresse = st.button(
+            "Noter cette adresse avec Gemini",
+            type="primary",
+            key="noter_adresse_gemini",
+        )
+
+    if analyser_adresse:
+        if not adresse_exacte.strip():
+            st.error("Renseigne une adresse complète à Paris.")
+        else:
+            with st.spinner("Gemini analyse l’adresse..."):
+                resultat_adresse = noter_adresse_gemini(adresse_exacte.strip())
+            afficher_resultat_adresse_gemini(resultat_adresse)
+
+    if noter_arrondissement:
+        if arrondissement is None:
+            st.error("Choisis un arrondissement avant de lancer la notation.")
+        else:
+            st.session_state["arrondissement_note"] = arrondissement
+
+    arrondissement_note = st.session_state.get("arrondissement_note")
+    if arrondissement_note is not None and arrondissement_note == arrondissement:
+        afficher_resultat_arrondissement(commerces, int(arrondissement_note))
+
+
+def afficher_sources_et_guide() -> None:
+    st.markdown("### Guide utilisateur et sources des données")
+    st.write(
+        "Cette application aide à explorer les ventes d’appartements à Paris, "
+        "estimer un prix et comparer l’environnement d’un arrondissement ou d’une adresse."
+    )
+
+    st.markdown("#### Comment utiliser l’application")
+    st.markdown(
+        """
+        1. **Carte** : utilisez les filtres en haut de la page pour choisir un arrondissement,
+           une période, une surface ou un nombre de pièces. La couleur indique le prix médian
+           au m². En zoomant, les ventes apparaissent sous forme de points cliquables.
+        2. **Tableau** : consultez les ventes correspondant aux filtres et téléchargez-les
+           au format CSV.
+        3. **Prédire appartement** : renseignez la surface, le nombre de pièces et
+           l’arrondissement pour obtenir une estimation basée sur les ventes DVF passées.
+        4. **Noter votre endroit** : choisissez un arrondissement puis cliquez sur
+           **Noter cet arrondissement** pour afficher sa densité commerciale. Pour une adresse
+           précise, saisissez une adresse parisienne complète et lancez l’analyse Gemini.
+        """
+    )
+
+    st.markdown("#### Comment sont calculés les résultats")
+    st.markdown(
+        """
+        - Les prix, statistiques, graphiques et points de la carte reposent sur les ventes
+          immobilières officielles DVF filtrées pour les appartements parisiens.
+        - La prédiction de prix utilise un modèle XGBoost entraîné sur les données DVF
+          2021 à 2025. C’est une estimation indicative, pas une expertise immobilière.
+        - La note d’arrondissement mesure uniquement la densité de commerces pour
+          10 000 habitants. L’arrondissement ayant la densité la plus élevée obtient 10/10,
+          puis les autres sont notés proportionnellement.
+        - La note d’une adresse exacte est générée par Gemini à partir de critères de proximité :
+          transports, commerces, écoles, espaces verts, santé, fréquentation et tranquillité.
+          Les informations et distances produites par l’IA peuvent être approximatives.
+        """
+    )
+
+    st.markdown("#### Sources des données")
+    st.markdown(
+        """
+        - **Ventes immobilières et entraînement du modèle** :
+          [Demandes de valeurs foncières (DVF) sur data.gouv.fr](https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres).
+          Ces données publiques recensent les transactions immobilières enregistrées par
+          l’administration fiscale.
+        - **Commerces par arrondissement** :
+          [Base permanente des équipements 2012 sur Open Data Île-de-France](https://data.iledefrance.fr/explore/dataset/les-commerces-par-commune-ou-arrondissement-base-permanente-des-equipements/).
+          L’application interroge directement l’API de ce jeu de données. Les populations
+          utilisées pour calculer la densité datent de 2010.
+        - **Sections cadastrales affichées sur la carte** :
+          [Cadastre ouvert Etalab](https://cadastre.data.gouv.fr/datasets/plan-cadastral-informatise).
+        - **Fond de carte** :
+          [OpenStreetMap](https://www.openstreetmap.org/copyright).
+        - **Analyse d’une adresse exacte** :
+          [API Gemini de Google](https://ai.google.dev/gemini-api/docs).
+          L’adresse saisie est envoyée à Gemini pour produire l’analyse.
+        """
+    )
+
+    st.info(
+        "Les résultats sont fournis à titre informatif. Les prix passés, la note commerciale "
+        "et l’analyse par IA ne remplacent pas une visite du quartier ni l’avis d’un professionnel."
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -1051,19 +1366,7 @@ def main() -> None:
         afficher_noter_endroit()
 
     with onglet_sources:
-        st.markdown(
-            """
-            ### Sources et fonctionnement
-
-            - Les filtres, statistiques, graphiques, points de carte et exports passent par `api/main.py`.
-            - L’onglet “Noter votre endroit” utilise les commerces par arrondissement d’Open data Île-de-France.
-            - La carte utilise les contours officiels chargés dans `src/analyse/carte_paris.py`.
-            - La prédiction charge le modèle XGBoost entraîné dans `models/xgboost_prix_dvf.joblib`.
-            - Streamlit ne fait pas de requêtes SQL directes.
-            - Sous le zoom 15 : affichage coloré par arrondissement.
-            - À partir du zoom 15 : les couleurs sont masquées et les points noirs des appartements s’affichent avec leurs détails au clic.
-            """
-        )
+        afficher_sources_et_guide()
 
 
 if __name__ == "__main__":
