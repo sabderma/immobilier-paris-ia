@@ -7,7 +7,7 @@ pandas
 plotly
 psycopg2-binary
 requests
-scikit-learn
+scikit-learn==1.6.1
 seaborn
 sqlalchemy
 streamlit
