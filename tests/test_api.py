@@ -16,6 +16,11 @@ sys.path.insert(0, str(ROOT_DIR))
 os.environ["API_KEY"] = "test-api-key"
 
 from api import main  # noqa: E402
+from api.routers import dvf as dvf_router  # noqa: E402
+from api.routers import location as location_router  # noqa: E402
+from api.routers import prediction as prediction_router  # noqa: E402
+from api.routers import stats as stats_router  # noqa: E402
+from api.services import commerces as commerces_service  # noqa: E402
 
 
 client = TestClient(main.app)
@@ -73,7 +78,7 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.json()["detail"], "Clé API invalide")
 
     def test_points_dvf_accepte_une_bonne_cle_api(self):
-        with patch.object(main, "lire_sql", side_effect=fake_lire_sql):
+        with patch.object(dvf_router, "lire_sql", side_effect=fake_lire_sql):
             response = client.get("/dvf/points?limit=1", headers=AUTH_HEADERS)
 
         payload = response.json()
@@ -102,7 +107,7 @@ class TestApiSecurity(unittest.TestCase):
                 ]
             )
 
-        with patch.object(main, "lire_sql", side_effect=fake_resume_sql):
+        with patch.object(stats_router, "lire_sql", side_effect=fake_resume_sql):
             response = client.get("/stats/dvf/resume", headers=AUTH_HEADERS)
 
         payload = response.json()
@@ -129,7 +134,18 @@ class TestApiSecurity(unittest.TestCase):
             "arrondissement": 11,
         }
 
-        with patch.object(main, "predire_prix_xgboost", return_value=465328.0):
+        with (
+            patch.object(
+                prediction_router,
+                "predire_prix_xgboost",
+                return_value=465328.0,
+            ),
+            patch.object(
+                prediction_router,
+                "charger_mae_prediction",
+                return_value=111078.36,
+            ),
+        ):
             response = client.post(
                 "/prediction/prix",
                 json=payload,
@@ -138,6 +154,9 @@ class TestApiSecurity(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["prix_estime"], 465328.0)
+        self.assertEqual(response.json()["mae_euros"], 111078.36)
+        self.assertEqual(response.json()["prix_min_indicatif"], 354249.64)
+        self.assertEqual(response.json()["prix_max_indicatif"], 576406.36)
         self.assertEqual(response.json()["modele"], "XGBRegressor")
 
     def test_metrics_expose_erreur_moyenne_modele(self):
@@ -202,7 +221,7 @@ class TestApiSecurity(unittest.TestCase):
         }
 
         with patch.object(
-            main,
+            location_router,
             "generer_score_adresse_gemini",
             return_value=resultat_gemini,
         ) as gemini:
@@ -237,13 +256,13 @@ class TestApiSecurity(unittest.TestCase):
             ]
         }
 
-        main.charger_commerces_paris.cache_clear()
-        with patch.object(main.requests, "get", return_value=reponse_api):
+        location_router.charger_commerces_paris.cache_clear()
+        with patch.object(commerces_service.requests, "get", return_value=reponse_api):
             response = client.get(
                 "/commerces/paris?arrondissement=11",
                 headers=AUTH_HEADERS,
             )
-        main.charger_commerces_paris.cache_clear()
+        location_router.charger_commerces_paris.cache_clear()
 
         payload = response.json()
         self.assertEqual(response.status_code, 200)
