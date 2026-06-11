@@ -6,9 +6,18 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  tester:
+  entrainer-tester-livrer:
     runs-on: ubuntu-latest
+    env:
+      DONNEES_ENTRAINEMENT: data/final/dvf_paris_clean_2021_2025.csv
+      DOSSIER_LIVRAISON: livraison
+      MODELE_LIVRE: livraison/xgboost_prix_dvf.joblib
+      METRIQUES_LIVREES: livraison/xgboost_prix_dvf_metrics.json
+      RAPPORT_LIVRAISON: livraison/rapport_livraison_modele.md
 
     steps:
       - name: Recuperer le projet
@@ -18,17 +27,43 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-        
+          cache: pip
+
       - name: Installer les dependances
         run: pip install -r requirements.txt
 
-      - name: Tester le modele IA
-        run: python -m unittest discover -s tests -p "test_prediction.py" -v
+      - name: Verifier les donnees d'entrainement
+        run: python -m unittest discover -s tests -p "test_donnees_livraison.py" -v
 
-      - name: Livrer le modele
+      - name: Entrainer un nouveau modele IA
+        run: |
+          mkdir -p "$DOSSIER_LIVRAISON"
+          python -m src.prediction.entrainement_xgboost_prix \
+            --input "$DONNEES_ENTRAINEMENT" \
+            --output-model "$MODELE_LIVRE" \
+            --output-metrics "$METRIQUES_LIVREES"
+
+      - name: Tester le nouveau modele IA
+        run: |
+          cp "$MODELE_LIVRE" models/xgboost_prix_dvf.joblib
+          cp "$METRIQUES_LIVREES" models/xgboost_prix_dvf_metrics.json
+          python -m unittest discover -s tests -p "test_prediction.py" -v
+
+      - name: Generer le rapport de livraison
+        run: |
+          python scripts/generer_rapport_livraison_modele.py \
+            --metrics "$METRIQUES_LIVREES" \
+            --output "$RAPPORT_LIVRAISON" \
+            --minimum-r2 0.80
+          cat "$RAPPORT_LIVRAISON" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Livrer le nouveau modele valide
         uses: actions/upload-artifact@v4
         with:
-          name: modele-immobilier-paris
+          name: modele-immobilier-paris-valide
+          retention-days: 30
+          if-no-files-found: error
           path: |
-            models/xgboost_prix_dvf.joblib
-            models/xgboost_prix_dvf_metrics.json
+            livraison/xgboost_prix_dvf.joblib
+            livraison/xgboost_prix_dvf_metrics.json
+            livraison/rapport_livraison_modele.md

@@ -4,7 +4,8 @@
 # Données
 data/raw/
 data/processed/
-data/final/
+data/final/*
+!data/final/dvf_paris_clean_2021_2025.csv
 
 # Python
 __pycache__/
