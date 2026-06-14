@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-API_BASE_URL = "http://127.0.0.1:8000"
+API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 API_ENDPOINTS = {
     "health": "/health",
     "filtres": "/dvf/filtres",
@@ -15,13 +15,20 @@ API_ENDPOINTS = {
     "distribution": "/stats/dvf/distribution",
     "points": "/dvf/points",
     "csv": "/dvf/export.csv",
+    "scraping_filtres": "/scraping/filtres",
+    "scraping_annonces": "/scraping/annonces",
+    "scraping_resume": "/stats/scraping/resume",
+    "scraping_arrondissements": "/stats/scraping/arrondissement",
+    "scraping_sources": "/stats/scraping/source",
+    "scraping_distribution": "/stats/scraping/distribution",
+    "scraping_comparaison_2025": "/stats/scraping/comparaison-dvf-2025",
     "commerces": "/commerces/paris",
     "adresse_score": "/ia/noter-adresse",
     "prediction_prix": "/prediction/prix",
 }
 PALETTE = ["#2f8f6f", "#93c35c", "#f1e85a", "#eba148", "#c83d35"]
 ZOOM_POINTS = 15
-MAX_POINTS = 800
+MAX_POINTS = 200000
 
 
 def charger_env() -> None:

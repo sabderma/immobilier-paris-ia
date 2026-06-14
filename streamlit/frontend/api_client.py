@@ -119,7 +119,7 @@ def charger_distribution(params: tuple[tuple[str, Any], ...]) -> pd.DataFrame:
     return pd.DataFrame(api_get_json(API_ENDPOINTS["distribution"], dict(params)))
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def charger_points(params: tuple[tuple[str, Any], ...]) -> pd.DataFrame:
     payload = api_get_json(API_ENDPOINTS["points"], dict(params))
     return pd.DataFrame(payload.get("data", []))
@@ -128,6 +128,56 @@ def charger_points(params: tuple[tuple[str, Any], ...]) -> pd.DataFrame:
 @st.cache_data(ttl=300, show_spinner=False)
 def charger_csv(params: tuple[tuple[str, Any], ...]) -> bytes:
     return api_get_csv(API_ENDPOINTS["csv"], dict(params))
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def charger_filtres_scraping() -> dict[str, Any]:
+    return api_get_json(API_ENDPOINTS["scraping_filtres"])
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def charger_annonces_scraping(
+    params: tuple[tuple[str, Any], ...],
+) -> tuple[pd.DataFrame, int]:
+    payload = api_get_json(API_ENDPOINTS["scraping_annonces"], dict(params))
+    return pd.DataFrame(payload.get("data", [])), int(payload.get("nombre_total", 0))
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def charger_resume_scraping(params: tuple[tuple[str, Any], ...]) -> dict[str, Any]:
+    return api_get_json(API_ENDPOINTS["scraping_resume"], dict(params))
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def charger_stats_scraping_arrondissements(
+    params: tuple[tuple[str, Any], ...],
+) -> pd.DataFrame:
+    return pd.DataFrame(
+        api_get_json(API_ENDPOINTS["scraping_arrondissements"], dict(params))
+    )
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def charger_stats_scraping_sources(
+    params: tuple[tuple[str, Any], ...],
+) -> pd.DataFrame:
+    return pd.DataFrame(api_get_json(API_ENDPOINTS["scraping_sources"], dict(params)))
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def charger_distribution_scraping(
+    params: tuple[tuple[str, Any], ...],
+) -> pd.DataFrame:
+    return pd.DataFrame(api_get_json(API_ENDPOINTS["scraping_distribution"], dict(params)))
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def charger_comparaison_scraping_dvf_2025(
+    params: tuple[tuple[str, Any], ...],
+) -> pd.DataFrame:
+    return pd.DataFrame(
+        api_get_json(API_ENDPOINTS["scraping_comparaison_2025"], dict(params))
+    )
 
 
 @st.cache_data(ttl=3600, show_spinner=False)

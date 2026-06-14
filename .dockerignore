@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.DS_Store
+__pycache__
+*.pyc
+docs
+notebooks
+scripts
+sql

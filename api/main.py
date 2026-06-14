@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import dvf, location, prediction, stats, system
+from api.routers import dvf, location, prediction, scraping, stats, system
 
 
 app = FastAPI(
@@ -23,4 +23,5 @@ app.include_router(system.router)
 app.include_router(prediction.router)
 app.include_router(location.router)
 app.include_router(dvf.router)
+app.include_router(scraping.router)
 app.include_router(stats.router)

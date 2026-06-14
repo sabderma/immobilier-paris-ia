@@ -3,12 +3,18 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from typing import Any
 
 from fastapi import HTTPException, status
 
 from api.core import charger_env
 from api.schemas import GEMINI_ADRESSE_SCORE_SCHEMA
+
+
+NOMBRE_PASSES_GEMINI = 2
+MODELE_GEMINI_PRINCIPAL = "gemini-3.1-flash-lite"
+MODELES_GEMINI_SECOURS = ("gemini-2.5-flash", "gemini-3.5-flash")
 
 
 def adresse_hors_paris(adresse: str) -> bool:
@@ -106,6 +112,60 @@ def extraire_json_gemini(texte: str) -> dict[str, Any]:
         return json.loads(contenu[debut : fin + 1])
 
 
+def erreur_gemini_temporaire(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return any(
+        marqueur in message
+        for marqueur in (
+            "429",
+            "503",
+            "high demand",
+            "resource_exhausted",
+            "unavailable",
+        )
+    )
+
+
+def modeles_gemini_configures() -> list[str]:
+    modele_principal = os.getenv("GEMINI_MODEL", MODELE_GEMINI_PRINCIPAL)
+    modeles_secours = os.getenv(
+        "GEMINI_FALLBACK_MODELS",
+        ",".join(MODELES_GEMINI_SECOURS),
+    ).split(",")
+    modeles = [modele_principal, *modeles_secours]
+    return list(dict.fromkeys(modele.strip() for modele in modeles if modele.strip()))
+
+
+def appeler_gemini_avec_repli(
+    client: Any,
+    modeles: list[str],
+    prompt: str,
+) -> Any:
+    derniere_erreur: Exception | None = None
+    for passe in range(NOMBRE_PASSES_GEMINI):
+        for modele in modeles:
+            try:
+                return client.models.generate_content(
+                    model=modele,
+                    contents=prompt,
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_json_schema": GEMINI_ADRESSE_SCORE_SCHEMA,
+                    },
+                )
+            except Exception as exc:
+                if not erreur_gemini_temporaire(exc):
+                    raise
+                derniere_erreur = exc
+
+        if passe < NOMBRE_PASSES_GEMINI - 1:
+            time.sleep(1)
+
+    if derniere_erreur is not None:
+        raise derniere_erreur
+    raise RuntimeError("Aucun modèle Gemini n'est configuré.")
+
+
 def generer_score_adresse_gemini(
     adresse: str,
     arrondissement: int | None,
@@ -127,23 +187,23 @@ def generer_score_adresse_gemini(
         ) from exc
 
     prompt = construire_prompt_score_adresse(adresse, arrondissement)
-    modele = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+    modeles = modeles_gemini_configures()
     client = genai.Client(api_key=api_key)
 
     try:
-        response = client.models.generate_content(
-            model=modele,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "response_json_schema": GEMINI_ADRESSE_SCORE_SCHEMA,
-            },
-        )
+        response = appeler_gemini_avec_repli(client, modeles, prompt)
         resultat = extraire_json_gemini(response.text or "")
     except Exception as exc:
+        if erreur_gemini_temporaire(exc):
+            detail = (
+                "Gemini est temporairement surchargé. "
+                "Réessayez dans quelques instants."
+            )
+        else:
+            detail = "Gemini n'a pas pu analyser cette adresse."
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Impossible de générer la note avec Gemini : {exc}",
+            detail=detail,
         ) from exc
 
     return resultat

@@ -19,7 +19,9 @@ from api import main  # noqa: E402
 from api.routers import dvf as dvf_router  # noqa: E402
 from api.routers import location as location_router  # noqa: E402
 from api.routers import prediction as prediction_router  # noqa: E402
+from api.routers import scraping as scraping_router  # noqa: E402
 from api.routers import stats as stats_router  # noqa: E402
+from api.services import address as address_service  # noqa: E402
 from api.services import commerces as commerces_service  # noqa: E402
 
 
@@ -121,6 +123,96 @@ class TestApiSecurity(unittest.TestCase):
                 "surface_moyenne",
             },
         )
+
+    def test_annonces_scraping_utilisent_la_table_golden_et_les_filtres(self):
+        annonces = pd.DataFrame(
+            [
+                {
+                    "id": 1,
+                    "source": "orpi",
+                    "type": "Appartement",
+                    "prix": 550000.0,
+                    "surface": 50.0,
+                    "nb_pieces": 2,
+                    "localisation": "75011",
+                    "arrondissement": 11,
+                    "prix_m2": 11000.0,
+                    "date_scraping": "2025-05-15",
+                }
+            ]
+        )
+
+        total = pd.DataFrame([{"nombre_total": 42}])
+        with patch.object(
+            scraping_router,
+            "lire_sql",
+            side_effect=[total, annonces],
+        ) as lire_sql:
+            response = client.get(
+                "/scraping/annonces?arrondissement=11&source=orpi&limit=10&offset=20",
+                headers=AUTH_HEADERS,
+            )
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["nombre_resultats"], 1)
+        self.assertEqual(payload["nombre_total"], 42)
+        self.assertEqual(payload["offset"], 20)
+        self.assertEqual(payload["data"][0]["source"], "orpi")
+        query, params = lire_sql.call_args_list[1].args
+        self.assertIn("FROM golden_data_scraping", query)
+        self.assertIn("OFFSET :offset", query)
+        self.assertEqual(params["localisation"], "75011")
+        self.assertEqual(params["source"], "orpi")
+        self.assertEqual(params["limit"], 10)
+        self.assertEqual(params["offset"], 20)
+
+    def test_annonces_scraping_demandent_une_cle_api(self):
+        response = client.get("/scraping/annonces")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_resume_scraping_retourne_les_indicateurs_attendus(self):
+        resume = pd.DataFrame(
+            [
+                {
+                    "nombre_annonces": 4375,
+                    "prix_median": 624000.0,
+                    "prix_m2_median": 10993.0,
+                    "date_mise_a_jour": "2025-05-15",
+                }
+            ]
+        )
+
+        with patch.object(scraping_router, "lire_sql", return_value=resume):
+            response = client.get("/stats/scraping/resume", headers=AUTH_HEADERS)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["nombre_annonces"], 4375)
+        self.assertEqual(response.json()["prix_m2_median"], 10993.0)
+
+    def test_comparaison_scraping_dvf_limite_dvf_a_2025(self):
+        scraping = pd.DataFrame(
+            [{"arrondissement": 11, "prix_m2_scraping": 11500.0}]
+        )
+        dvf = pd.DataFrame([{"arrondissement": 11, "prix_m2_dvf": 10200.0}])
+
+        with patch.object(
+            scraping_router,
+            "lire_sql",
+            side_effect=[scraping, dvf],
+        ) as lire_sql:
+            response = client.get(
+                "/stats/scraping/comparaison-dvf-2025",
+                headers=AUTH_HEADERS,
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["prix_m2_scraping"], 11500.0)
+        self.assertEqual(response.json()[0]["prix_m2_dvf"], 10200.0)
+        requete_dvf, params_dvf = lire_sql.call_args_list[1].args
+        self.assertIn("FROM dvf_paris_appartements", requete_dvf)
+        self.assertEqual(params_dvf["annee_vente"], 2025)
 
     def test_export_csv_demande_une_cle_api(self):
         response = client.get("/dvf/export.csv")
@@ -234,6 +326,63 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["score_global"], 92)
         gemini.assert_called_once_with("71 rue de Passy, Paris 16e", 16)
+
+    def test_appel_gemini_utilise_un_modele_de_secours(self):
+        client_gemini = Mock()
+        reponse_gemini = Mock()
+        client_gemini.models.generate_content.side_effect = [
+            RuntimeError("503 UNAVAILABLE: high demand"),
+            reponse_gemini,
+        ]
+
+        with patch.object(address_service.time, "sleep") as sleep:
+            resultat = address_service.appeler_gemini_avec_repli(
+                client_gemini,
+                ["gemini-principal", "gemini-secours"],
+                "prompt",
+            )
+
+        self.assertIs(resultat, reponse_gemini)
+        self.assertEqual(client_gemini.models.generate_content.call_count, 2)
+        self.assertEqual(
+            [
+                appel.kwargs["model"]
+                for appel in client_gemini.models.generate_content.call_args_list
+            ],
+            ["gemini-principal", "gemini-secours"],
+        )
+        sleep.assert_not_called()
+
+    def test_appel_gemini_ne_change_pas_de_modele_apres_une_erreur_definitive(self):
+        client_gemini = Mock()
+        client_gemini.models.generate_content.side_effect = RuntimeError(
+            "Requête invalide"
+        )
+
+        with (
+            patch.object(address_service.time, "sleep") as sleep,
+            self.assertRaisesRegex(RuntimeError, "Requête invalide"),
+        ):
+            address_service.appeler_gemini_avec_repli(
+                client_gemini,
+                ["gemini-principal", "gemini-secours"],
+                "prompt",
+            )
+
+        self.assertEqual(client_gemini.models.generate_content.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_modeles_gemini_configures_supprime_les_doublons(self):
+        with patch.dict(
+            os.environ,
+            {
+                "GEMINI_MODEL": "gemini-principal",
+                "GEMINI_FALLBACK_MODELS": "gemini-secours, gemini-principal",
+            },
+        ):
+            modeles = address_service.modeles_gemini_configures()
+
+        self.assertEqual(modeles, ["gemini-principal", "gemini-secours"])
 
     def test_commerces_paris_retourne_un_arrondissement_normalise(self):
         reponse_api = Mock()

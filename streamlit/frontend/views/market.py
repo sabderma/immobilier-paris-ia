@@ -7,11 +7,10 @@ import pandas as pd
 import streamlit as st
 
 from src.analyse import graphiques
-from frontend.config import ZOOM_POINTS
 from frontend.formatting import formater_entier, formater_euros
 
 
-def afficher_resume(resume: dict[str, Any], zoom: int, nb_points: int) -> None:
+def afficher_resume(resume: dict[str, Any]) -> None:
     st.markdown('<div class="breadcrumb">France &gt; Paris (75)</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Département</div>', unsafe_allow_html=True)
     st.markdown('<div class="city-title">Paris (75)</div>', unsafe_allow_html=True)
@@ -32,17 +31,10 @@ def afficher_resume(resume: dict[str, Any], zoom: int, nb_points: int) -> None:
         unsafe_allow_html=True,
     )
 
-    if zoom < ZOOM_POINTS:
-        note = (
-            f"Zoomez jusqu’au niveau {ZOOM_POINTS} : les points noirs des "
-            "appartements apparaîtront et les couleurs disparaîtront."
-        )
-    else:
-        note = (
-            f"{formater_entier(nb_points)} appartement(s) chargé(s). "
-            "Cliquez sur un point noir pour voir la date, la surface, le prix et les pièces."
-        )
-    st.markdown(f'<div class="scope-note">{note}</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="scope-note">Les graphiques sont calculés uniquement à partir des filtres ci-dessus.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def afficher_graphiques(evolution: pd.DataFrame, distribution: pd.DataFrame) -> None:

@@ -225,9 +225,8 @@ def afficher_noter_endroit() -> None:
             placeholder="Ex : 71 rue de Passy, Paris 16e",
             key="noter_adresse_exacte",
         )
-        st.markdown(
-            '<div class="address-warning">Veuillez entrer une adresse à Paris uniquement.</div>',
-            unsafe_allow_html=True,
+        st.caption(
+            "Seules les adresses situées à Paris intra-muros sont acceptées."
         )
         analyser_adresse = st.button(
             "Noter cette adresse avec Gemini",

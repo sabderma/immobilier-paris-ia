@@ -140,6 +140,34 @@ def construire_where_dvf(
     return " AND ".join(conditions), params
 
 
+def construire_where_scraping(
+    *,
+    arrondissement: int | None = None,
+    surface_min: float | None = None,
+    surface_max: float | None = None,
+    nombre_pieces: int | None = None,
+    source: str | None = None,
+) -> tuple[str, dict[str, float | int | str]]:
+    """Construit la clause WHERE commune aux annonces de la table golden."""
+    conditions = ["1=1"]
+    params: dict[str, float | int | str] = {}
+    filtres = {
+        "arrondissement": (
+            "localisation = :localisation",
+            f"75{arrondissement:03d}" if arrondissement is not None else None,
+        ),
+        "surface_min": ("surface >= :surface_min", surface_min),
+        "surface_max": ("surface <= :surface_max", surface_max),
+        "nombre_pieces": ("nb_pieces = :nombre_pieces", nombre_pieces),
+        "source": ("source = :source", source),
+    }
+    for nom, (condition, valeur) in filtres.items():
+        if valeur is not None:
+            conditions.append(condition)
+            params["localisation" if nom == "arrondissement" else nom] = valeur
+    return " AND ".join(conditions), params
+
+
 def lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
     """Exécute une requête SQL et retourne un DataFrame pandas."""
     return pd.read_sql(text(query), engine, params=params or {})

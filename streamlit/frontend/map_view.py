@@ -5,12 +5,45 @@ from typing import Any
 import folium
 import pandas as pd
 from branca.colormap import LinearColormap
-from branca.element import Element
+from branca.element import MacroElement, Template
 from folium.features import GeoJsonTooltip
+from folium.plugins import FastMarkerCluster
 
 from src.analyse import carte_paris
 from frontend.config import PALETTE, ZOOM_POINTS
-from frontend.formatting import formater_date, formater_entier, formater_euros
+from frontend.formatting import formater_entier, formater_euros
+
+
+class MasquerArrondissementsAuZoom(MacroElement):
+    """Masque la couche colorée quand la carte affiche les ventes détaillées."""
+
+    _template = Template(
+        """
+        {% macro script(this, kwargs) %}
+        (function() {
+            const map = {{ this._parent.get_name() }};
+            const arrondissementsLayer = {{ this.arrondissements_layer_name }};
+            const seuilZoom = {{ this.seuil_zoom }};
+
+            function synchroniserCouleurs() {
+                if (map.getZoom() >= seuilZoom) {
+                    map.removeLayer(arrondissementsLayer);
+                } else if (!map.hasLayer(arrondissementsLayer)) {
+                    map.addLayer(arrondissementsLayer);
+                }
+            }
+
+            map.on("zoomend", synchroniserCouleurs);
+            synchroniserCouleurs();
+        })();
+        {% endmacro %}
+        """
+    )
+
+    def __init__(self, arrondissements_layer_name: str, seuil_zoom: int) -> None:
+        super().__init__()
+        self.arrondissements_layer_name = arrondissements_layer_name
+        self.seuil_zoom = seuil_zoom
 
 
 def extraire_vue_carte(etat: dict[str, Any] | None) -> tuple[list[float], int]:
@@ -75,29 +108,6 @@ def enrichir_geojson_arrondissements(
     return geojson, colormap
 
 
-def popup_vente(vente: dict[str, Any]) -> folium.Popup:
-    html = f"""
-    <span class="sale-popup-title">Appartement vendu</span>
-    <div class="sale-popup-row">
-        <span class="sale-popup-label">Date</span>
-        <span class="sale-popup-value">{formater_date(vente.get('date_mutation'))}</span>
-    </div>
-    <div class="sale-popup-row">
-        <span class="sale-popup-label">Surface</span>
-        <span class="sale-popup-value">{formater_entier(vente.get('surface_reelle_bati'))} m²</span>
-    </div>
-    <div class="sale-popup-row">
-        <span class="sale-popup-label">Prix</span>
-        <span class="sale-popup-value">{formater_euros(vente.get('valeur_fonciere'))}</span>
-    </div>
-    <div class="sale-popup-row">
-        <span class="sale-popup-label">Pièces</span>
-        <span class="sale-popup-value">{formater_entier(vente.get('nombre_pieces_principales'))}</span>
-    </div>
-    """
-    return folium.Popup(html, max_width=260)
-
-
 def creer_carte(
     stats_arrondissements: list[dict[str, Any]],
     points: pd.DataFrame,
@@ -146,79 +156,70 @@ def creer_carte(
 
     points_layer = None
     if not points.empty:
-        points_layer = folium.FeatureGroup(
+        colonnes_points = [
+            "latitude",
+            "longitude",
+            "date_mutation",
+            "surface_reelle_bati",
+            "valeur_fonciere",
+            "nombre_pieces_principales",
+        ]
+        points_legers = points[colonnes_points]
+        donnees_points = points_legers.where(pd.notna(points_legers), None).values.tolist()
+        callback_points = """
+        function(row) {
+            const entier = (valeur) => valeur == null
+                ? "—"
+                : Math.round(Number(valeur)).toLocaleString("fr-FR");
+            const marker = L.circleMarker([row[0], row[1]], {
+                radius: 5,
+                color: "#ffffff",
+                weight: 1.2,
+                fill: true,
+                fillColor: "#030712",
+                fillOpacity: 0.96
+            });
+            const popup = `
+                <span class="sale-popup-title">Appartement vendu</span>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Date</span>
+                    <span class="sale-popup-value">${row[2] ?? "—"}</span>
+                </div>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Surface</span>
+                    <span class="sale-popup-value">${entier(row[3])} m²</span>
+                </div>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Prix</span>
+                    <span class="sale-popup-value">${entier(row[4])} €</span>
+                </div>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Pièces</span>
+                    <span class="sale-popup-value">${entier(row[5])}</span>
+                </div>
+            `;
+            marker.bindPopup(popup, {maxWidth: 260});
+            return marker;
+        }
+        """
+        points_layer = FastMarkerCluster(
+            donnees_points,
+            callback=callback_points,
+            options={
+                "chunkedLoading": True,
+                "disableClusteringAtZoom": 17,
+                "removeOutsideVisibleBounds": True,
+            },
             name="Appartements vendus",
             show=zoom >= ZOOM_POINTS,
             overlay=True,
             control=False,
         )
-        for vente in points.to_dict(orient="records"):
-            lat = vente.get("latitude")
-            lon = vente.get("longitude")
-            if lat is None or lon is None:
-                continue
-
-            folium.CircleMarker(
-                location=[float(lat), float(lon)],
-                radius=5,
-                color="#ffffff",
-                weight=1.2,
-                fill=True,
-                fill_color="#030712",
-                fill_opacity=0.96,
-                popup=popup_vente(vente),
-                tooltip="Appartement vendu",
-            ).add_to(points_layer)
-
         points_layer.add_to(carte)
 
-    points_layer_name_js = (
-        f'"{points_layer.get_name()}"' if points_layer is not None else "null"
-    )
-    carte.get_root().html.add_child(
-        Element(
-            f"""
-            <script>
-            (function attendreCarte() {{
-                const map = window["{carte.get_name()}"];
-                const arrondissementsLayer = window["{arrondissements_layer.get_name()}"];
-                const pointsLayerName = {points_layer_name_js};
-                const pointsLayer = pointsLayerName ? window[pointsLayerName] : null;
-                const seuilZoom = {ZOOM_POINTS};
-
-                if (!map || !arrondissementsLayer || (pointsLayerName && !pointsLayer)) {{
-                    window.setTimeout(attendreCarte, 50);
-                    return;
-                }}
-
-                function afficher(layer) {{
-                    if (layer && !map.hasLayer(layer)) {{
-                        map.addLayer(layer);
-                    }}
-                }}
-
-                function masquer(layer) {{
-                    if (layer && map.hasLayer(layer)) {{
-                        map.removeLayer(layer);
-                    }}
-                }}
-
-                function synchroniserCouches() {{
-                    if (map.getZoom() >= seuilZoom) {{
-                        masquer(arrondissementsLayer);
-                        afficher(pointsLayer);
-                    }} else {{
-                        afficher(arrondissementsLayer);
-                        masquer(pointsLayer);
-                    }}
-                }}
-
-                map.on("zoomend", synchroniserCouches);
-                synchroniserCouches();
-            }})();
-            </script>
-            """
-        )
-    )
+    MasquerArrondissementsAuZoom(
+        arrondissements_layer_name=arrondissements_layer.get_name(),
+        seuil_zoom=ZOOM_POINTS,
+    ).add_to(carte)
 
     return carte

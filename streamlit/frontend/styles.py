@@ -8,24 +8,22 @@ def styles() -> None:
         """
         <style>
             .stApp,
-            [data-testid="stAppViewContainer"],
-            [data-testid="stHeader"] {
+            [data-testid="stAppViewContainer"] {
                 background: #ffffff;
                 color: #111827;
+            }
+            [data-testid="stHeader"] {
+                display: none;
+            }
+            [data-testid="stElementContainer"]:has(style) {
+                display: none;
             }
             .block-container {
                 max-width: none;
                 width: 100%;
                 box-sizing: border-box;
                 overflow-x: hidden;
-                padding: 0.8rem 1.25rem 1rem;
-            }
-            .filter-box {
-                border: 1px solid #e5e7eb;
-                border-radius: 0.5rem;
-                padding: 0.8rem 1rem 0.2rem;
-                margin: 0.75rem 0 1rem;
-                background: #f8fafc;
+                padding: 2rem 1.25rem 1rem;
             }
             [data-testid="stWidgetLabel"] p,
             [data-testid="stWidgetLabel"] label,
@@ -106,12 +104,18 @@ def styles() -> None:
                 color: #ffffff !important;
                 opacity: 1 !important;
             }
-            [data-baseweb="tab-list"] {
-                border-bottom: none;
-                gap: 0.55rem;
-                margin: 0.75rem 0 1rem;
+            [data-testid="stButtonGroup"] {
+                width: 100%;
+                margin: 0 0 1rem;
             }
-            button[data-baseweb="tab"] {
+            [data-testid="stButtonGroup"] [data-baseweb="button-group"] {
+                display: flex;
+                width: 100%;
+                gap: 0.55rem;
+                background: transparent;
+                border: none;
+            }
+            [data-testid="stButtonGroup"] button {
                 flex: 1 1 0;
                 min-height: 64px;
                 justify-content: center;
@@ -124,20 +128,20 @@ def styles() -> None:
                 opacity: 1 !important;
                 white-space: normal !important;
             }
-            button[data-baseweb="tab"] p {
+            [data-testid="stButtonGroup"] button p {
                 color: #475569 !important;
                 font-size: 0.98rem !important;
                 font-weight: 800 !important;
                 line-height: 1.2 !important;
                 opacity: 1 !important;
             }
-            button[data-baseweb="tab"][aria-selected="true"] {
+            [data-testid="stButtonGroup"] [data-testid="stBaseButton-segmented_controlActive"] {
                 background: #fff1f2 !important;
                 border-color: #fb7185 !important;
                 box-shadow: 0 8px 22px rgba(225, 29, 72, 0.12);
                 color: #e11d48 !important;
             }
-            button[data-baseweb="tab"][aria-selected="true"] p {
+            [data-testid="stButtonGroup"] [data-testid="stBaseButton-segmented_controlActive"] p {
                 color: #e11d48 !important;
             }
             [data-testid="stDownloadButton"] button {
@@ -210,6 +214,130 @@ def styles() -> None:
             }
             .metric-label { color: #374151; font-size: 0.84rem; font-weight: 650; }
             .metric-value { color: #111827; font-size: 1.7rem; font-weight: 750; }
+            .listing-metric-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.9rem;
+                border-top: 1px solid #e5e7eb;
+                border-bottom: 1px solid #e5e7eb;
+                padding: 1rem 0;
+                margin-bottom: 0.8rem;
+            }
+            .listing-date {
+                color: #111827;
+                font-size: 1.05rem;
+                font-weight: 800;
+                margin-top: 0.25rem;
+            }
+            .listing-panel-title {
+                color: #111827;
+                font-size: 1.2rem;
+                font-weight: 850;
+                margin: 0 0 0.75rem;
+            }
+            .listing-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.85rem;
+            }
+            .listing-pagination-info {
+                color: #475569;
+                font-size: 0.9rem;
+                font-weight: 750;
+                padding: 0.55rem 0;
+                text-align: center;
+            }
+            .st-key-annonces_page_precedente button,
+            .st-key-annonces_page_suivante button {
+                background: #ffffff !important;
+                border: 1px solid #fb7185 !important;
+                color: #be123c !important;
+                font-weight: 800 !important;
+            }
+            .st-key-annonces_page_precedente button p,
+            .st-key-annonces_page_precedente button span,
+            .st-key-annonces_page_suivante button p,
+            .st-key-annonces_page_suivante button span {
+                color: #be123c !important;
+                opacity: 1 !important;
+            }
+            .st-key-annonces_page_precedente button:hover,
+            .st-key-annonces_page_suivante button:hover {
+                background: #fff1f2 !important;
+                border-color: #e11d48 !important;
+            }
+            .st-key-annonces_page_precedente button:disabled,
+            .st-key-annonces_page_suivante button:disabled {
+                background: #f8fafc !important;
+                border-color: #e2e8f0 !important;
+            }
+            .st-key-annonces_page_precedente button:disabled p,
+            .st-key-annonces_page_precedente button:disabled span,
+            .st-key-annonces_page_suivante button:disabled p,
+            .st-key-annonces_page_suivante button:disabled span {
+                color: #94a3b8 !important;
+            }
+            .listing-card {
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-top: 3px solid #fb7185;
+                border-radius: 0.75rem;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+                padding: 1rem;
+            }
+            .listing-card-top {
+                align-items: center;
+                display: flex;
+                justify-content: space-between;
+                gap: 0.5rem;
+            }
+            .listing-source {
+                background: #fff1f2;
+                border: 1px solid #fecdd3;
+                border-radius: 999px;
+                color: #be123c;
+                font-size: 0.72rem;
+                font-weight: 850;
+                letter-spacing: 0.035em;
+                padding: 0.25rem 0.55rem;
+                text-transform: uppercase;
+            }
+            .listing-date-small {
+                color: #94a3b8;
+                font-size: 0.76rem;
+                font-weight: 650;
+            }
+            .listing-card-price {
+                color: #111827;
+                font-size: 1.55rem;
+                font-weight: 850;
+                margin-top: 0.8rem;
+            }
+            .listing-card-location {
+                color: #475569;
+                font-size: 0.88rem;
+                font-weight: 700;
+                margin-top: 0.15rem;
+            }
+            .listing-card-details {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.55rem;
+                border-top: 1px solid #eef2f7;
+                color: #64748b;
+                font-size: 0.78rem;
+                margin-top: 0.85rem;
+                padding-top: 0.75rem;
+            }
+            .listing-card-details span:last-child {
+                grid-column: 1 / -1;
+            }
+            .listing-card-details strong {
+                color: #111827;
+                display: block;
+                font-size: 0.88rem;
+                font-weight: 800;
+            }
             [data-testid="stMetric"] {
                 background: #ffffff;
                 border: 1px solid #e5e7eb;
@@ -269,16 +397,6 @@ def styles() -> None:
             .info-table td:last-child {
                 font-weight: 800;
             }
-            .address-warning {
-                background: #fff7ed;
-                border: 1px solid #fed7aa;
-                border-radius: 0.5rem;
-                color: #9a3412;
-                font-size: 0.92rem;
-                font-weight: 750;
-                margin-top: 0.8rem;
-                padding: 0.75rem 0.85rem;
-            }
             .prediction-result {
                 border: 1px solid #fecdd3;
                 border-radius: 0.75rem;
@@ -312,6 +430,11 @@ def styles() -> None:
                 line-height: 1.5;
                 margin-top: 0.9rem;
                 padding: 0.75rem 0.85rem;
+            }
+            @media (max-width: 1100px) {
+                .listing-grid {
+                    grid-template-columns: 1fr;
+                }
             }
         </style>
         """,

@@ -55,8 +55,7 @@ print(f"Nombre de lignes importées : {len(df_master)}")
 # =========================================
 
 df_golden = pd.read_csv(
-    "data/final/annonces_scraping_nettoyees_golden.csv",
-    sep=";"
+    "data/final/annonces_scraping_nettoyees_golden.csv"
 )
 
 df_golden.to_sql(
@@ -66,5 +65,5 @@ df_golden.to_sql(
     index=False
 )
 
-print("Import master_data_scraping terminé !")
+print("Import golden_data_scraping terminé !")
 print(f"Nombre de lignes importées : {len(df_golden)}")

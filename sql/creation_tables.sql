@@ -90,6 +90,11 @@ CREATE TABLE golden_data_scraping (
     date_scraping TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_golden_scraping_localisation ON golden_data_scraping (localisation);
+CREATE INDEX idx_golden_scraping_source ON golden_data_scraping (source);
+CREATE INDEX idx_golden_scraping_surface ON golden_data_scraping (surface);
+CREATE INDEX idx_golden_scraping_pieces ON golden_data_scraping (nb_pieces);
+
 
 -- =========================================================
 -- TABLE 4 : dvf_paris_appartements

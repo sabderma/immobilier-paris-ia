@@ -61,7 +61,7 @@ def get_dvf_points(
     max_lat: Optional[float] = None,
     min_lon: Optional[float] = None,
     max_lon: Optional[float] = None,
-    limit: int = Query(800, ge=1, le=2000),
+    limit: int = Query(800, ge=1, le=200000),
 ) -> dict:
     """Retourne un jeu de points léger pour l'affichage cartographique."""
     where, params = construire_where_dvf(

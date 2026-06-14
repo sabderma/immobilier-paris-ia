@@ -16,11 +16,13 @@ def afficher_sources_et_guide() -> None:
         1. **Carte** : utilisez les filtres en haut de la page pour choisir un arrondissement,
            une période, une surface ou un nombre de pièces. La couleur indique le prix médian
            au m². En zoomant, les ventes apparaissent sous forme de points cliquables.
-        2. **Tableau** : consultez les ventes correspondant aux filtres et téléchargez-les
+        2. **Appartements à vendre** : explorez les annonces issues du scraping, comparez
+           les prix demandés et les ventes DVF 2025, puis filtrez par source ou caractéristiques.
+        3. **Tableau** : consultez les ventes correspondant aux filtres et téléchargez-les
            au format CSV.
-        3. **Prédire appartement** : renseignez la surface, le nombre de pièces et
+        4. **Prédire appartement** : renseignez la surface, le nombre de pièces et
            l’arrondissement pour obtenir une estimation basée sur les ventes DVF passées.
-        4. **Noter votre endroit** : choisissez un arrondissement puis cliquez sur
+        5. **Noter votre endroit** : choisissez un arrondissement puis cliquez sur
            **Noter cet arrondissement** pour afficher sa densité commerciale. Pour une adresse
            précise, saisissez une adresse parisienne complète et lancez l’analyse Gemini.
         """
@@ -49,6 +51,9 @@ def afficher_sources_et_guide() -> None:
           [Demandes de valeurs foncières (DVF) sur data.gouv.fr](https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres).
           Ces données publiques recensent les transactions immobilières enregistrées par
           l’administration fiscale.
+        - **Annonces disponibles** : données collectées par scraping auprès de Century 21,
+          Laforêt, Le Figaro Immobilier, Orpi et Stéphane Plaza, puis nettoyées dans la table
+          PostgreSQL `golden_data_scraping`.
         - **Commerces par arrondissement** :
           [Base permanente des équipements 2012 sur Open Data Île-de-France](https://data.iledefrance.fr/explore/dataset/les-commerces-par-commune-ou-arrondissement-base-permanente-des-equipements/).
           L’application interroge directement l’API de ce jeu de données. Les populations
