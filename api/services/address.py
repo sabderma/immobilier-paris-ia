@@ -1,209 +1,105 @@
 from __future__ import annotations
 
-import json
-import os
-import re
-import time
 from typing import Any
 
+import requests
 from fastapi import HTTPException, status
 
-from api.core import charger_env
-from api.schemas import GEMINI_ADRESSE_SCORE_SCHEMA
+
+GEOCODAGE_IGN_API_URL = "https://data.geopf.fr/geocodage/search"
+TIMEOUT_GEOCODAGE_SECONDES = 15
 
 
-NOMBRE_PASSES_GEMINI = 2
-MODELE_GEMINI_PRINCIPAL = "gemini-3.1-flash-lite"
-MODELES_GEMINI_SECOURS = ("gemini-2.5-flash", "gemini-3.5-flash")
-
-
-def adresse_hors_paris(adresse: str) -> bool:
-    codes_postaux = re.findall(r"\b\d{5}\b", adresse)
-    return bool(codes_postaux) and not any(code.startswith("75") for code in codes_postaux)
-
-
-def arrondissement_dans_adresse(adresse: str) -> int | None:
-    code_postal = re.search(r"\b750([1-9]|1[0-9]|20)\b", adresse)
-    if code_postal:
-        return int(code_postal.group(1))
-
-    paris_arrondissement = re.search(
-        r"\bparis\s*([1-9]|1[0-9]|20)\s*(?:e|er|eme|ème)?\b",
-        adresse,
-        flags=re.IGNORECASE,
-    )
-    if paris_arrondissement:
-        return int(paris_arrondissement.group(1))
-
-    return None
-
-
-def normaliser_adresse_paris(adresse: str, arrondissement: int | None = None) -> str:
-    adresse_nettoyee = " ".join(adresse.strip().rstrip(",").split())
-    if "paris" in adresse_nettoyee.lower():
-        return adresse_nettoyee
-    if arrondissement is None:
-        return adresse_nettoyee
-    return f"{adresse_nettoyee}, Paris {arrondissement}"
-
-
-def construire_prompt_score_adresse(adresse: str, arrondissement: int | None) -> str:
-    arrondissement_texte = f"Paris {arrondissement}" if arrondissement else "non fourni"
-    return f"""
-Tu es un assistant specialise dans l'analyse de localisation immobiliere a Paris.
-
-Objectif :
-Analyser une adresse exacte situee uniquement a Paris et produire un score
-d'emplacement immobilier sur 100.
-
-Adresse a analyser :
-{adresse}
-
-Arrondissement detecte :
-{arrondissement_texte}
-
-Regles obligatoires :
-- Tu dois accepter uniquement les adresses situees a Paris intra-muros.
-- Si l'adresse n'est pas a Paris, retourne uniquement ce JSON :
-  {{"erreur": "Adresse non valide", "message": "Il faut saisir une adresse situee a Paris."}}
-- Si l'adresse ne precise pas Paris, un code postal 75001 a 75020, ou un arrondissement parisien,
-  retourne uniquement ce JSON :
-  {{"erreur": "Adresse incomplète", "message": "Il faut saisir une adresse complète avec Paris et l'arrondissement."}}
-- Ne jamais analyser une adresse hors Paris.
-- Ne jamais ecrire "a verifier", "à vérifier" ou une distance vide.
-- Pour chaque lieu trouve, donne une distance exacte si tu la connais, sinon une distance approximative.
-- Les distances doivent etre ecrites comme "120 m", "environ 300 m" ou "environ 8 min a pied".
-- Donne les noms concrets des stations, lignes de transport, ecoles, commerces, espaces verts et services de sante.
-- Si tu ne connais pas assez d'elements dans une categorie, mets moins d'elements, mais ne les invente pas.
-- Reponds uniquement en JSON valide, sans texte avant ou apres.
-
-Analyse les categories suivantes :
-1. Transports a proximite
-2. Commerces et supermarches
-3. Ecoles
-4. Espaces verts
-5. Sante
-6. Zones touristiques ou tres frequentees
-7. Tranquillite
-8. Attractivite immobiliere
-
-Pour chaque categorie :
-- donne un score sur 100
-- donne le nombre d'elements trouves
-- donne les noms precis
-- donne les distances exactes ou approximatives
-- donne un commentaire utile pour un acheteur immobilier
-""".strip()
-
-
-def extraire_json_gemini(texte: str) -> dict[str, Any]:
-    contenu = texte.strip()
-    if contenu.startswith("```"):
-        contenu = re.sub(r"^```(?:json)?", "", contenu, flags=re.IGNORECASE).strip()
-        contenu = re.sub(r"```$", "", contenu).strip()
+def arrondissement_depuis_code_postal(code_postal: str) -> int | None:
+    if len(code_postal) != 5 or not code_postal.startswith("750"):
+        return None
 
     try:
-        return json.loads(contenu)
-    except json.JSONDecodeError:
-        debut = contenu.find("{")
-        fin = contenu.rfind("}")
-        if debut == -1 or fin == -1 or fin <= debut:
-            raise
-        return json.loads(contenu[debut : fin + 1])
+        arrondissement = int(code_postal[-2:])
+    except ValueError:
+        return None
+
+    return arrondissement if 1 <= arrondissement <= 20 else None
 
 
-def erreur_gemini_temporaire(exc: Exception) -> bool:
-    message = str(exc).lower()
-    return any(
-        marqueur in message
-        for marqueur in (
-            "429",
-            "503",
-            "high demand",
-            "resource_exhausted",
-            "unavailable",
-        )
+def est_adresse_exacte_paris(feature: dict[str, Any]) -> bool:
+    proprietes = feature.get("properties", {})
+    code_postal = str(proprietes.get("postcode") or "")
+    return (
+        proprietes.get("type") == "housenumber"
+        and arrondissement_depuis_code_postal(code_postal) is not None
+        and proprietes.get("city") == "Paris"
     )
 
 
-def modeles_gemini_configures() -> list[str]:
-    modele_principal = os.getenv("GEMINI_MODEL", MODELE_GEMINI_PRINCIPAL)
-    modeles_secours = os.getenv(
-        "GEMINI_FALLBACK_MODELS",
-        ",".join(MODELES_GEMINI_SECOURS),
-    ).split(",")
-    modeles = [modele_principal, *modeles_secours]
-    return list(dict.fromkeys(modele.strip() for modele in modeles if modele.strip()))
-
-
-def appeler_gemini_avec_repli(
-    client: Any,
-    modeles: list[str],
-    prompt: str,
-) -> Any:
-    derniere_erreur: Exception | None = None
-    for passe in range(NOMBRE_PASSES_GEMINI):
-        for modele in modeles:
-            try:
-                return client.models.generate_content(
-                    model=modele,
-                    contents=prompt,
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_json_schema": GEMINI_ADRESSE_SCORE_SCHEMA,
-                    },
-                )
-            except Exception as exc:
-                if not erreur_gemini_temporaire(exc):
-                    raise
-                derniere_erreur = exc
-
-        if passe < NOMBRE_PASSES_GEMINI - 1:
-            time.sleep(1)
-
-    if derniere_erreur is not None:
-        raise derniere_erreur
-    raise RuntimeError("Aucun modèle Gemini n'est configuré.")
-
-
-def generer_score_adresse_gemini(
-    adresse: str,
-    arrondissement: int | None,
+def normaliser_resultat_ign(
+    adresse_saisie: str,
+    feature: dict[str, Any],
 ) -> dict[str, Any]:
-    charger_env()
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="GEMINI_API_KEY n'est pas configurée dans le fichier .env",
+    proprietes = feature["properties"]
+    longitude, latitude = feature["geometry"]["coordinates"]
+    code_postal = str(proprietes["postcode"])
+
+    return {
+        "source": "Géoplateforme IGN - Base Adresse Nationale",
+        "adresse_saisie": adresse_saisie,
+        "adresse_normalisee": proprietes["label"],
+        "identifiant_ban": proprietes.get("id"),
+        "numero": proprietes.get("housenumber"),
+        "voie": proprietes.get("street"),
+        "code_postal": code_postal,
+        "ville": proprietes.get("city"),
+        "arrondissement": arrondissement_depuis_code_postal(code_postal),
+        "longitude": float(longitude),
+        "latitude": float(latitude),
+        "score_correspondance": round(float(proprietes.get("score", 0)), 4),
+        "type_resultat": proprietes.get("type"),
+    }
+
+
+def geocoder_adresse_ign(adresse: str) -> dict[str, Any]:
+    adresse_saisie = " ".join(adresse.strip().split())
+
+    try:
+        response = requests.get(
+            GEOCODAGE_IGN_API_URL,
+            params={
+                "q": adresse_saisie,
+                "limit": 5,
+                "index": "address",
+            },
+            timeout=TIMEOUT_GEOCODAGE_SECONDES,
         )
-
-    try:
-        from google import genai
-    except ImportError as exc:
+        response.raise_for_status()
+        payload = response.json()
+    except (requests.RequestException, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="La dépendance google-genai est manquante. Réinstallez requirements.txt.",
+            detail="Le service de géocodage IGN est temporairement indisponible.",
         ) from exc
 
-    prompt = construire_prompt_score_adresse(adresse, arrondissement)
-    modeles = modeles_gemini_configures()
-    client = genai.Client(api_key=api_key)
+    features = payload.get("features", [])
+    meilleur_resultat = features[0] if features else None
+    if meilleur_resultat is not None and est_adresse_exacte_paris(meilleur_resultat):
+        return normaliser_resultat_ign(adresse_saisie, meilleur_resultat)
 
-    try:
-        response = appeler_gemini_avec_repli(client, modeles, prompt)
-        resultat = extraire_json_gemini(response.text or "")
-    except Exception as exc:
-        if erreur_gemini_temporaire(exc):
-            detail = (
-                "Gemini est temporairement surchargé. "
-                "Réessayez dans quelques instants."
-            )
-        else:
-            detail = "Gemini n'a pas pu analyser cette adresse."
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=detail,
-        ) from exc
+    if meilleur_resultat is not None and (
+        meilleur_resultat.get("properties", {}).get("city") == "Paris"
+    ):
+        return {
+            "erreur": "Adresse exacte introuvable",
+            "message": (
+                "Indiquez une adresse parisienne complète avec un numéro et un nom de voie."
+            ),
+        }
 
-    return resultat
+    if meilleur_resultat is not None:
+        return {
+            "erreur": "Adresse non valide",
+            "message": "Il faut saisir une adresse exacte située à Paris.",
+        }
+
+    return {
+        "erreur": "Adresse introuvable",
+        "message": "Aucune adresse correspondante n’a été trouvée.",
+    }

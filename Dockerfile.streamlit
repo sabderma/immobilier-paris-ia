@@ -13,7 +13,6 @@ ENV PYTHONPATH=/app:/app/streamlit
 COPY streamlit ./streamlit
 COPY src ./src
 COPY data/raw/arrondissements_paris.geojson ./data/raw/arrondissements_paris.geojson
-COPY data/raw/cadastre_sections_paris ./data/raw/cadastre_sections_paris
 
 WORKDIR /app/streamlit
 

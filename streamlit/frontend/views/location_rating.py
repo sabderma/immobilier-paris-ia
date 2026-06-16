@@ -4,129 +4,199 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+from streamlit_folium import st_folium
 
-from frontend.api_client import charger_commerces_paris, noter_adresse_gemini
-from frontend.formatting import formater_decimal, formater_entier
-
-
-def libelle_categorie(categorie: str) -> str:
-    libelles = {
-        "transports": "Transports",
-        "commerces": "Commerces",
-        "ecoles": "Écoles",
-        "espaces_verts": "Espaces verts",
-        "sante": "Santé",
-        "tourisme_frequentation": "Tourisme / fréquentation",
-    }
-    return libelles.get(categorie, categorie.replace("_", " ").title())
+from frontend.api_client import (
+    ErreurApi,
+    api_delete,
+    api_get_json,
+    charger_commerces_paris,
+    geocoder_adresse,
+)
+from frontend.config import API_ENDPOINTS
+from frontend.formatting import formater_date, formater_decimal, formater_entier
+from frontend.map_view import creer_carte_adresse
 
 
-def lignes_resultat_adresse(resultat: dict[str, Any]) -> list[dict[str, str]]:
-    lignes = []
-    details = resultat.get("details", {})
-    if not isinstance(details, dict):
-        return lignes
-
-    for categorie, donnees in details.items():
-        if not isinstance(donnees, dict):
-            continue
-
-        elements = donnees.get("elements", [])
-        if not isinstance(elements, list):
-            continue
-
-        for element in elements:
-            if not isinstance(element, dict):
-                continue
-
-            lignes_transport = element.get("lignes", [])
-            if isinstance(lignes_transport, list):
-                lignes_transport = ", ".join(str(ligne) for ligne in lignes_transport)
-
-            commentaire = element.get("commentaire") or element.get("impact") or ""
-            lignes.append(
-                {
-                    "Catégorie": libelle_categorie(categorie),
-                    "Nom": str(element.get("nom") or "Non renseigné"),
-                    "Type": str(element.get("type") or "Non renseigné"),
-                    "Lignes": str(lignes_transport or ""),
-                    "Distance": str(
-                        element.get("distance_estimee")
-                        or "Distance approximative non renseignée"
-                    ),
-                    "Temps à pied": str(element.get("temps_a_pied") or ""),
-                    "Avis": str(commentaire),
-                }
-            )
-
-    return lignes
-
-
-def afficher_resultat_adresse_gemini(resultat: dict[str, Any]) -> None:
-    if resultat.get("erreur"):
-        st.error(resultat.get("message", "Il faut saisir une adresse située à Paris."))
+def supprimer_adresse_historique(address_id: int) -> None:
+    try:
+        api_delete(
+            f"{API_ENDPOINTS['user_addresses']}/{address_id}",
+            arreter_sur_erreur=False,
+        )
+    except ErreurApi as exc:
+        st.error(exc.message)
         return
 
-    st.markdown("#### Résultat Gemini")
-    score = resultat.get("score_global")
-    niveau = resultat.get("niveau", "—")
+    st.success("Adresse supprimée de ton historique.")
+    st.rerun()
 
-    col_score, col_niveau = st.columns(2)
+
+def afficher_historique_adresses() -> None:
+    st.markdown("#### Historique de mes adresses exactes")
+
+    try:
+        historique = api_get_json(
+            API_ENDPOINTS["user_addresses"],
+            arreter_sur_erreur=False,
+        )
+    except ErreurApi as exc:
+        st.caption(f"Historique indisponible : {exc.message}")
+        return
+
+    if not historique:
+        st.info("Aucune adresse exacte enregistrée pour le moment.")
+        return
+
+    historique_trie = sorted(
+        historique,
+        key=lambda ligne: ligne.get("created_at") or "",
+        reverse=True,
+    )
+
+    colonnes = st.columns([0.14, 0.42, 0.14, 0.14, 0.14])
+    libelles = ["Date", "Adresse", "Latitude", "Longitude", ""]
+    for colonne, libelle in zip(colonnes, libelles):
+        colonne.markdown(f"**{libelle}**")
+
+    for ligne in historique_trie:
+        address_id = int(ligne["id"])
+        with st.container(border=True):
+            col_date, col_adresse, col_lat, col_lng, col_action = st.columns(
+                [0.14, 0.42, 0.14, 0.14, 0.14]
+            )
+            col_date.write(formater_date(ligne.get("created_at")))
+            col_adresse.write(ligne.get("address", "—"))
+            col_lat.write(f"{float(ligne.get('latitude', 0)):.5f}")
+            col_lng.write(f"{float(ligne.get('longitude', 0)):.5f}")
+            if col_action.button(
+                "Effacer",
+                key=f"effacer_adresse_{address_id}",
+                width="stretch",
+            ):
+                supprimer_adresse_historique(address_id)
+
+
+def afficher_lieux_proches(
+    lieux: list[dict[str, Any]],
+    colonnes: list[str],
+    libelles: dict[str, str],
+) -> None:
+    if not lieux:
+        st.caption("Aucun résultat disponible dans ce rayon.")
+        return
+
+    tableau = pd.DataFrame(lieux[:30])
+    for colonne in colonnes:
+        if colonne not in tableau.columns:
+            tableau[colonne] = ""
+    tableau = tableau[colonnes].rename(columns=libelles)
+    for colonne_liste in ("Modes", "Lignes"):
+        if colonne_liste in tableau.columns:
+            tableau[colonne_liste] = tableau[colonne_liste].apply(
+                lambda valeur: ", ".join(valeur) if isinstance(valeur, list) else valeur
+            )
+    st.dataframe(tableau, hide_index=True, width="stretch")
+
+
+def afficher_resultat_geocodage(resultat: dict[str, Any]) -> None:
+    if resultat.get("erreur"):
+        st.error(
+            resultat.get(
+                "message",
+                "Il faut saisir une adresse exacte située à Paris.",
+            )
+        )
+        return
+
+    st.markdown("#### Adresse localisée par l’IGN")
+    score = resultat.get("score_correspondance")
+    score_affiche = f"{float(score) * 100:.1f} %" if score is not None else "—"
+
+    col_adresse, col_score = st.columns([2, 1])
+    with col_adresse:
+        st.metric("Adresse normalisée", resultat.get("adresse_normalisee", "—"))
     with col_score:
-        st.metric("Score emplacement", f"{score}/100" if score is not None else "—")
-    with col_niveau:
-        st.metric("Niveau", str(niveau).capitalize())
+        st.metric("Correspondance", score_affiche)
 
-    resume = resultat.get("resume")
-    if resume:
-        st.markdown(str(resume))
+    latitude = float(resultat["latitude"])
+    longitude = float(resultat["longitude"])
+    adresse = str(resultat.get("adresse_normalisee") or "Adresse localisée")
+    proximite = resultat.get("proximite") or {}
+    totaux = proximite.get("totaux") or {}
 
-    lignes = lignes_resultat_adresse(resultat)
-    if lignes:
-        tableau = pd.DataFrame(lignes)
-        st.markdown(
-            tableau.to_html(index=False, escape=True, classes="info-table"),
-            unsafe_allow_html=True,
-        )
+    st.caption(
+        f"Lieux recherchés dans un rayon de {proximite.get('rayon_metres', 500)} m "
+        "à vol d’oiseau."
+    )
+    col_transport, col_commerce, col_ecole, col_sante = st.columns(4)
+    with col_transport:
+        st.metric("Transports", totaux.get("transports", 0))
+    with col_commerce:
+        st.metric("Commerces", totaux.get("commerces", 0))
+    with col_ecole:
+        st.metric("Écoles", totaux.get("education", 0))
+    with col_sante:
+        st.metric("Santé", totaux.get("sante", 0))
 
-    details = resultat.get("details", {})
-    if isinstance(details, dict):
-        tranquillite = details.get("tranquillite", {})
-        if isinstance(tranquillite, dict) and tranquillite.get("avis"):
-            st.markdown("#### Tranquillité")
-            st.write(tranquillite["avis"])
+    carte = creer_carte_adresse(
+        latitude=latitude,
+        longitude=longitude,
+        adresse=adresse,
+        proximite=proximite,
+    )
+    st_folium(
+        carte,
+        key=f"carte_adresse_{resultat.get('identifiant_ban', 'ign')}",
+        height=340,
+        use_container_width=True,
+        returned_objects=[],
+    )
 
-        attractivite = details.get("attractivite_immobiliere", {})
-        if isinstance(attractivite, dict) and attractivite.get("avis"):
-            st.markdown("#### Attractivité immobilière")
-            st.write(attractivite["avis"])
+    resume_ia = resultat.get("resume_ia") or {}
+    if resume_ia.get("texte"):
+        with st.container(border=True):
+            st.markdown("##### Résumé du secteur par OpenAI")
+            st.write(resume_ia["texte"])
+            st.caption(
+                "Résumé généré à partir des données IGN, Île-de-France Mobilités "
+                "et OpenStreetMap affichées sur cette page."
+            )
+    elif resume_ia.get("erreur"):
+        st.caption("Le résumé OpenAI est temporairement indisponible.")
 
-    points_forts = resultat.get("points_forts", [])
-    points_faibles = resultat.get("points_faibles", [])
-    if points_forts or points_faibles:
-        st.markdown("#### Synthèse")
-        max_lignes = max(len(points_forts), len(points_faibles))
-        synthese = pd.DataFrame(
+    erreurs = proximite.get("erreurs") or []
+    for erreur in erreurs:
+        st.warning(erreur)
+
+    with st.expander("Transports proches"):
+        afficher_lieux_proches(
+            proximite.get("transports") or [],
+            ["nom", "modes", "lignes", "distance_metres"],
             {
-                "Points forts": [
-                    points_forts[index] if index < len(points_forts) else ""
-                    for index in range(max_lignes)
-                ],
-                "Points faibles": [
-                    points_faibles[index] if index < len(points_faibles) else ""
-                    for index in range(max_lignes)
-                ],
-            }
-        )
-        st.markdown(
-            synthese.to_html(index=False, escape=True, classes="info-table"),
-            unsafe_allow_html=True,
+                "nom": "Arrêt ou station",
+                "modes": "Modes",
+                "lignes": "Lignes",
+                "distance_metres": "Distance (m)",
+            },
         )
 
-    conclusion = resultat.get("conclusion_acheteur")
-    if conclusion:
-        st.markdown("#### Conclusion acheteur")
-        st.write(conclusion)
+    with st.expander("Commerces, écoles et santé proches"):
+        afficher_lieux_proches(
+            proximite.get("equipements") or [],
+            ["nom", "categorie", "sous_categorie", "distance_metres"],
+            {
+                "nom": "Lieu",
+                "categorie": "Catégorie",
+                "sous_categorie": "Type",
+                "distance_metres": "Distance (m)",
+            },
+        )
+
+    st.caption(
+        "Sources : Géoplateforme IGN, Île-de-France Mobilités, OpenStreetMap "
+        "et résumé rédigé par OpenAI."
+    )
 
 
 def afficher_resultat_arrondissement(
@@ -141,27 +211,50 @@ def afficher_resultat_arrondissement(
     donnees = selection.iloc[0]
     st.markdown(f"#### {donnees['nom_arrondissement']}")
     st.caption(
-        "La note compare la densité de commerces de cet arrondissement à celle "
-        "des autres arrondissements parisiens."
+        "Score commercial comparé aux autres arrondissements : proximité quotidienne "
+        "45 %, diversité commerciale 35 % et grandes surfaces 20 %. "
+        "Barème progressif de 4 à 10."
     )
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric(
-            "Note commerces",
-            formater_decimal(donnees.get("note_commerces_sur_10"), "/10"),
+            "Score arrondissement",
+            formater_decimal(donnees.get("score_arrondissement_sur_10"), "/10"),
         )
     with col2:
-        st.metric("Total commerces", formater_entier(donnees.get("total_commerces")))
+        st.metric(
+            "Proximité quotidienne",
+            formater_decimal(
+                donnees.get("score_proximite_quotidienne_sur_10"),
+                "/10",
+            ),
+        )
     with col3:
         st.metric(
-            "Commerces / 10 000 hab.",
-            formater_decimal(donnees.get("commerces_pour_10000_habitants")),
+            "Diversité commerciale",
+            formater_decimal(
+                donnees.get("score_diversite_commerciale_sur_10"),
+                "/10",
+            ),
+        )
+    with col4:
+        st.metric(
+            "Grandes surfaces",
+            formater_decimal(
+                donnees.get("score_grandes_surfaces_sur_10"),
+                "/10",
+            ),
         )
 
     tableau = pd.DataFrame(
         [
             ("Population 2010", formater_entier(donnees.get("population_2010"))),
+            ("Total commerces", formater_entier(donnees.get("total_commerces"))),
+            (
+                "Commerces / 10 000 hab.",
+                formater_decimal(donnees.get("commerces_pour_10000_habitants")),
+            ),
             ("Grandes surfaces", formater_entier(donnees.get("grandes_surfaces"))),
             (
                 "Commerces alimentaires",
@@ -195,7 +288,7 @@ def afficher_resultat_arrondissement(
 
 
 def afficher_noter_endroit() -> None:
-    st.markdown("### Noter votre endroit")
+    st.markdown("### Analyser votre endroit")
 
     commerces = charger_commerces_paris()
     if commerces.empty:
@@ -219,7 +312,7 @@ def afficher_noter_endroit() -> None:
         )
 
     with st.container(border=True):
-        st.markdown("#### Noter votre adresse exacte")
+        st.markdown("#### Localiser votre adresse exacte")
         adresse_exacte = st.text_input(
             "Adresse exacte à Paris",
             placeholder="Ex : 71 rue de Passy, Paris 16e",
@@ -228,26 +321,34 @@ def afficher_noter_endroit() -> None:
         st.caption(
             "Seules les adresses situées à Paris intra-muros sont acceptées."
         )
-        analyser_adresse = st.button(
-            "Noter cette adresse avec Gemini",
+        localiser_adresse = st.button(
+            "Localiser cette adresse",
             type="primary",
-            key="noter_adresse_gemini",
+            key="geocoder_adresse_ign",
         )
 
-    if analyser_adresse:
+    if localiser_adresse:
         if not adresse_exacte.strip():
             st.error("Renseigne une adresse complète à Paris.")
         else:
-            with st.spinner("Gemini analyse l’adresse..."):
-                resultat_adresse = noter_adresse_gemini(adresse_exacte.strip())
-            afficher_resultat_adresse_gemini(resultat_adresse)
+            with st.spinner("Recherche de l’adresse et des lieux proches..."):
+                resultat_adresse = geocoder_adresse(adresse_exacte.strip())
+            st.session_state["resultat_geocodage_adresse"] = resultat_adresse
+            st.session_state.pop("arrondissement_note", None)
 
     if noter_arrondissement:
         if arrondissement is None:
             st.error("Choisis un arrondissement avant de lancer la notation.")
         else:
             st.session_state["arrondissement_note"] = arrondissement
+            st.session_state.pop("resultat_geocodage_adresse", None)
+
+    resultat_geocodage = st.session_state.get("resultat_geocodage_adresse")
+    if resultat_geocodage:
+        afficher_resultat_geocodage(resultat_geocodage)
 
     arrondissement_note = st.session_state.get("arrondissement_note")
     if arrondissement_note is not None and arrondissement_note == arrondissement:
         afficher_resultat_arrondissement(commerces, int(arrondissement_note))
+
+    afficher_historique_adresses()

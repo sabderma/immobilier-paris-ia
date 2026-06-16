@@ -1,11 +1,13 @@
+argon2-cffi
 fastapi
 folium
-google-genai
 joblib
 matplotlib
+openai>=2.17.0,<3
 pandas
 plotly
 psycopg2-binary
+PyJWT
 requests
 scikit-learn==1.6.1
 seaborn

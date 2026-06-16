@@ -22,9 +22,10 @@ def afficher_sources_et_guide() -> None:
            au format CSV.
         4. **Prédire appartement** : renseignez la surface, le nombre de pièces et
            l’arrondissement pour obtenir une estimation basée sur les ventes DVF passées.
-        5. **Noter votre endroit** : choisissez un arrondissement puis cliquez sur
+        5. **Analyser votre endroit** : choisissez un arrondissement puis cliquez sur
            **Noter cet arrondissement** pour afficher sa densité commerciale. Pour une adresse
-           précise, saisissez une adresse parisienne complète et lancez l’analyse Gemini.
+           précise, saisissez une adresse parisienne complète pour la localiser avec l’IGN et
+           afficher les transports, commerces, écoles et services de santé dans un rayon de 500 m.
         """
     )
 
@@ -35,12 +36,17 @@ def afficher_sources_et_guide() -> None:
           immobilières officielles DVF filtrées pour les appartements parisiens.
         - La prédiction de prix utilise un modèle XGBoost entraîné sur les données DVF
           2021 à 2025. C’est une estimation indicative, pas une expertise immobilière.
-        - La note d’arrondissement mesure uniquement la densité de commerces pour
-          10 000 habitants. L’arrondissement ayant la densité la plus élevée obtient 10/10,
-          puis les autres sont notés proportionnellement.
-        - La note d’une adresse exacte est générée par Gemini à partir de critères de proximité :
-          transports, commerces, écoles, espaces verts, santé, fréquentation et tranquillité.
-          Les informations et distances produites par l’IA peuvent être approximatives.
+        - Le score arrondissement mesure l’offre commerciale par habitant et compare les
+          20 arrondissements. Il combine la proximité quotidienne (45 %), la diversité
+          commerciale (35 %) et les grandes surfaces (20 %). Chaque critère utilise un
+          barème progressif de 4 à 10 selon le classement relatif. Ce n’est pas une note
+          globale sur la qualité de vie.
+        - Le géocodage d’une adresse exacte vérifie qu’elle existe à Paris et retourne son adresse
+          normalisée, ses coordonnées GPS et un score de correspondance.
+        - L’analyse de proximité compte et localise les transports, commerces, écoles et services
+          de santé présents dans un rayon de 500 m à vol d’oiseau autour de l’adresse.
+        - OpenAI rédige ensuite un court résumé à partir de ces résultats. L’IA ne recherche
+          pas les lieux et ne calcule pas les distances.
         """
     )
 
@@ -58,17 +64,24 @@ def afficher_sources_et_guide() -> None:
           [Base permanente des équipements 2012 sur Open Data Île-de-France](https://data.iledefrance.fr/explore/dataset/les-commerces-par-commune-ou-arrondissement-base-permanente-des-equipements/).
           L’application interroge directement l’API de ce jeu de données. Les populations
           utilisées pour calculer la densité datent de 2010.
-        - **Sections cadastrales affichées sur la carte** :
-          [Cadastre ouvert Etalab](https://cadastre.data.gouv.fr/datasets/plan-cadastral-informatise).
         - **Fond de carte** :
           [OpenStreetMap](https://www.openstreetmap.org/copyright).
-        - **Analyse d’une adresse exacte** :
-          [API Gemini de Google](https://ai.google.dev/gemini-api/docs).
-          L’adresse saisie est envoyée à Gemini pour produire l’analyse.
+        - **Géocodage d’une adresse exacte** :
+          [Service de géocodage de la Géoplateforme IGN](https://geoservices.ign.fr/documentation/services/services-geoplateforme/geocodage).
+          L’adresse saisie est comparée à la Base Adresse Nationale.
+        - **Transports autour d’une adresse** :
+          [API PRIM d’Île-de-France Mobilités](https://prim.iledefrance-mobilites.fr/fr/apis/idfm-navitia).
+          Elle fournit les arrêts, stations, modes et lignes à proximité.
+        - **Commerces, écoles et services de santé autour d’une adresse** :
+          [OpenStreetMap](https://www.openstreetmap.org/copyright), interrogé avec l’API Overpass.
+        - **Résumé du secteur** :
+          [OpenAI](https://openai.com/), utilisé uniquement pour rédiger un texte à partir
+          des données de proximité déjà collectées.
         """
     )
 
     st.info(
         "Les résultats sont fournis à titre informatif. Les prix passés, la note commerciale "
-        "et l’analyse par IA ne remplacent pas une visite du quartier ni l’avis d’un professionnel."
+        "et les analyses de proximité ne remplaceront pas une visite du quartier "
+        "ni l’avis d’un professionnel."
     )

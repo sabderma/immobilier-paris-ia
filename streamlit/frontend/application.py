@@ -24,6 +24,11 @@ from frontend.api_client import (
     charger_stats_scraping_sources,
     tuple_params,
 )
+from frontend.auth_ui import (
+    afficher_menu_compte,
+    afficher_page_authentification,
+    utilisateur_connecte,
+)
 from frontend.config import API_ENDPOINTS, MAX_POINTS
 from frontend.filters import afficher_filtres, afficher_filtres_annonces
 from frontend.formatting import formater_entier
@@ -82,6 +87,7 @@ def afficher_carte(
             return
 
         st.session_state["params_carte_dvf_generee"] = params
+        st.rerun(scope="fragment")
 
     with st.spinner("Génération de la carte des appartements vendus..."):
         stats_arr = charger_stats_arrondissements(params)
@@ -111,26 +117,40 @@ def main() -> None:
     if not verifier_api():
         st.stop()
 
+    if not utilisateur_connecte():
+        afficher_page_authentification()
+        return
+
     options = charger_filtres()
     navigation = [
         "🗺️ Carte",
         "▤ Appartements à vendre",
         "▦ Tableau",
         "⌂ Prédire appartement",
-        "⌖ Noter votre endroit",
+        "⌖ Analyser votre endroit",
         "▣ Sources",
     ]
-    vue_active = st.segmented_control(
-        "Navigation principale",
-        navigation,
-        default=navigation[0],
-        key="navigation_principale",
-        label_visibility="collapsed",
-        width="stretch",
-    )
+    colonne_navigation, colonne_compte = st.columns([0.82, 0.18], gap="small")
+    with colonne_navigation:
+        vue_active = st.segmented_control(
+            "Navigation principale",
+            navigation,
+            default=navigation[0],
+            key="navigation_principale",
+            label_visibility="collapsed",
+            width="stretch",
+        )
+    with colonne_compte:
+        afficher_menu_compte()
+
+    if vue_active != navigation[0]:
+        st.session_state["params_carte_dvf_generee"] = None
 
     if vue_active == navigation[1]:
         filtres_annonces = afficher_filtres_annonces(charger_filtres_scraping())
+        if filtres_annonces is None:
+            return
+
         params_annonces = tuple_params(filtres_annonces)
         if st.session_state.get("filtres_pagination_annonces") != params_annonces:
             st.session_state["filtres_pagination_annonces"] = params_annonces

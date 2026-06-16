@@ -9,86 +9,224 @@ import streamlit as st
 from frontend.config import API_BASE_URL, API_ENDPOINTS, headers_api
 
 
+class ErreurApi(RuntimeError):
+    def __init__(
+        self,
+        path: str,
+        message: str,
+        status_code: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.path = path
+        self.message = message
+        self.status_code = status_code
+
+
 def tuple_params(params: dict[str, Any]) -> tuple[tuple[str, Any], ...]:
     return tuple(sorted((k, v) for k, v in params.items() if v is not None))
 
 
-def api_get_json(path: str, params: dict[str, Any] | None = None) -> Any:
+def _headers_api() -> dict[str, str]:
+    headers = headers_api()
+    token = st.session_state.get("auth_token")
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
+def _message_validation(detail: list[Any]) -> str:
+    messages = []
+    for erreur in detail:
+        if not isinstance(erreur, dict):
+            messages.append(str(erreur))
+            continue
+        champ = ".".join(str(partie) for partie in erreur.get("loc", []) if partie)
+        message = erreur.get("msg") or "Erreur de validation"
+        messages.append(f"{champ} : {message}" if champ else str(message))
+    return " ; ".join(messages)
+
+
+def _message_erreur_api(response: requests.Response) -> str:
+    try:
+        detail = response.json().get("detail")
+    except ValueError:
+        detail = response.text
+
+    if isinstance(detail, list):
+        return _message_validation(detail)
+    if detail:
+        return str(detail)
+    return f"Erreur HTTP {response.status_code}"
+
+
+def _gerer_erreur_api(
+    path: str,
+    message: str,
+    *,
+    arreter_sur_erreur: bool,
+    status_code: int | None = None,
+) -> None:
+    if arreter_sur_erreur:
+        st.error(f"Erreur API sur {path} : {message}")
+        st.stop()
+    raise ErreurApi(path=path, message=message, status_code=status_code)
+
+
+def api_get_json(
+    path: str,
+    params: dict[str, Any] | None = None,
+    *,
+    arreter_sur_erreur: bool = True,
+) -> Any:
     try:
         response = requests.get(
             f"{API_BASE_URL}{path}",
             params={k: v for k, v in (params or {}).items() if v is not None},
-            headers=headers_api(),
+            headers=_headers_api(),
             timeout=60,
         )
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as exc:
-        detail = None
         response = exc.response
-        if response is not None:
-            try:
-                detail = response.json().get("detail")
-            except ValueError:
-                detail = response.text
-        message = detail or str(exc)
-        st.error(f"Erreur API sur {path} : {message}")
-        st.stop()
+        message = _message_erreur_api(response) if response is not None else str(exc)
+        _gerer_erreur_api(
+            path,
+            message,
+            arreter_sur_erreur=arreter_sur_erreur,
+            status_code=response.status_code if response is not None else None,
+        )
     except requests.exceptions.RequestException as exc:
-        st.error(f"Erreur API sur {path} : {exc}")
-        st.stop()
+        _gerer_erreur_api(
+            path,
+            str(exc),
+            arreter_sur_erreur=arreter_sur_erreur,
+        )
 
 
-def api_get_csv(path: str, params: dict[str, Any] | None = None) -> bytes:
+def api_get_csv(
+    path: str,
+    params: dict[str, Any] | None = None,
+    *,
+    arreter_sur_erreur: bool = True,
+) -> bytes:
     try:
         response = requests.get(
             f"{API_BASE_URL}{path}",
             params={k: v for k, v in (params or {}).items() if v is not None},
-            headers=headers_api(),
+            headers=_headers_api(),
             timeout=120,
         )
         response.raise_for_status()
         return response.content
     except requests.exceptions.HTTPError as exc:
-        detail = None
         response = exc.response
-        if response is not None:
-            try:
-                detail = response.json().get("detail")
-            except ValueError:
-                detail = response.text
-        message = detail or str(exc)
-        st.error(f"Erreur API sur {path} : {message}")
-        st.stop()
+        message = _message_erreur_api(response) if response is not None else str(exc)
+        _gerer_erreur_api(
+            path,
+            message,
+            arreter_sur_erreur=arreter_sur_erreur,
+            status_code=response.status_code if response is not None else None,
+        )
     except requests.exceptions.RequestException as exc:
-        st.error(f"Erreur API sur {path} : {exc}")
-        st.stop()
+        _gerer_erreur_api(
+            path,
+            str(exc),
+            arreter_sur_erreur=arreter_sur_erreur,
+        )
 
 
-def api_post_json(path: str, payload: dict[str, Any]) -> Any:
+def api_post_json(
+    path: str,
+    payload: dict[str, Any] | None = None,
+    *,
+    arreter_sur_erreur: bool = True,
+) -> Any:
     try:
         response = requests.post(
             f"{API_BASE_URL}{path}",
-            json=payload,
-            headers=headers_api(),
+            json=payload or {},
+            headers=_headers_api(),
             timeout=120,
         )
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as exc:
-        detail = None
         response = exc.response
-        if response is not None:
-            try:
-                detail = response.json().get("detail")
-            except ValueError:
-                detail = response.text
-        message = detail or str(exc)
-        st.error(f"Erreur API sur {path} : {message}")
-        st.stop()
+        message = _message_erreur_api(response) if response is not None else str(exc)
+        _gerer_erreur_api(
+            path,
+            message,
+            arreter_sur_erreur=arreter_sur_erreur,
+            status_code=response.status_code if response is not None else None,
+        )
     except requests.exceptions.RequestException as exc:
-        st.error(f"Erreur API sur {path} : {exc}")
-        st.stop()
+        _gerer_erreur_api(
+            path,
+            str(exc),
+            arreter_sur_erreur=arreter_sur_erreur,
+        )
+
+
+def api_patch_json(
+    path: str,
+    payload: dict[str, Any],
+    *,
+    arreter_sur_erreur: bool = True,
+) -> Any:
+    try:
+        response = requests.patch(
+            f"{API_BASE_URL}{path}",
+            json=payload,
+            headers=_headers_api(),
+            timeout=120,
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as exc:
+        response = exc.response
+        message = _message_erreur_api(response) if response is not None else str(exc)
+        _gerer_erreur_api(
+            path,
+            message,
+            arreter_sur_erreur=arreter_sur_erreur,
+            status_code=response.status_code if response is not None else None,
+        )
+    except requests.exceptions.RequestException as exc:
+        _gerer_erreur_api(
+            path,
+            str(exc),
+            arreter_sur_erreur=arreter_sur_erreur,
+        )
+
+
+def api_delete(
+    path: str,
+    *,
+    arreter_sur_erreur: bool = True,
+) -> None:
+    try:
+        response = requests.delete(
+            f"{API_BASE_URL}{path}",
+            headers=_headers_api(),
+            timeout=60,
+        )
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as exc:
+        response = exc.response
+        message = _message_erreur_api(response) if response is not None else str(exc)
+        _gerer_erreur_api(
+            path,
+            message,
+            arreter_sur_erreur=arreter_sur_erreur,
+            status_code=response.status_code if response is not None else None,
+        )
+    except requests.exceptions.RequestException as exc:
+        _gerer_erreur_api(
+            path,
+            str(exc),
+            arreter_sur_erreur=arreter_sur_erreur,
+        )
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -180,14 +318,15 @@ def charger_comparaison_scraping_dvf_2025(
     )
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def charger_commerces_paris() -> pd.DataFrame:
     payload = api_get_json(API_ENDPOINTS["commerces"])
-    return pd.DataFrame(payload.get("data", []))
+    commerces = pd.DataFrame(payload.get("data", []))
+    return commerces
 
 
-def noter_adresse_gemini(adresse: str) -> dict[str, Any]:
+def geocoder_adresse(adresse: str) -> dict[str, Any]:
     return api_post_json(
-        API_ENDPOINTS["adresse_score"],
+        API_ENDPOINTS["adresse_geocodage"],
         {"adresse": adresse},
     )

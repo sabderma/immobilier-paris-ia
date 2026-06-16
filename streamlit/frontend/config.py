@@ -23,8 +23,16 @@ API_ENDPOINTS = {
     "scraping_distribution": "/stats/scraping/distribution",
     "scraping_comparaison_2025": "/stats/scraping/comparaison-dvf-2025",
     "commerces": "/commerces/paris",
-    "adresse_score": "/ia/noter-adresse",
+    "adresse_geocodage": "/geocodage/adresse",
     "prediction_prix": "/prediction/prix",
+    "auth_register": "/auth/register",
+    "auth_login": "/auth/login",
+    "auth_me": "/auth/me",
+    "auth_logout": "/auth/logout",
+    "user_profile": "/users/me/profile",
+    "user_password": "/users/me/password",
+    "user_predictions": "/users/me/predictions",
+    "user_addresses": "/users/me/addresses",
 }
 PALETTE = ["#2f8f6f", "#93c35c", "#f1e85a", "#eba148", "#c83d35"]
 ZOOM_POINTS = 15

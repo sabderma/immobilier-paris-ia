@@ -41,7 +41,14 @@ def afficher_filtres(options: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def afficher_filtres_annonces(options: dict[str, Any]) -> dict[str, Any]:
+def afficher_filtres_annonces(options: dict[str, Any]) -> dict[str, Any] | None:
+    if options.get("surface_min") is None or options.get("surface_max") is None:
+        st.info(
+            "Aucune annonce n’est disponible dans la base de données. "
+            "Importez les données de scraping pour afficher cette section."
+        )
+        return None
+
     col1, col2, col3, col4 = st.columns([1.1, 1.4, 1.15, 1.15])
 
     with col1:

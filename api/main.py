@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import dvf, location, prediction, scraping, stats, system
+from api.routers import auth, dvf, location, prediction, scraping, stats, system, users
 
 
 app = FastAPI(
@@ -15,11 +15,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:8501", "http://localhost:8501"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
 app.include_router(system.router)
+app.include_router(auth.router)
+app.include_router(users.router)
 app.include_router(prediction.router)
 app.include_router(location.router)
 app.include_router(dvf.router)

@@ -246,7 +246,6 @@ synthèses datées et recommandations appliquées au projet.
 ### Preuves présentes
 
 - Le projet compare Random Forest et XGBoost.
-- Le projet utilise Gemini avec plusieurs modèles de repli.
 
 ### Pourquoi cela ne suffit pas
 
@@ -257,28 +256,25 @@ n'a été trouvé.
 
 ### À faire
 
-Créer un benchmark comparant au minimum plusieurs solutions pour la notation
-d'adresse ou la prédiction immobilière : Gemini, autre service externe,
-modèle local et option sans IA externe.
+Créer un benchmark comparant au minimum plusieurs solutions pour la prédiction
+immobilière : service d'IA externe, modèle local et option sans IA externe.
 
 ## C8 - Paramétrer un service d'intelligence artificielle
 
-**État : PARTIEL**
+**État : NON DÉMONTRÉ**
 
 ### Preuves présentes
 
-- Intégration du service Gemini dans `api/services/address.py`.
-- Configuration par variables d'environnement.
-- Gestion de plusieurs modèles de repli.
-- Tests des erreurs temporaires et définitives.
-- Intégration dans une route API et dans Streamlit.
+- Le géocodage IGN est intégré dans une route API et dans Streamlit.
+- Le géocodage IGN est un service géographique externe, pas un service
+  d'intelligence artificielle.
 
 ### Ce qui manque
 
-- Documentation d'installation et de configuration de Gemini.
+- Sélection et paramétrage d'un service d'intelligence artificielle préexistant.
 - Documentation des accès, droits, dépendances et données envoyées.
-- Analyse RGPD des adresses envoyées à un service tiers.
-- Monitoring spécifique du service Gemini.
+- Analyse RGPD des données envoyées au service retenu.
+- Monitoring spécifique du service retenu.
 - Preuve d'accessibilité de la documentation.
 
 ## C9 - Développer une API REST exposant un modèle d'IA
@@ -311,10 +307,10 @@ modèle local et option sans IA externe.
 
 - L'application Streamlit appelle l'API FastAPI.
 - Le formulaire de prédiction appelle `/prediction/prix`.
-- L'application appelle également la fonctionnalité Gemini de notation.
+- L'application appelle également le service de géocodage IGN via FastAPI.
 - La clé API est transmise par l'application.
 - Gestion des erreurs HTTP et réseau.
-- Interfaces adaptées à la prédiction et à la notation d'adresse.
+- Interfaces adaptées à la prédiction et au géocodage d'adresse.
 - Sources versionnées.
 
 ### Ce qui reste à améliorer
@@ -427,7 +423,7 @@ user stories, critères d'acceptation, wireframes et exigences d'accessibilité.
 - Architecture réelle en couches : Streamlit, FastAPI, PostgreSQL, modèle,
   Prometheus et Grafana.
 - Dockerfiles et Docker Compose.
-- Services externes Gemini et API commerces.
+- Services externes de géocodage IGN et API commerces.
 - Application fonctionnelle et structurée.
 
 ### Ce qui manque
@@ -467,7 +463,7 @@ de cycles ou rituels. Relier les tâches aux commits et aux livrables.
 ### Preuves présentes
 
 - Application Streamlit complète avec carte, tableau, filtres, graphiques,
-  prédiction, notation d'adresse et présentation des sources.
+  prédiction, géocodage d'adresse et présentation des sources.
 - API FastAPI structurée.
 - Validation des formulaires et schémas.
 - Accès aux données PostgreSQL.
@@ -563,7 +559,7 @@ de cycles ou rituels. Relier les tâches aux commits et aux livrables.
 ### À faire
 
 Documenter un incident réel déjà rencontré, par exemple une erreur de modèle,
-de connexion PostgreSQL, de route API ou d'intégration Gemini, avec toutes les
+de connexion PostgreSQL, de route API ou d'intégration IGN, avec toutes les
 étapes de reproduction, diagnostic, correction et validation.
 
 # Priorités recommandées
@@ -588,7 +584,7 @@ de connexion PostgreSQL, de route API ou d'intégration Gemini, avec toutes les
 
 1. C1 : automatiser et documenter toute la collecte.
 2. C4 : produire MCD, MPD, registre RGPD et procédure de tri.
-3. C8 : documenter et monitorer le service Gemini.
+3. C8 : sélectionner, documenter et monitorer un service d'IA préexistant.
 4. C13 : compléter la chaîne MLOps.
 5. C15 : documenter architecture et flux.
 6. C17 : ajouter accessibilité, sécurité et tests d'interface.

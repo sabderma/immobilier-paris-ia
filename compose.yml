@@ -12,6 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/creation_tables.sql:/docker-entrypoint-initdb.d/01-creation-tables.sql:ro
       - ./sql/import_dvf_docker.sql:/docker-entrypoint-initdb.d/02-import-dvf.sql:ro
+      - ./sql/creation_tables_utilisateurs.sql:/docker-entrypoint-initdb.d/03-creation-tables-utilisateurs.sql:ro
       - ./data/final/dvf_paris_clean_2021_2025.csv:/docker-entrypoint-initdb.d/dvf.csv:ro
       - ./data/final/annonces_scraping_nettoyees_golden.csv:/docker-entrypoint-initdb.d/scraping.csv:ro
     healthcheck:
@@ -32,7 +33,10 @@ services:
       DB_PORT: 5432
       DB_NAME: ${DB_NAME}
       API_KEY: ${API_KEY}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      IDFM_API_KEY: ${IDFM_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "8002:8000"
     depends_on:

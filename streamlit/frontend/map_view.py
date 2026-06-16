@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
 import folium
@@ -7,7 +8,7 @@ import pandas as pd
 from branca.colormap import LinearColormap
 from branca.element import MacroElement, Template
 from folium.features import GeoJsonTooltip
-from folium.plugins import FastMarkerCluster
+from folium.plugins import FastMarkerCluster, MarkerCluster
 
 from src.analyse import carte_paris
 from frontend.config import PALETTE, ZOOM_POINTS
@@ -71,6 +72,87 @@ def extraire_bounds(etat: dict[str, Any] | None) -> dict[str, float]:
         "max_lon": nord_est.get("lng"),
     }
     return {cle: float(valeur) for cle, valeur in valeurs.items() if valeur is not None}
+
+
+def creer_carte_adresse(
+    latitude: float,
+    longitude: float,
+    adresse: str,
+    proximite: dict[str, Any] | None = None,
+) -> folium.Map:
+    carte = folium.Map(
+        location=[latitude, longitude],
+        zoom_start=16,
+        tiles="OpenStreetMap",
+        control_scale=True,
+    )
+    rayon_metres = int((proximite or {}).get("rayon_metres") or 500)
+    folium.Circle(
+        location=[latitude, longitude],
+        radius=rayon_metres,
+        color="#dc2626",
+        fill=True,
+        fill_color="#dc2626",
+        fill_opacity=0.06,
+        weight=2,
+        tooltip=f"Rayon de {rayon_metres} m",
+    ).add_to(carte)
+    folium.Marker(
+        location=[latitude, longitude],
+        tooltip=adresse,
+        popup=folium.Popup(adresse, max_width=280),
+        icon=folium.Icon(color="red", icon="home", prefix="fa"),
+    ).add_to(carte)
+
+    groupes = {
+        "transport": (
+            MarkerCluster(name="Transports").add_to(carte),
+            "blue",
+            "bus",
+        ),
+        "commerce": (
+            MarkerCluster(name="Commerces").add_to(carte),
+            "green",
+            "shopping-cart",
+        ),
+        "education": (
+            MarkerCluster(name="Écoles").add_to(carte),
+            "orange",
+            "graduation-cap",
+        ),
+        "sante": (
+            MarkerCluster(name="Santé").add_to(carte),
+            "purple",
+            "plus",
+        ),
+    }
+    lieux = [
+        *((proximite or {}).get("transports") or []),
+        *((proximite or {}).get("equipements") or []),
+    ]
+    for lieu in lieux:
+        categorie = lieu.get("categorie")
+        if categorie not in groupes:
+            continue
+
+        groupe, couleur, icone = groupes[categorie]
+        lignes = ", ".join(lieu.get("lignes") or [])
+        details = escape(str(lieu.get("sous_categorie") or ""))
+        if lignes:
+            details = f"{details}<br>Lignes : {escape(lignes)}"
+        popup = (
+            f"<strong>{escape(str(lieu.get('nom') or 'Lieu'))}</strong><br>"
+            f"{details}<br>Distance : {int(lieu.get('distance_metres') or 0)} m"
+        )
+        folium.Marker(
+            location=[lieu["latitude"], lieu["longitude"]],
+            tooltip=str(lieu.get("nom") or "Lieu proche"),
+            popup=folium.Popup(popup, max_width=300),
+            icon=folium.Icon(color=couleur, icon=icone, prefix="fa"),
+        ).add_to(groupe)
+
+    folium.LayerControl(collapsed=True).add_to(carte)
+    return carte
 
 
 def enrichir_geojson_arrondissements(

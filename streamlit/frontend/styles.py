@@ -431,6 +431,60 @@ def styles() -> None:
                 margin-top: 0.9rem;
                 padding: 0.75rem 0.85rem;
             }
+            .auth-shell {
+                background:
+                    radial-gradient(circle at top left, rgba(251, 113, 133, 0.18), transparent 32%),
+                    linear-gradient(135deg, #fff7f8 0%, #ffffff 58%, #f8fafc 100%);
+                border: 1px solid #ffe4e6;
+                border-radius: 1.1rem;
+                box-shadow: 0 20px 50px rgba(15, 23, 42, 0.06);
+                margin: 0 auto 1.2rem;
+                max-width: 860px;
+                padding: 2.2rem 2.4rem;
+                text-align: center;
+            }
+            .auth-badge {
+                background: #fff1f2;
+                border: 1px solid #fecdd3;
+                border-radius: 999px;
+                color: #be123c;
+                display: inline-flex;
+                font-size: 0.82rem;
+                font-weight: 850;
+                letter-spacing: 0.04em;
+                margin-bottom: 0.85rem;
+                padding: 0.35rem 0.8rem;
+                text-transform: uppercase;
+            }
+            .auth-shell h1 {
+                color: #111827;
+                font-size: clamp(2rem, 4vw, 3.2rem);
+                font-weight: 900;
+                letter-spacing: -0.04em;
+                line-height: 1.05;
+                margin: 0;
+            }
+            .auth-shell p {
+                color: #475569;
+                font-size: 1.04rem;
+                line-height: 1.6;
+                margin: 0.9rem auto 0;
+                max-width: 620px;
+            }
+            [data-testid="stPopover"] button {
+                background: #fff1f2 !important;
+                border: 1px solid #fb7185 !important;
+                border-radius: 0.75rem !important;
+                color: #be123c !important;
+                font-weight: 850 !important;
+                min-height: 64px;
+            }
+            [data-testid="stPopover"] button p,
+            [data-testid="stPopover"] button span {
+                color: #be123c !important;
+                font-weight: 850 !important;
+                opacity: 1 !important;
+            }
             @media (max-width: 1100px) {
                 .listing-grid {
                     grid-template-columns: 1fr;

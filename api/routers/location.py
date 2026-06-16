@@ -5,53 +5,43 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, Query
 
 from api.core import verifier_cle_api
-from api.schemas import AdresseScoreRequest
-from api.services.address import (
-    adresse_hors_paris,
-    arrondissement_dans_adresse,
-    generer_score_adresse_gemini,
-    normaliser_adresse_paris,
-)
+from api.schemas import AdresseGeocodageRequest
+from api.services.auth import obtenir_utilisateur_optionnel
+from api.services.address import geocoder_adresse_ign
+from api.services.address_history import enregistrer_adresse_utilisateur
 from api.services.commerces import charger_commerces_paris
+from api.services.location_summary import generer_resume_lieu
+from api.services.proximity import analyser_proximite
 
 
 router = APIRouter()
 
 
-@router.post("/ia/noter-adresse")
-def noter_adresse(
-    payload: AdresseScoreRequest,
+@router.post("/geocodage/adresse")
+def geocoder_adresse(
+    payload: AdresseGeocodageRequest,
     _: None = Depends(verifier_cle_api),
+    utilisateur: Optional[dict[str, Any]] = Depends(obtenir_utilisateur_optionnel),
 ) -> dict[str, Any]:
-    if adresse_hors_paris(payload.adresse):
-        return {
-            "erreur": "Adresse non valide",
-            "message": "Il faut saisir une adresse située à Paris.",
-        }
-
-    arrondissement_detecte = arrondissement_dans_adresse(payload.adresse)
-    if (
-        arrondissement_detecte is not None
-        and payload.arrondissement is not None
-        and arrondissement_detecte != payload.arrondissement
-    ):
-        return {
-            "erreur": "Arrondissement incohérent",
-            "message": (
-                f"L'adresse indique Paris {arrondissement_detecte}, "
-                f"mais l'arrondissement sélectionné est Paris {payload.arrondissement}."
-            ),
-        }
-
-    arrondissement = arrondissement_detecte or payload.arrondissement
-    if arrondissement is None:
-        return {
-            "erreur": "Adresse incomplète",
-            "message": "Il faut saisir une adresse complète avec Paris et l'arrondissement.",
-        }
-
-    adresse_complete = normaliser_adresse_paris(payload.adresse, arrondissement)
-    return generer_score_adresse_gemini(adresse_complete, arrondissement)
+    resultat = geocoder_adresse_ign(payload.adresse)
+    if not resultat.get("erreur"):
+        if utilisateur is not None:
+            enregistrer_adresse_utilisateur(
+                user_id=utilisateur["id"],
+                address=resultat["adresse_normalisee"],
+                latitude=resultat["latitude"],
+                longitude=resultat["longitude"],
+            )
+        proximite = analyser_proximite(
+            resultat["latitude"],
+            resultat["longitude"],
+        )
+        resultat["proximite"] = proximite
+        resultat["resume_ia"] = generer_resume_lieu(
+            resultat["adresse_normalisee"],
+            proximite,
+        )
+    return resultat
 
 
 @router.get("/commerces/paris")

@@ -20,6 +20,23 @@ La table `golden_data_scraping` utilise des types numériques pour le prix, la s
 
 La table `dvf_paris_appartements` contient les données officielles DVF avec la date de vente, le prix, la surface, l’arrondissement et les coordonnées géographiques.
 
+## `sql/creation_tables_utilisateurs.sql`
+
+Ce script ajoute les tables liées aux comptes et aux historiques de l'application :
+
+- `users` : stocke les comptes, le mot de passe haché et le rôle `user` ou `admin` ;
+- `predictions` : stocke la surface, le nombre de pièces, l'arrondissement et le prix prédit ;
+- `exact_address_history` : stocke les adresses exactes validées et leurs coordonnées.
+
+Chaque prédiction et chaque adresse est liée à un compte par `user_id`.
+Si un compte est supprimé, ses historiques sont également supprimés grâce à `ON DELETE CASCADE`.
+
+Le script ne supprime aucune table existante. Il peut être ouvert puis exécuté directement dans DBeaver.
+Avec Docker, il est exécuté automatiquement uniquement lors de la première création du volume PostgreSQL.
+
+Le backend doit enregistrer uniquement un mot de passe haché avec Argon2 ou bcrypt dans `password_hash`.
+Il ne faut jamais enregistrer le mot de passe brut.
+
 ## `sql/requetes_analyse_DVF.sql`
 
 Ce script sert à contrôler la qualité des données DVF.
