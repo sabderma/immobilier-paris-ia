@@ -297,7 +297,7 @@ def creer_carte(
                 "removeOutsideVisibleBounds": True,
             },
             name="Appartements vendus",
-            show=zoom >= ZOOM_POINTS,
+            show=True,
             overlay=True,
             control=False,
         )
