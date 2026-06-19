@@ -60,62 +60,18 @@ STYLE_CARTE_FOND_CLAIR = """
     .leaflet-container {
         background: #ffffff !important;
     }
-    html:not(.map-ready)::before {
-        content: "Chargement de la carte\\A Préparation des ventes immobilières...";
-        align-items: center;
-        background: #ffffff;
-        color: #111827;
-        display: flex;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        font-size: 0.95rem;
-        font-weight: 800;
-        inset: 0;
-        justify-content: center;
-        line-height: 1.65;
-        padding-top: 4.5rem;
-        position: fixed;
-        text-align: center;
-        white-space: pre-line;
-        transition: opacity 180ms ease;
-        z-index: 9999;
-    }
-    html:not(.map-ready)::after {
-        animation: map-spin 0.8s linear infinite;
-        border: 4px solid #fee2e2;
-        border-radius: 999px;
-        border-top-color: #e11d48;
-        content: "";
-        height: 38px;
-        left: calc(50% - 19px);
-        position: fixed;
-        top: calc(50% - 48px);
-        width: 38px;
-        z-index: 10000;
-    }
-    @keyframes map-spin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
 </style>
-<script>
-    (function() {
-        function masquerChargement() {
-            document.documentElement.classList.add("map-ready");
-            setTimeout(function() {
-                var chargement = document.getElementById("map-loading");
-                if (chargement) {
-                    chargement.remove();
-                }
-            }, 220);
-        }
-
-        window.addEventListener("load", function() {
-            setTimeout(masquerChargement, 1200);
-        });
-        setTimeout(masquerChargement, 7000);
-    })();
-</script>
+"""
+HTML_CHARGEMENT_CARTE = """
+<div class="dvf-map-loading-overlay" aria-live="polite">
+    <div class="dvf-map-loading-panel">
+        <div>
+            <div class="dvf-map-loader"></div>
+            <div class="dvf-map-loading-title">Chargement de la carte</div>
+            <div class="dvf-map-loading-subtitle">Préparation des ventes immobilières...</div>
+        </div>
+    </div>
+</div>
 """
 
 
@@ -178,6 +134,7 @@ def afficher_carte(
         f"<head>{STYLE_CARTE_FOND_CLAIR}",
         1,
     )
+    st.markdown(HTML_CHARGEMENT_CARTE, unsafe_allow_html=True)
     components.html(
         html_carte,
         height=HAUTEUR_CARTE_DVF,

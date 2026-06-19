@@ -393,6 +393,57 @@ def styles() -> None:
                 opacity: 1 !important;
             }
             .scope-note { color: #64748b; font-size: 0.82rem; margin-bottom: 0.9rem; }
+            .dvf-map-loading-overlay {
+                animation: dvf-loader-hide 0.25s ease 2.8s forwards;
+                height: 0;
+                opacity: 1;
+                pointer-events: none;
+                position: relative;
+                visibility: visible;
+                z-index: 20;
+            }
+            .dvf-map-loading-panel {
+                align-items: center;
+                background: #ffffff;
+                color: #111827;
+                display: flex;
+                height: 720px;
+                justify-content: center;
+                left: 0;
+                position: absolute;
+                text-align: center;
+                top: 0;
+                width: 100%;
+            }
+            .dvf-map-loader {
+                animation: dvf-loader-spin 0.8s linear infinite;
+                border: 4px solid #fee2e2;
+                border-radius: 999px;
+                border-top-color: #e11d48;
+                height: 38px;
+                margin: 0 auto 0.75rem;
+                width: 38px;
+            }
+            .dvf-map-loading-title {
+                font-size: 0.95rem;
+                font-weight: 800;
+            }
+            .dvf-map-loading-subtitle {
+                color: #64748b;
+                font-size: 0.82rem;
+                margin-top: 0.2rem;
+            }
+            @keyframes dvf-loader-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+            @keyframes dvf-loader-hide {
+                to {
+                    opacity: 0;
+                    visibility: hidden;
+                }
+            }
             .chart-title {
                 color: #111827;
                 font-size: 0.95rem;
