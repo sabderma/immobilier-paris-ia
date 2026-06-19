@@ -34,6 +34,7 @@ from frontend.filters import afficher_filtres, afficher_filtres_annonces
 from frontend.formatting import formater_entier
 from frontend.map_view import creer_carte, extraire_vue_carte
 from frontend.styles import styles
+from frontend.views.admin import afficher_admin
 from frontend.views.listings import (
     afficher_cartes_annonces,
     afficher_graphiques_annonces,
@@ -46,6 +47,7 @@ from frontend.views.sources import afficher_sources_et_guide
 
 
 TAILLE_PAGE_ANNONCES = 10
+HAUTEUR_CARTE_DVF = 720
 
 
 def verifier_api() -> bool:
@@ -71,10 +73,17 @@ def afficher_carte(
 
     if st.session_state["params_carte_dvf_generee"] is None:
         with st.container(border=True):
-            st.markdown("#### Carte des appartements vendus")
-            st.write(
-                "Générez la carte des ventes réalisées à Paris entre 2021 et 2025 "
-                "avec les filtres sélectionnés."
+            st.markdown(
+                """
+                <div class="map-welcome">
+                    <h2>Bonjour !<br>Bienvenue</h2>
+                    <p>
+                        Suivez l’évolution des prix de l’immobilier et trouvez
+                        le prix des ventes immobilières sur les 5 dernières années.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
             generer_carte = st.button(
                 "Générer la carte des appartements vendus",
@@ -95,17 +104,18 @@ def afficher_carte(
         centre, zoom = extraire_vue_carte(None)
         carte = creer_carte(stats_arr, points, centre=centre, zoom=zoom)
 
+    st.markdown('<div class="dvf-map-frame-anchor"></div>', unsafe_allow_html=True)
     st_folium(
         carte,
         key="carte_dvf",
-        height=820,
+        height=HAUTEUR_CARTE_DVF,
         use_container_width=True,
         returned_objects=[],
     )
     st.markdown(
         (
-            f'<div class="scope-note">{formater_entier(len(points))} appartement(s) '
-            "chargé(s) en une fois. Ils sont regroupés à distance ; zoomez pour "
+            f'<div class="scope-note">{formater_entier(len(points))} appartements '
+            "chargés en une fois. Ils sont regroupés à distance ; zoomez pour "
             "afficher les points noirs.</div>"
         ),
         unsafe_allow_html=True,
@@ -117,19 +127,27 @@ def main() -> None:
     if not verifier_api():
         st.stop()
 
-    if not utilisateur_connecte():
+    utilisateur = utilisateur_connecte()
+    if not utilisateur:
         afficher_page_authentification()
         return
 
     options = charger_filtres()
     navigation = [
-        "🗺️ Carte",
-        "▤ Appartements à vendre",
-        "▦ Tableau",
-        "⌂ Prédire appartement",
-        "⌖ Analyser votre endroit",
-        "▣ Sources",
+        "Carte",
+        "Appartements à vendre",
+        "Tableau",
+        "Prédire appartement",
+        "Analyser votre endroit",
+        "Sources",
     ]
+    vue_admin = "Admin"
+    if utilisateur.get("role") in {"admin", "super_admin"}:
+        navigation.append(vue_admin)
+    navigation_active = st.session_state.get("navigation_principale")
+    if navigation_active is not None and navigation_active not in navigation:
+        st.session_state["navigation_principale"] = navigation[0]
+
     colonne_navigation, colonne_compte = st.columns([0.82, 0.18], gap="small")
     with colonne_navigation:
         vue_active = st.segmented_control(
@@ -204,6 +222,10 @@ def main() -> None:
 
     if vue_active == navigation[5]:
         afficher_sources_et_guide()
+        return
+
+    if vue_active == vue_admin:
+        afficher_admin()
         return
 
     filtres = afficher_filtres(options)

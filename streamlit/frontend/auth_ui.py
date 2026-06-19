@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
 import streamlit as st
@@ -122,11 +123,12 @@ def afficher_page_authentification() -> None:
     st.markdown(
         """
         <div class="auth-shell">
-            <div class="auth-badge">Immobilier Paris IA</div>
-            <h1>Connecte-toi pour garder tes recherches.</h1>
+            <div class="auth-badge">DVF Vision Paris</div>
+            <h1>Explorateur de données de valeurs foncières</h1>
             <p>
-                Ton compte permet d’enregistrer ton historique de prédictions
-                et les adresses exactes que tu analyses.
+                Suivez l’évolution des prix de l’immobilier et trouvez le prix
+                des ventes immobilières des 5 dernières années et les
+                appartements disponibles.
             </p>
         </div>
         """,
@@ -220,7 +222,7 @@ def afficher_menu_compte() -> None:
     if not utilisateur:
         return
 
-    libelle = f"👤 {_nom_affiche(utilisateur)}"
+    libelle = _nom_affiche(utilisateur)
     if hasattr(st, "popover"):
         conteneur_compte = st.popover(libelle, use_container_width=True)
     else:
@@ -228,8 +230,13 @@ def afficher_menu_compte() -> None:
 
     with conteneur_compte:
         st.markdown(f"**{_nom_affiche(utilisateur)}**")
-        st.caption(utilisateur.get("email", ""))
-        st.caption(f"Rôle : {utilisateur.get('role', 'user')}")
+        email_affiche = utilisateur.get("email", "")
+        if email_affiche == "malek@gmail.com":
+            email_affiche = "maleksilarbi@gmail.com"
+        st.markdown(
+            f'<div class="account-email">{escape(email_affiche)}</div>',
+            unsafe_allow_html=True,
+        )
         st.divider()
         _modifier_profil(utilisateur)
         st.divider()

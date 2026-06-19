@@ -26,13 +26,21 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT chk_users_password_hash_not_empty
         CHECK (BTRIM(password_hash) <> ''),
     CONSTRAINT chk_users_role
-        CHECK (role IN ('user', 'admin'))
+        CHECK (role IN ('user', 'admin', 'super_admin'))
 );
 
 -- Deux variantes de casse d'une meme adresse email ne peuvent pas
 -- creer deux comptes differents.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique
     ON users (LOWER(email));
+
+-- Mise a jour utile si la table users existait deja avec seulement user/admin.
+ALTER TABLE users
+    DROP CONSTRAINT IF EXISTS chk_users_role;
+
+ALTER TABLE users
+    ADD CONSTRAINT chk_users_role
+    CHECK (role IN ('user', 'admin', 'super_admin'));
 
 
 -- Historique des predictions lancees depuis le formulaire :
@@ -79,3 +87,11 @@ CREATE TABLE IF NOT EXISTS exact_address_history (
 
 CREATE INDEX IF NOT EXISTS idx_exact_address_user_created_at
     ON exact_address_history (user_id, created_at DESC);
+
+
+-- Si le compte existe deja, il devient le compte super admin protege.
+UPDATE users
+SET
+    role = 'super_admin',
+    updated_at = CURRENT_TIMESTAMP
+WHERE LOWER(email) = LOWER('admin@gmail.com');

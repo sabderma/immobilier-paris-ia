@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pandas as pd
 from fastapi import HTTPException
@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT_DIR))
 os.environ["API_KEY"] = "test-api-key"
 
 from api import main  # noqa: E402
+from api.routers import admin as admin_router  # noqa: E402
 from api.routers import dvf as dvf_router  # noqa: E402
 from api.routers import location as location_router  # noqa: E402
 from api.routers import prediction as prediction_router  # noqa: E402
@@ -63,6 +64,12 @@ def fake_lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
 
 
 class TestApiSecurity(unittest.TestCase):
+    @staticmethod
+    def _resultat_mapping_one_or_none(valeur):
+        resultat = MagicMock()
+        resultat.mappings.return_value.one_or_none.return_value = valeur
+        return resultat
+
     def tearDown(self):
         main.app.dependency_overrides.clear()
 
@@ -700,6 +707,184 @@ class TestApiSecurity(unittest.TestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()["detail"], "Mot de passe actuel incorrect.")
+
+    def test_admin_refuse_un_utilisateur_non_admin(self):
+        main.app.dependency_overrides[auth_service.obtenir_utilisateur_courant] = (
+            lambda: {"id": 7, "email": "test@example.com", "role": "user"}
+        )
+
+        response = client.get("/admin/overview")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json()["detail"],
+            "Accès réservé aux administrateurs.",
+        )
+
+    def test_admin_overview_retourne_les_indicateurs(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+        connexion.execute.return_value.mappings.return_value.one.return_value = {
+            "total_users": 3,
+            "total_admins": 1,
+            "total_regular_users": 2,
+            "total_active_users": 3,
+            "total_predictions": 8,
+            "total_addresses": 5,
+        }
+
+        with patch.object(admin_router.engine, "connect", return_value=contexte):
+            response = client.get("/admin/overview")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["total_users"], 3)
+        self.assertEqual(response.json()["total_admins"], 1)
+        self.assertEqual(response.json()["total_predictions"], 8)
+
+    def test_super_admin_accede_a_l_administration(self):
+        main.app.dependency_overrides[auth_service.obtenir_utilisateur_courant] = (
+            lambda: {"id": 1, "email": "admin@gmail.com", "role": "super_admin"}
+        )
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+        connexion.execute.return_value.mappings.return_value.one.return_value = {
+            "total_users": 3,
+            "total_admins": 1,
+            "total_regular_users": 2,
+            "total_active_users": 3,
+            "total_predictions": 8,
+            "total_addresses": 5,
+        }
+
+        with patch.object(admin_router.engine, "connect", return_value=contexte):
+            response = client.get("/admin/overview")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["total_admins"], 1)
+
+    def test_admin_modifie_role_utilisateur(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+        connexion.execute.side_effect = [
+            self._resultat_mapping_one_or_none({"id": 7, "role": "user"}),
+            self._resultat_mapping_one_or_none(
+                {
+                    "id": 7,
+                    "email": "user@example.com",
+                    "first_name": "User",
+                    "last_name": "Test",
+                    "role": "admin",
+                    "is_active": True,
+                    "created_at": "2026-06-16T19:00:00Z",
+                }
+            ),
+        ]
+
+        with patch.object(admin_router.engine, "begin", return_value=contexte):
+            response = client.patch("/admin/users/7/role", json={"role": "admin"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["role"], "admin")
+
+    def test_admin_ne_peut_pas_retirer_son_propre_role_admin(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+
+        response = client.patch("/admin/users/1/role", json={"role": "user"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["detail"],
+            "Tu ne peux pas modifier ton propre rôle admin.",
+        )
+
+    def test_admin_ne_peut_pas_modifier_un_super_admin(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+        connexion = MagicMock()
+        connexion.execute.return_value = self._resultat_mapping_one_or_none(
+            {"id": 2, "role": "super_admin"}
+        )
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        with patch.object(admin_router.engine, "begin", return_value=contexte):
+            response = client.patch("/admin/users/2/role", json={"role": "user"})
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json()["detail"],
+            "Le super admin ne peut pas être modifié.",
+        )
+
+    def test_admin_supprime_un_utilisateur(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+        resultat = MagicMock()
+        resultat.rowcount = 1
+        connexion = MagicMock()
+        connexion.execute.side_effect = [
+            self._resultat_mapping_one_or_none({"id": 7, "role": "user"}),
+            resultat,
+        ]
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        with patch.object(admin_router.engine, "begin", return_value=contexte):
+            response = client.delete("/admin/users/7")
+
+        self.assertEqual(response.status_code, 204)
+
+    def test_admin_ne_peut_pas_supprimer_son_propre_compte(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+
+        response = client.delete("/admin/users/1")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["detail"],
+            "Tu ne peux pas supprimer ton propre compte admin.",
+        )
+
+    def test_admin_ne_peut_pas_supprimer_un_super_admin(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+        connexion = MagicMock()
+        connexion.execute.return_value = self._resultat_mapping_one_or_none(
+            {"id": 2, "role": "super_admin"}
+        )
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        with patch.object(admin_router.engine, "begin", return_value=contexte):
+            response = client.delete("/admin/users/2")
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(
+            response.json()["detail"],
+            "Le super admin ne peut pas être supprimé.",
+        )
 
     def test_resume_openai_utilise_uniquement_les_donnees_de_proximite(self):
         proximite = {

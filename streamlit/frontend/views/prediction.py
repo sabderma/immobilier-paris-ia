@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
 import streamlit as st
 
 from frontend.api_client import ErreurApi, api_delete, api_get_json, api_post_json
 from frontend.config import API_ENDPOINTS
-from frontend.formatting import formater_date, formater_entier, formater_euros
+from frontend.formatting import (
+    formater_date,
+    formater_decimal,
+    formater_entier,
+    formater_euros,
+)
 
 
 def supprimer_prediction_historique(prediction_id: int) -> None:
@@ -21,6 +27,45 @@ def supprimer_prediction_historique(prediction_id: int) -> None:
 
     st.success("Prédiction supprimée de ton historique.")
     st.rerun()
+
+
+def _prix_m2_prediction(ligne: dict[str, Any]) -> float | None:
+    try:
+        surface = float(ligne.get("surface") or 0)
+        prix = float(ligne.get("predicted_price") or 0)
+    except (TypeError, ValueError):
+        return None
+    return prix / surface if surface > 0 else None
+
+
+def _carte_prediction_historique(ligne: dict[str, Any]) -> str:
+    arrondissement = escape(str(ligne.get("arrondissement", "—")))
+    return f"""
+        <article class="prediction-history-card">
+            <div class="prediction-history-card-top">
+                <span class="prediction-history-source">Prédiction</span>
+                <span class="prediction-history-date">{formater_date(ligne.get("created_at"))}</span>
+            </div>
+            <div class="prediction-history-price">
+                {formater_euros(ligne.get("predicted_price"))}
+            </div>
+            <div class="prediction-history-location">Appartement · Paris {arrondissement}</div>
+            <div class="prediction-history-details">
+                <span>
+                    <strong>{formater_decimal(ligne.get("surface"), " m²")}</strong>
+                    surface
+                </span>
+                <span>
+                    <strong>{formater_entier(ligne.get("nb_pieces"))}</strong>
+                    pièce(s)
+                </span>
+                <span>
+                    <strong>{formater_euros(_prix_m2_prediction(ligne))}</strong>
+                    / m²
+                </span>
+            </div>
+        </article>
+    """
 
 
 def afficher_historique_predictions() -> None:
@@ -45,33 +90,15 @@ def afficher_historique_predictions() -> None:
         reverse=True,
     )
 
-    colonnes = st.columns([0.16, 0.14, 0.12, 0.18, 0.2, 0.14])
-    libelles = ["Date", "Surface", "Pièces", "Arrondissement", "Prix estimé", ""]
-    for colonne, libelle in zip(colonnes, libelles):
-        colonne.markdown(f"**{libelle}**")
-
     for ligne in historique_tries:
         prediction_id = int(ligne["id"])
-        with st.container(border=True):
-            (
-                col_date,
-                col_surface,
-                col_pieces,
-                col_arr,
-                col_prix,
-                col_action,
-            ) = st.columns([0.16, 0.14, 0.12, 0.18, 0.2, 0.14])
-            col_date.write(formater_date(ligne.get("created_at")))
-            col_surface.write(f"{formater_entier(ligne.get('surface'))} m²")
-            col_pieces.write(formater_entier(ligne.get("nb_pieces")))
-            col_arr.write(f"Paris {ligne.get('arrondissement')}")
-            col_prix.write(formater_euros(ligne.get("predicted_price")))
-            if col_action.button(
-                "Effacer",
-                key=f"effacer_prediction_{prediction_id}",
-                width="stretch",
-            ):
-                supprimer_prediction_historique(prediction_id)
+        st.markdown(_carte_prediction_historique(ligne), unsafe_allow_html=True)
+        if st.button(
+            "Effacer",
+            key=f"effacer_prediction_{prediction_id}",
+            width="stretch",
+        ):
+            supprimer_prediction_historique(prediction_id)
 
 
 def afficher_prediction(options: dict[str, Any]) -> None:

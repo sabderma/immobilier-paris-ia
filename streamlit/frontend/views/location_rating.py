@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any
 
 import pandas as pd
@@ -32,6 +33,37 @@ def supprimer_adresse_historique(address_id: int) -> None:
     st.rerun()
 
 
+def _formater_coordonnees(valeur: Any) -> str:
+    try:
+        return f"{float(valeur):.5f}"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _carte_adresse_historique(ligne: dict[str, Any]) -> str:
+    adresse = escape(str(ligne.get("address") or "Adresse exacte"))
+    return f"""
+        <article class="address-history-card">
+            <div class="address-history-card-top">
+                <span class="address-history-source">Adresse exacte</span>
+                <span class="address-history-date">{formater_date(ligne.get("created_at"))}</span>
+            </div>
+            <div class="address-history-title">{adresse}</div>
+            <div class="address-history-location">Adresse localisée avec les alentours</div>
+            <div class="address-history-details">
+                <span>
+                    <strong>{_formater_coordonnees(ligne.get("latitude"))}</strong>
+                    latitude
+                </span>
+                <span>
+                    <strong>{_formater_coordonnees(ligne.get("longitude"))}</strong>
+                    longitude
+                </span>
+            </div>
+        </article>
+    """
+
+
 def afficher_historique_adresses() -> None:
     st.markdown("#### Historique de mes adresses exactes")
 
@@ -54,27 +86,15 @@ def afficher_historique_adresses() -> None:
         reverse=True,
     )
 
-    colonnes = st.columns([0.14, 0.42, 0.14, 0.14, 0.14])
-    libelles = ["Date", "Adresse", "Latitude", "Longitude", ""]
-    for colonne, libelle in zip(colonnes, libelles):
-        colonne.markdown(f"**{libelle}**")
-
     for ligne in historique_trie:
         address_id = int(ligne["id"])
-        with st.container(border=True):
-            col_date, col_adresse, col_lat, col_lng, col_action = st.columns(
-                [0.14, 0.42, 0.14, 0.14, 0.14]
-            )
-            col_date.write(formater_date(ligne.get("created_at")))
-            col_adresse.write(ligne.get("address", "—"))
-            col_lat.write(f"{float(ligne.get('latitude', 0)):.5f}")
-            col_lng.write(f"{float(ligne.get('longitude', 0)):.5f}")
-            if col_action.button(
-                "Effacer",
-                key=f"effacer_adresse_{address_id}",
-                width="stretch",
-            ):
-                supprimer_adresse_historique(address_id)
+        st.markdown(_carte_adresse_historique(ligne), unsafe_allow_html=True)
+        if st.button(
+            "Effacer",
+            key=f"effacer_adresse_{address_id}",
+            width="stretch",
+        ):
+            supprimer_adresse_historique(address_id)
 
 
 def afficher_lieux_proches(
@@ -210,11 +230,6 @@ def afficher_resultat_arrondissement(
 
     donnees = selection.iloc[0]
     st.markdown(f"#### {donnees['nom_arrondissement']}")
-    st.caption(
-        "Score commercial comparé aux autres arrondissements : proximité quotidienne "
-        "45 %, diversité commerciale 35 % et grandes surfaces 20 %. "
-        "Barème progressif de 4 à 10."
-    )
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -312,7 +327,7 @@ def afficher_noter_endroit() -> None:
         )
 
     with st.container(border=True):
-        st.markdown("#### Localiser votre adresse exacte")
+        st.markdown("#### Localiser votre adresse exacte avec les alentours")
         adresse_exacte = st.text_input(
             "Adresse exacte à Paris",
             placeholder="Ex : 71 rue de Passy, Paris 16e",

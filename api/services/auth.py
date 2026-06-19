@@ -18,6 +18,7 @@ password_hasher = PasswordHasher()
 bearer_scheme = HTTPBearer(auto_error=False)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_MINUTES = 30
+ROLES_ADMIN = {"admin", "super_admin"}
 
 
 def hacher_mot_de_passe(password: str) -> str:
@@ -101,6 +102,18 @@ def obtenir_utilisateur_courant(
 
     payload = decoder_token_acces(credentials.credentials)
     return obtenir_utilisateur_depuis_payload(payload)
+
+
+def obtenir_admin_courant(
+    utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
+) -> dict[str, Any]:
+    """Autorise uniquement les utilisateurs ayant un rôle d'administration."""
+    if utilisateur["role"] not in ROLES_ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs.",
+        )
+    return utilisateur
 
 
 def obtenir_utilisateur_optionnel(

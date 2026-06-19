@@ -33,6 +33,10 @@ API_ENDPOINTS = {
     "user_password": "/users/me/password",
     "user_predictions": "/users/me/predictions",
     "user_addresses": "/users/me/addresses",
+    "admin_overview": "/admin/overview",
+    "admin_users": "/admin/users",
+    "admin_predictions": "/admin/predictions",
+    "admin_addresses": "/admin/addresses",
 }
 PALETTE = ["#2f8f6f", "#93c35c", "#f1e85a", "#eba148", "#c83d35"]
 ZOOM_POINTS = 15

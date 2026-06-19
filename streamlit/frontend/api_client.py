@@ -330,3 +330,36 @@ def geocoder_adresse(adresse: str) -> dict[str, Any]:
         API_ENDPOINTS["adresse_geocodage"],
         {"adresse": adresse},
     )
+
+
+def charger_admin_overview() -> dict[str, Any]:
+    return api_get_json(API_ENDPOINTS["admin_overview"])
+
+
+def charger_admin_users(limit: int = 100) -> pd.DataFrame:
+    return pd.DataFrame(api_get_json(API_ENDPOINTS["admin_users"], {"limit": limit}))
+
+
+def charger_admin_predictions(limit: int = 100) -> pd.DataFrame:
+    return pd.DataFrame(
+        api_get_json(API_ENDPOINTS["admin_predictions"], {"limit": limit})
+    )
+
+
+def charger_admin_addresses(limit: int = 100) -> pd.DataFrame:
+    return pd.DataFrame(api_get_json(API_ENDPOINTS["admin_addresses"], {"limit": limit}))
+
+
+def modifier_role_admin_user(user_id: int, role: str) -> dict[str, Any]:
+    return api_patch_json(
+        f"{API_ENDPOINTS['admin_users']}/{user_id}/role",
+        {"role": role},
+        arreter_sur_erreur=False,
+    )
+
+
+def supprimer_admin_user(user_id: int) -> None:
+    api_delete(
+        f"{API_ENDPOINTS['admin_users']}/{user_id}",
+        arreter_sur_erreur=False,
+    )

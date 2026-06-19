@@ -85,6 +85,8 @@ def creer_carte_adresse(
         zoom_start=16,
         tiles="OpenStreetMap",
         control_scale=True,
+        width="100%",
+        height="100%",
     )
     rayon_metres = int((proximite or {}).get("rayon_metres") or 500)
     folium.Circle(
@@ -203,6 +205,8 @@ def creer_carte(
         tiles="OpenStreetMap",
         control_scale=True,
         prefer_canvas=True,
+        width="100%",
+        height="100%",
     )
 
     geojson, colormap = enrichir_geojson_arrondissements(stats_arrondissements)
