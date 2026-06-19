@@ -4,7 +4,7 @@ from typing import Any
 
 import requests
 import streamlit as st
-from streamlit_folium import st_folium
+import streamlit.components.v1 as components
 
 from frontend.api_client import (
     api_get_json,
@@ -48,8 +48,20 @@ from frontend.views.sources import afficher_sources_et_guide
 
 TAILLE_PAGE_ANNONCES = 10
 HAUTEUR_CARTE_DVF = 720
-
-
+STYLE_CARTE_FOND_CLAIR = """
+<style>
+    html,
+    body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .folium-map,
+    .leaflet-container {
+        background: #ffffff !important;
+    }
+</style>
+"""
 def verifier_api() -> bool:
     try:
         api_get_json(API_ENDPOINTS["health"])
@@ -104,13 +116,15 @@ def afficher_carte(
         centre, zoom = extraire_vue_carte(None)
         carte = creer_carte(stats_arr, points, centre=centre, zoom=zoom)
 
-    st.markdown('<div class="dvf-map-frame-anchor"></div>', unsafe_allow_html=True)
-    st_folium(
-        carte,
-        key="carte_dvf",
+    html_carte = carte.get_root().render().replace(
+        "<head>",
+        f"<head>{STYLE_CARTE_FOND_CLAIR}",
+        1,
+    )
+    components.html(
+        html_carte,
         height=HAUTEUR_CARTE_DVF,
-        use_container_width=True,
-        returned_objects=[],
+        scrolling=False,
     )
     st.markdown(
         (
