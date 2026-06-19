@@ -9,64 +9,10 @@ from branca.colormap import LinearColormap
 from branca.element import MacroElement, Template
 from folium.features import GeoJsonTooltip
 from folium.plugins import FastMarkerCluster, MarkerCluster
-from folium.template import Template as FoliumTemplate
 
 from src.analyse import carte_paris
 from frontend.config import PALETTE, ZOOM_POINTS
 from frontend.formatting import formater_entier, formater_euros
-
-
-class FastMarkerClusterProgressif(FastMarkerCluster):
-    """Ajoute les points par lots pour éviter de bloquer les navigateurs mobiles."""
-
-    _template = FoliumTemplate(
-        """
-        {% macro script(this, kwargs) %}
-            var {{ this.get_name() }} = (function(){
-                {{ this.callback }}
-
-                var data = {{ this.data|tojson }};
-                var clusterOptions = {{ this.options|tojavascript }};
-                var cluster = L.markerClusterGroup
-                    ? L.markerClusterGroup(clusterOptions)
-                    : L.layerGroup();
-                {%- if this.icon_create_function is not none %}
-                if (cluster.options) {
-                    cluster.options.iconCreateFunction =
-                        {{ this.icon_create_function.strip() }};
-                }
-                {%- endif %}
-
-                var index = 0;
-                var chunkSize = {{ this.chunk_size }};
-
-                function ajouterChunk() {
-                    var limite = Math.min(index + chunkSize, data.length);
-                    for (; index < limite; index++) {
-                        var row = data[index];
-                        var marker = callback(row);
-                        marker.addTo(cluster);
-                    }
-
-                    if (index < data.length) {
-                        window.setTimeout(ajouterChunk, 0);
-                    }
-                }
-
-                window.setTimeout(ajouterChunk, 0);
-                return cluster;
-            })();
-        {% endmacro %}"""
-    )
-
-    def __init__(
-        self,
-        *args: Any,
-        chunk_size: int = 1000,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.chunk_size = chunk_size
 
 
 class MasquerArrondissementsAuZoom(MacroElement):
@@ -308,46 +254,41 @@ def creer_carte(
         donnees_points = points_legers.where(pd.notna(points_legers), None).values.tolist()
         callback_points = """
         function(row) {
-            function entier(valeur) {
-                return valeur == null
-                    ? "—"
-                    : Math.round(Number(valeur)).toLocaleString("fr-FR");
-            }
-            var dateMutation = row[2] == null ? "—" : row[2];
-            var marker = L.marker([row[0], row[1]], {
-                icon: L.divIcon({
-                    className: "dvf-sale-marker-icon",
-                    html: '<span style="display:block;width:10px;height:10px;'
-                        + 'background:rgba(3,7,18,0.96);'
-                        + 'border:1.2px solid #ffffff;border-radius:999px;'
-                        + 'box-sizing:border-box;"></span>',
-                    iconSize: [10, 10],
-                    iconAnchor: [5, 5]
-                })
+            const entier = (valeur) => valeur == null
+                ? "—"
+                : Math.round(Number(valeur)).toLocaleString("fr-FR");
+            const marker = L.circleMarker([row[0], row[1]], {
+                radius: 5,
+                color: "#ffffff",
+                weight: 1.2,
+                fill: true,
+                fillColor: "#030712",
+                fillOpacity: 0.96
             });
-            var popup = ''
-                + '<span class="sale-popup-title">Appartement vendu</span>'
-                + '<div class="sale-popup-row">'
-                + '<span class="sale-popup-label">Date</span>'
-                + '<span class="sale-popup-value">' + dateMutation + '</span>'
-                + '</div>'
-                + '<div class="sale-popup-row">'
-                + '<span class="sale-popup-label">Surface</span>'
-                + '<span class="sale-popup-value">' + entier(row[3]) + ' m²</span>'
-                + '</div>'
-                + '<div class="sale-popup-row">'
-                + '<span class="sale-popup-label">Prix</span>'
-                + '<span class="sale-popup-value">' + entier(row[4]) + ' €</span>'
-                + '</div>'
-                + '<div class="sale-popup-row">'
-                + '<span class="sale-popup-label">Pièces</span>'
-                + '<span class="sale-popup-value">' + entier(row[5]) + '</span>'
-                + '</div>';
+            const popup = `
+                <span class="sale-popup-title">Appartement vendu</span>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Date</span>
+                    <span class="sale-popup-value">${row[2] ?? "—"}</span>
+                </div>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Surface</span>
+                    <span class="sale-popup-value">${entier(row[3])} m²</span>
+                </div>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Prix</span>
+                    <span class="sale-popup-value">${entier(row[4])} €</span>
+                </div>
+                <div class="sale-popup-row">
+                    <span class="sale-popup-label">Pièces</span>
+                    <span class="sale-popup-value">${entier(row[5])}</span>
+                </div>
+            `;
             marker.bindPopup(popup, {maxWidth: 260});
             return marker;
         }
         """
-        points_layer = FastMarkerClusterProgressif(
+        points_layer = FastMarkerCluster(
             donnees_points,
             callback=callback_points,
             options={
@@ -355,7 +296,6 @@ def creer_carte(
                 "disableClusteringAtZoom": 17,
                 "removeOutsideVisibleBounds": True,
             },
-            chunk_size=1000,
             name="Appartements vendus",
             show=True,
             overlay=True,
