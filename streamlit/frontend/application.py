@@ -60,40 +60,37 @@ STYLE_CARTE_FOND_CLAIR = """
     .leaflet-container {
         background: #ffffff !important;
     }
-    #map-loading {
+    html:not(.map-ready)::before {
+        content: "Chargement de la carte\\A Préparation des ventes immobilières...";
         align-items: center;
         background: #ffffff;
         color: #111827;
         display: flex;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 0.95rem;
+        font-weight: 800;
         inset: 0;
         justify-content: center;
+        line-height: 1.65;
+        padding-top: 4.5rem;
         position: fixed;
         text-align: center;
+        white-space: pre-line;
         transition: opacity 180ms ease;
         z-index: 9999;
     }
-    .map-loader {
+    html:not(.map-ready)::after {
         animation: map-spin 0.8s linear infinite;
         border: 4px solid #fee2e2;
         border-radius: 999px;
         border-top-color: #e11d48;
+        content: "";
         height: 38px;
-        margin: 0 auto 0.75rem;
+        left: calc(50% - 19px);
+        position: fixed;
+        top: calc(50% - 48px);
         width: 38px;
-    }
-    .map-loading-title {
-        font-size: 0.95rem;
-        font-weight: 800;
-    }
-    .map-loading-subtitle {
-        color: #64748b;
-        font-size: 0.82rem;
-        margin-top: 0.2rem;
-    }
-    html.map-ready #map-loading {
-        opacity: 0;
-        pointer-events: none;
+        z-index: 10000;
     }
     @keyframes map-spin {
         to {
@@ -114,20 +111,11 @@ STYLE_CARTE_FOND_CLAIR = """
         }
 
         window.addEventListener("load", function() {
-            setTimeout(masquerChargement, 250);
+            setTimeout(masquerChargement, 1200);
         });
         setTimeout(masquerChargement, 7000);
     })();
 </script>
-"""
-HTML_CHARGEMENT_CARTE = """
-<div id="map-loading" aria-live="polite">
-    <div>
-        <div class="map-loader"></div>
-        <div class="map-loading-title">Chargement de la carte</div>
-        <div class="map-loading-subtitle">Préparation des ventes immobilières...</div>
-    </div>
-</div>
 """
 
 
@@ -188,10 +176,6 @@ def afficher_carte(
     html_carte = carte.get_root().render().replace(
         "<head>",
         f"<head>{STYLE_CARTE_FOND_CLAIR}",
-        1,
-    ).replace(
-        "<body>",
-        f"<body>{HTML_CHARGEMENT_CARTE}",
         1,
     )
     components.html(
