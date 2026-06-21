@@ -23,6 +23,7 @@ from api.routers import location as location_router  # noqa: E402
 from api.routers import prediction as prediction_router  # noqa: E402
 from api.routers import scraping as scraping_router  # noqa: E402
 from api.routers import stats as stats_router  # noqa: E402
+from api.routers import system as system_router  # noqa: E402
 from api.routers import users as users_router  # noqa: E402
 from api.services import auth as auth_service  # noqa: E402
 from api.services import address as address_service  # noqa: E402
@@ -81,6 +82,19 @@ class TestApiSecurity(unittest.TestCase):
             response.json()["message"],
             "API Immobilier Paris fonctionne",
         )
+
+    def test_health_retourne_status_ok_quand_la_base_repond(self):
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        with patch.object(system_router.engine, "connect", return_value=contexte):
+            response = client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok", "database": "connectée"})
+        connexion.execute.assert_called_once()
 
     def test_points_dvf_refuse_une_requete_sans_cle_api(self):
         response = client.get("/dvf/points")
@@ -271,6 +285,67 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.json()["modele"], "XGBRegressor")
         enregistrer_prediction.assert_not_called()
 
+    def test_prediction_prix_refuse_les_valeurs_irrealistes(self):
+        cas_invalides = [
+            {
+                "nom": "surface trop petite",
+                "payload": {
+                    "surface": 5,
+                    "nombre_pieces": 2,
+                    "arrondissement": 11,
+                },
+            },
+            {
+                "nom": "surface trop grande",
+                "payload": {
+                    "surface": 500,
+                    "nombre_pieces": 2,
+                    "arrondissement": 11,
+                },
+            },
+            {
+                "nom": "nombre de pieces nul",
+                "payload": {
+                    "surface": 45,
+                    "nombre_pieces": 0,
+                    "arrondissement": 11,
+                },
+            },
+            {
+                "nom": "nombre de pieces trop grand",
+                "payload": {
+                    "surface": 45,
+                    "nombre_pieces": 100,
+                    "arrondissement": 11,
+                },
+            },
+            {
+                "nom": "arrondissement inexistant",
+                "payload": {
+                    "surface": 45,
+                    "nombre_pieces": 2,
+                    "arrondissement": 25,
+                },
+            },
+        ]
+
+        with (
+            patch.object(prediction_router, "predire_prix_xgboost") as predire_prix,
+            patch.object(prediction_router, "charger_mae_prediction") as charger_mae,
+        ):
+            for cas in cas_invalides:
+                with self.subTest(cas=cas["nom"]):
+                    response = client.post(
+                        "/prediction/prix",
+                        json=cas["payload"],
+                        headers=AUTH_HEADERS,
+                    )
+
+                    self.assertEqual(response.status_code, 422)
+
+        predire_prix.assert_not_called()
+        charger_mae.assert_not_called()
+
     def test_prediction_connectee_est_enregistree_dans_l_historique(self):
         payload = {
             "surface": 45,
@@ -371,18 +446,24 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["detail"], "Prédiction introuvable.")
 
-    def test_metrics_expose_erreur_moyenne_modele(self):
+    def test_metrics_expose_les_metriques_du_modele(self):
         response = client.get("/metrics")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(
+        self.assertTrue(response.headers["content-type"].startswith("text/plain"))
+
+        metriques_attendues = [
+            'model_predictions_total{model="XGBRegressor"}',
+            'model_prediction_errors_total{model="XGBRegressor"}',
+            "model_prediction_duration_seconds_bucket",
             'model_evaluation_mae_euros{model="XGBRegressor"}',
-            response.text,
-        )
-        self.assertIn(
+            'model_evaluation_rmse_euros{model="XGBRegressor"}',
+            'model_evaluation_r2_score{model="XGBRegressor"}',
             'model_evaluation_test_samples{model="XGBRegressor"}',
-            response.text,
-        )
+        ]
+        for metrique in metriques_attendues:
+            with self.subTest(metrique=metrique):
+                self.assertIn(metrique, response.text)
 
     def test_route_geocodage_retourne_adresse_normalisee(self):
         resultat_ign = {

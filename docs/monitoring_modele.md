@@ -70,3 +70,22 @@ prix de vente est d'environ 111 078 euros.
 
 Cette valeur est enregistrée dans `models/xgboost_prix_dvf_metrics.json`, puis
 exposée par l'API dans la métrique Prometheus `model_evaluation_mae_euros`.
+
+## Test automatique du monitoring
+
+La route `/metrics` est vérifiée par un test automatique dans
+`tests/test_api.py`.
+
+Ce test confirme que l'API expose bien les métriques Prometheus principales du
+modèle :
+
+- nombre de prédictions ;
+- nombre d'erreurs ;
+- durée des prédictions ;
+- MAE ;
+- RMSE ;
+- R² ;
+- nombre de ventes utilisées pour l'évaluation.
+
+Ce contrôle renforce la compétence **C11**, car il prouve que le monitoring du
+modèle est accessible automatiquement depuis l'application.

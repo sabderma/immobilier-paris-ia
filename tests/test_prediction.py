@@ -19,6 +19,22 @@ from src.prediction import entrainement_xgboost_prix as entrainement  # noqa: E4
 from src.prediction import prediction  # noqa: E402
 
 
+METRIQUES_OBLIGATOIRES = {
+    "modele",
+    "type_probleme",
+    "cible",
+    "features",
+    "lignes_total",
+    "lignes_train",
+    "lignes_test",
+    "r2_score",
+    "mae_euros",
+    "rmse_euros",
+    "test_size",
+    "random_state",
+}
+
+
 class TestDonneesModele(unittest.TestCase):
     def test_charger_donnees_supprime_les_lignes_invalides(self):
         donnees = pd.DataFrame(
@@ -148,6 +164,18 @@ class TestModeleEnregistre(unittest.TestCase):
         self.assertGreaterEqual(metriques["r2_score"], 0.80)
         self.assertGreater(metriques["mae_euros"], 0)
         self.assertGreater(metriques["rmse_euros"], 0)
+
+    def test_fichier_metriques_contient_les_champs_obligatoires(self):
+        chemin_metriques = ROOT_DIR / "models/xgboost_prix_dvf_metrics.json"
+        metriques = json.loads(chemin_metriques.read_text(encoding="utf-8"))
+
+        self.assertTrue(METRIQUES_OBLIGATOIRES.issubset(metriques))
+        self.assertEqual(metriques["modele"], "XGBRegressor")
+        self.assertEqual(metriques["cible"], entrainement.TARGET)
+        self.assertEqual(metriques["features"], entrainement.FEATURES)
+        self.assertGreater(metriques["lignes_total"], 0)
+        self.assertGreater(metriques["lignes_train"], 0)
+        self.assertGreater(metriques["lignes_test"], 0)
 
 
 if __name__ == "__main__":

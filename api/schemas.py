@@ -5,9 +5,23 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+SURFACE_MIN_M2 = 9
+SURFACE_MAX_M2 = 300
+NOMBRE_PIECES_MIN = 1
+NOMBRE_PIECES_MAX = 12
+
+
 class PredictionPrixRequest(BaseModel):
-    surface: float = Field(gt=0, description="Surface du bien en m2")
-    nombre_pieces: int = Field(gt=0, description="Nombre de pieces principales")
+    surface: float = Field(
+        ge=SURFACE_MIN_M2,
+        le=SURFACE_MAX_M2,
+        description="Surface du bien en m2",
+    )
+    nombre_pieces: int = Field(
+        ge=NOMBRE_PIECES_MIN,
+        le=NOMBRE_PIECES_MAX,
+        description="Nombre de pieces principales",
+    )
     arrondissement: int = Field(ge=1, le=20, description="Arrondissement parisien")
 
 

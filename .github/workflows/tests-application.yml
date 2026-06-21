@@ -1,0 +1,44 @@
+name: Tests application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tester-application:
+    runs-on: ubuntu-latest
+    env:
+      API_KEY: test-api-key
+      JWT_SECRET_KEY: secret-de-test-jwt-avec-32-caracteres-minimum
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: immobilier_paris_test
+
+    steps:
+      - name: Recuperer le projet
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Installer les dependances
+        run: pip install -r requirements.txt
+
+      - name: Tester les routes API
+        run: python -m unittest discover -s tests -p "test_api.py" -v
+
+      - name: Tester l'authentification
+        run: python -m unittest discover -s tests -p "test_auth.py" -v

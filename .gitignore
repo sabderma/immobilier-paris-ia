@@ -11,6 +11,9 @@ data/final/*
 __pycache__/
 *.pyc
 
+# MLflow
+mlruns/
+
 # Env
 .env
 

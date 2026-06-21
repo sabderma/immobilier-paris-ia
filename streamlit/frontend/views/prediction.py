@@ -15,6 +15,12 @@ from frontend.formatting import (
 )
 
 
+SURFACE_MIN_M2 = 9
+SURFACE_MAX_M2 = 300
+NOMBRE_PIECES_MIN = 1
+NOMBRE_PIECES_MAX = 12
+
+
 def supprimer_prediction_historique(prediction_id: int) -> None:
     try:
         api_delete(
@@ -107,8 +113,11 @@ def afficher_prediction(options: dict[str, Any]) -> None:
     arrondissements = [int(a) for a in options.get("arrondissements", range(1, 21))]
     arrondissements = sorted(set(arrondissements))
 
-    surface_min = max(1, int(options.get("surface_min", 10)))
-    surface_max = max(surface_min, int(options.get("surface_max", 200)))
+    surface_min = max(SURFACE_MIN_M2, int(options.get("surface_min", 10)))
+    surface_max = min(
+        SURFACE_MAX_M2,
+        max(surface_min, int(options.get("surface_max", 200))),
+    )
     surface_defaut = min(max(45, surface_min), surface_max)
 
     with st.form("formulaire_prediction_appartement"):
@@ -116,12 +125,16 @@ def afficher_prediction(options: dict[str, Any]) -> None:
         with col1:
             surface = st.number_input(
                 "Surface de l’appartement (m²)",
+                min_value=float(SURFACE_MIN_M2),
+                max_value=float(SURFACE_MAX_M2),
                 value=float(surface_defaut),
                 step=1.0,
             )
         with col2:
             nombre_pieces = st.number_input(
                 "Nombre de pièces",
+                min_value=NOMBRE_PIECES_MIN,
+                max_value=NOMBRE_PIECES_MAX,
                 value=2,
                 step=1,
             )
@@ -141,10 +154,16 @@ def afficher_prediction(options: dict[str, Any]) -> None:
         return
 
     erreurs_saisie = []
-    if surface <= 0:
-        erreurs_saisie.append("La surface doit être strictement supérieure à 0 m².")
-    if nombre_pieces <= 0:
-        erreurs_saisie.append("Le nombre de pièces doit être strictement supérieur à 0.")
+    if not SURFACE_MIN_M2 <= surface <= SURFACE_MAX_M2:
+        erreurs_saisie.append(
+            f"La surface doit être comprise entre {SURFACE_MIN_M2} et "
+            f"{SURFACE_MAX_M2} m²."
+        )
+    if not NOMBRE_PIECES_MIN <= nombre_pieces <= NOMBRE_PIECES_MAX:
+        erreurs_saisie.append(
+            f"Le nombre de pièces doit être compris entre {NOMBRE_PIECES_MIN} "
+            f"et {NOMBRE_PIECES_MAX}."
+        )
 
     if erreurs_saisie:
         for erreur in erreurs_saisie:

@@ -23,6 +23,8 @@ la qualité est insuffisante.
 La chaîne démarre :
 
 - automatiquement après un envoi de code sur la branche `main` ;
+- automatiquement lors d'une pull request vers la branche `main`, pour vérifier
+  le modèle avant fusion ;
 - manuellement depuis l'onglet Actions de GitHub.
 
 ## Données utilisées
@@ -61,6 +63,9 @@ Les tests de `tests/test_donnees_livraison.py` vérifient :
 
 Si un contrôle échoue, la chaîne s'arrête avant l'entraînement.
 
+Cette étape correspond à la compétence **C12**. La chaîne de livraison continue
+de la compétence **C13** exécute automatiquement ces tests C12.
+
 ### 4. Entraînement d'un nouveau modèle
 
 La chaîne lance :
@@ -82,9 +87,13 @@ contrôlent ensuite :
 - l'entraînement ;
 - la création des métriques ;
 - la capacité du modèle à produire un prix positif ;
-- le respect du seuil de qualité `R² >= 0,80`.
+- le respect du seuil de qualité `R² >= 0,80` ;
+- la présence des champs obligatoires dans le fichier de métriques.
 
 Si un test échoue, la chaîne s'arrête et aucun modèle n'est livré.
+
+Cette étape correspond aussi à la compétence **C12**. Elle est lancée
+automatiquement par la chaîne **C13**.
 
 ### 6. Génération du rapport
 
@@ -102,8 +111,12 @@ le seuil R² et génère un rapport contenant :
 Si toutes les étapes réussissent, GitHub crée l'artifact :
 
 ```text
-modele-immobilier-paris-valide
+modele-immobilier-paris-valide-<numero_execution>
 ```
+
+L'artifact est créé uniquement lors d'un envoi sur `main` ou lors d'un lancement
+manuel. Lors d'une pull request, la chaîne vérifie les données, entraîne et teste
+le modèle, mais ne crée pas de livraison finale.
 
 Il contient :
 
@@ -140,7 +153,7 @@ La livraison est automatiquement refusée si :
 
 1. Ouvrir une exécution réussie dans l'onglet **Actions**.
 2. Descendre jusqu'à la section **Artifacts**.
-3. Télécharger `modele-immobilier-paris-valide`.
+3. Télécharger `modele-immobilier-paris-valide-<numero_execution>`.
 
 ## Diagnostiquer un échec
 
@@ -153,5 +166,6 @@ La livraison est automatiquement refusée si :
 ## Correspondance avec les compétences
 
 - **C12** : les tests automatisés vérifient les données et le modèle.
-- **C13** : GitHub Actions exécute ces contrôles, entraîne le modèle, bloque les
-  mauvaises versions et livre automatiquement une version validée.
+- **C13** : GitHub Actions exécute automatiquement les tests C12, entraîne le
+  modèle, bloque les mauvaises versions et livre automatiquement une version
+  validée.

@@ -4,7 +4,12 @@
 .DS_Store
 __pycache__
 *.pyc
+data/final
+data/visuals
 docs
+livraison
+mlruns
+monitoring
 notebooks
 scripts
 sql

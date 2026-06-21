@@ -3,6 +3,7 @@ fastapi
 folium
 joblib
 matplotlib
+mlflow
 openai>=2.17.0,<3
 pandas
 plotly
