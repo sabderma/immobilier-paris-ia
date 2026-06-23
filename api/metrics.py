@@ -14,6 +14,32 @@ from prometheus_client import (
 from api.core import PREDICTION_METRICS_PATH
 
 
+API_HTTP_REQUESTS_TOTAL = Counter(
+    "api_http_requests_total",
+    "Nombre total de requetes HTTP recues par l'API.",
+    ["method", "route", "status_code"],
+)
+API_HTTP_REQUEST_DURATION_SECONDS = Histogram(
+    "api_http_request_duration_seconds",
+    "Duree des requetes HTTP traitees par l'API.",
+    ["method", "route"],
+    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10),
+)
+API_HTTP_REQUESTS_IN_PROGRESS = Gauge(
+    "api_http_requests_in_progress",
+    "Nombre de requetes HTTP API en cours de traitement.",
+    ["method"],
+)
+API_EXCEPTIONS_TOTAL = Counter(
+    "api_exceptions_total",
+    "Nombre total d'exceptions non gerees par l'API.",
+    ["method", "route", "exception_type"],
+)
+API_DATABASE_HEALTH_STATUS = Gauge(
+    "api_database_health_status",
+    "Etat de la connexion PostgreSQL de l'application: 1 disponible, 0 indisponible.",
+)
+
 MODEL_PREDICTIONS_TOTAL = Counter(
     "model_predictions_total",
     "Nombre total de predictions realisees par le modele.",
@@ -98,4 +124,5 @@ for arrondissement in range(1, 21):
     MODEL_PREDICTIONS_BY_ARRONDISSEMENT.labels(
         arrondissement=str(arrondissement)
     )
+API_DATABASE_HEALTH_STATUS.set(0)
 charger_metriques_evaluation()

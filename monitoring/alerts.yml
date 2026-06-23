@@ -1,0 +1,42 @@
+groups:
+  - name: immobilier-paris-application
+    rules:
+      - alert: ApiIndisponible
+        expr: up{job="immobilier-paris-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          competence: c20
+        annotations:
+          summary: "API Immobilier Paris indisponible"
+          description: "Prometheus ne parvient plus a collecter /metrics sur l'API depuis au moins 1 minute."
+
+      - alert: BaseDonneesIndisponible
+        expr: api_database_health_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          competence: c20
+        annotations:
+          summary: "Connexion PostgreSQL indisponible"
+          description: "La verification applicative de la base PostgreSQL echoue depuis au moins 1 minute."
+
+      - alert: TauxErreursHttpEleve
+        expr: 100 * sum(rate(api_http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(api_http_requests_total[5m])), 0.001) > 5
+        for: 2m
+        labels:
+          severity: warning
+          competence: c20
+        annotations:
+          summary: "Taux d'erreurs HTTP 5xx eleve"
+          description: "Plus de 5% des requetes API sont en erreur 5xx sur les 5 dernieres minutes."
+
+      - alert: LatenceHttpP95Elevee
+        expr: histogram_quantile(0.95, sum by (le) (rate(api_http_request_duration_seconds_bucket[5m]))) > 2
+        for: 2m
+        labels:
+          severity: warning
+          competence: c20
+        annotations:
+          summary: "Latence API P95 elevee"
+          description: "95% des requetes API prennent plus de 2 secondes sur les 5 dernieres minutes."

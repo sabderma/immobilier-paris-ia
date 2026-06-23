@@ -96,6 +96,23 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.json(), {"status": "ok", "database": "connectée"})
         connexion.execute.assert_called_once()
 
+    def test_metrics_application_expose_sante_base_et_requetes_http(self):
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        with patch.object(system_router.engine, "connect", return_value=contexte):
+            client.get("/health")
+            response = client.get("/metrics")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("api_database_health_status 1.0", response.text)
+        self.assertIn(
+            'api_http_requests_total{method="GET",route="/health",status_code="200"}',
+            response.text,
+        )
+
     def test_points_dvf_refuse_une_requete_sans_cle_api(self):
         response = client.get("/dvf/points")
 
@@ -447,7 +464,14 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.json()["detail"], "Prédiction introuvable.")
 
     def test_metrics_expose_les_metriques_du_modele(self):
-        response = client.get("/metrics")
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        client.get("/")
+        with patch.object(system_router.engine, "connect", return_value=contexte):
+            response = client.get("/metrics")
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.headers["content-type"].startswith("text/plain"))
@@ -460,6 +484,9 @@ class TestApiSecurity(unittest.TestCase):
             'model_evaluation_rmse_euros{model="XGBRegressor"}',
             'model_evaluation_r2_score{model="XGBRegressor"}',
             'model_evaluation_test_samples{model="XGBRegressor"}',
+            'api_http_requests_total{method="GET",route="/",status_code="200"}',
+            "api_http_request_duration_seconds_bucket",
+            "api_database_health_status",
         ]
         for metrique in metriques_attendues:
             with self.subTest(metrique=metrique):

@@ -72,7 +72,12 @@ def construire_engine(database_url: str | None = None) -> Engine:
 
     database_url = database_url or os.getenv("DATABASE_URL")
     if database_url:
-        return create_engine(database_url)
+        options: dict[str, object] = {"pool_pre_ping": True}
+        if database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
+            options["connect_args"] = {
+                "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "2"))
+            }
+        return create_engine(database_url, **options)
 
     url = URL.create(
         "postgresql+psycopg2",
@@ -82,7 +87,13 @@ def construire_engine(database_url: str | None = None) -> Engine:
         port=int(os.getenv("DB_PORT", "5433")),
         database=os.getenv("DB_NAME", "immobilier_paris"),
     )
-    return create_engine(url)
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        connect_args={
+            "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "2"))
+        },
+    )
 
 
 engine = construire_engine()

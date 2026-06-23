@@ -6,6 +6,10 @@ L’objectif est de surveiller le modèle de prédiction immobilière utilisé d
 
 Le modèle surveillé est le modèle XGBoost qui prédit le prix d’un bien immobilier à Paris.
 
+Ce document sert de preuve pour la compétence **C11** : monitorer un modèle
+d'intelligence artificielle. Le monitoring global de l'application est documenté
+séparément dans `docs/monitoring_application.md` pour la compétence **C20**.
+
 ## Modèle concerné
 
 - Nom du modèle : XGBRegressor

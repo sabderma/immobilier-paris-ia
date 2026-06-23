@@ -30,11 +30,17 @@ Les fichiers utilisés sont :
 Quand le code est envoyé sur `main`, GitHub Actions :
 
 1. récupère le projet ;
-2. vérifie la configuration `compose.yml` ;
-3. vérifie la configuration `compose.prod.yml` ;
-4. construit l'image Docker de l'API ;
-5. construit l'image Docker de Streamlit ;
-6. publie les images dans GitHub Container Registry.
+2. exécute les tests applicatifs de la compétence C18 ;
+3. valide les données et le modèle IA de la compétence C13 ;
+4. vérifie la configuration `compose.yml` ;
+5. vérifie la configuration `compose.prod.yml` ;
+6. construit l'image Docker de l'API ;
+7. construit l'image Docker de Streamlit ;
+8. publie les images dans GitHub Container Registry.
+
+Si les tests applicatifs échouent ou si le modèle IA ne respecte pas le seuil de
+qualité, la chaîne s'arrête avant la construction et la publication des images
+Docker.
 
 Lors d'une pull request, GitHub construit les images pour vérifier que la
 livraison est possible, mais ne publie pas les images.
@@ -85,18 +91,34 @@ Il faut aussi configurer les secrets GitHub :
 Quand ces éléments sont configurés, le job se connecte au serveur et exécute :
 
 ```bash
-docker compose -f compose.prod.yml pull api streamlit
+docker compose -f compose.prod.yml pull
 docker compose -f compose.prod.yml up -d
 ```
 
 Cela met à jour les conteneurs Docker de l'API et de Streamlit avec les images
 publiées par GitHub Actions.
 
+Avant cette mise à jour, GitHub Actions envoie aussi sur le serveur les fichiers
+nécessaires au lancement de l'application :
+
+- `compose.prod.yml` ;
+- `sql/` ;
+- `data/final/` ;
+- `monitoring/`.
+
+Le fichier `.env` reste uniquement sur le serveur et n'est pas envoyé par
+GitHub, car il contient les secrets de production.
+
+Le déploiement serveur dépend des validations C18 et C13. Si l'application ou
+le modèle IA échoue, le serveur n'est pas mis à jour.
+
 Sans serveur configuré, la chaîne publie les images Docker mais ne déclenche pas
 le déploiement automatique.
 
 ## Correspondance avec C19
 
+- GitHub Actions vérifie d'abord que l'application passe les tests C18.
+- GitHub Actions vérifie aussi que le modèle IA passe la validation C13.
 - Les fichiers Docker préparent le packaging de l'application.
 - GitHub Actions vérifie que la configuration Docker est valide.
 - GitHub Actions construit les images API et Streamlit.

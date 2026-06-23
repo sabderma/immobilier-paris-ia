@@ -6,6 +6,7 @@ data/raw/*
 !data/raw/arrondissements_paris.geojson
 data/processed/
 data/final/*
+!data/final/annonces_scraping_nettoyees_golden.csv
 !data/final/dvf_paris_clean_2021_2025.csv
 
 # Python
