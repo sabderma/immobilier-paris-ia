@@ -175,7 +175,7 @@ jobs:
 
       - name: Preparer les fichiers de deploiement
         run: |
-          tar -czf deploy-files.tar.gz \
+          tar --exclude='._*' --exclude='.DS_Store' -czf deploy-files.tar.gz \
             compose.prod.yml \
             sql \
             data/final \
@@ -194,6 +194,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd '$DEPLOY_PATH' && \
              tar -xzf /tmp/immobilier-paris-deploy-files.tar.gz && \
+             find monitoring \( -name '._*' -o -name '.DS_Store' \) -delete && \
              rm /tmp/immobilier-paris-deploy-files.tar.gz"
 
       - name: Mettre a jour l'application Docker sur le serveur
