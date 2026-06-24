@@ -4,7 +4,8 @@
 .DS_Store
 __pycache__
 *.pyc
-data/final
+data/final/*
+!data/final/commerces_paris_secours.json
 data/visuals
 docs
 livraison
