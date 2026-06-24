@@ -134,23 +134,24 @@ grafana
 
 ## Acces aux services
 
-En production, seul Streamlit est accessible directement depuis Internet :
+En production, l'application est accessible par le domaine HTTPS :
 
 ```text
-Streamlit : http://164.132.42.47:8501
+Application : https://dvfvisionparis.fr
 ```
 
-Les autres services sont limites au VPS avec `127.0.0.1` :
+Les services Docker sont limites au VPS avec `127.0.0.1` :
 
 ```text
+Streamlit : http://127.0.0.1:8501
 API : http://127.0.0.1:8002
 Grafana : http://127.0.0.1:3000
 Prometheus : http://127.0.0.1:9090
 PostgreSQL : 127.0.0.1:5434
 ```
 
-Cela evite d'exposer la base de donnees, Prometheus et l'API directement sur
-Internet.
+Cela evite d'exposer directement Streamlit, la base de donnees, Prometheus et
+l'API sur Internet. Les visiteurs passent par Nginx et HTTPS.
 
 Pour ouvrir Grafana depuis son ordinateur, utiliser un tunnel SSH :
 
@@ -164,5 +165,5 @@ Puis ouvrir :
 http://localhost:3000
 ```
 
-Pour une mise en ligne publique propre, il faudra ensuite ajouter un nom de
-domaine, HTTPS, et un reverse proxy.
+Le domaine public est gere par Nginx, qui redirige vers Streamlit en local sur
+`127.0.0.1:8501`.
