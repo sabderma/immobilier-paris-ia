@@ -134,14 +134,35 @@ grafana
 
 ## Acces aux services
 
-Sans reverse proxy ou domaine, les services sont accessibles par port :
+En production, seul Streamlit est accessible directement depuis Internet :
 
 ```text
 Streamlit : http://164.132.42.47:8501
-API : http://164.132.42.47:8002
-Grafana : http://164.132.42.47:3000
-Prometheus : http://164.132.42.47:9090
+```
+
+Les autres services sont limites au VPS avec `127.0.0.1` :
+
+```text
+API : http://127.0.0.1:8002
+Grafana : http://127.0.0.1:3000
+Prometheus : http://127.0.0.1:9090
+PostgreSQL : 127.0.0.1:5434
+```
+
+Cela evite d'exposer la base de donnees, Prometheus et l'API directement sur
+Internet.
+
+Pour ouvrir Grafana depuis son ordinateur, utiliser un tunnel SSH :
+
+```bash
+ssh -i ~/.ssh/immobilier_paris_github_actions_deploy -L 3000:127.0.0.1:3000 ubuntu@164.132.42.47
+```
+
+Puis ouvrir :
+
+```text
+http://localhost:3000
 ```
 
 Pour une mise en ligne publique propre, il faudra ensuite ajouter un nom de
-domaine, HTTPS, et protéger Grafana/Prometheus.
+domaine, HTTPS, et un reverse proxy.
