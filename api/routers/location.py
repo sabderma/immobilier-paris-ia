@@ -50,6 +50,7 @@ def commerces_paris(
     arrondissement: Optional[int] = Query(None, ge=1, le=20),
 ) -> dict:
     commerces = list(charger_commerces_paris())
+    source_etat = "disponible" if commerces else "indisponible"
     if arrondissement is not None:
         commerces = [
             commerce
@@ -59,6 +60,7 @@ def commerces_paris(
 
     return {
         "source": "Open data Ile-de-France - Base permanente des equipements 2012",
+        "source_etat": source_etat,
         "nombre_resultats": len(commerces),
         "data": commerces,
     }

@@ -306,24 +306,30 @@ def afficher_noter_endroit() -> None:
     st.markdown("### Analyser votre endroit")
 
     commerces = charger_commerces_paris()
-    if commerces.empty:
-        st.info("Aucune donnée commerce disponible pour Paris.")
-        return
+    donnees_commerces_disponibles = not commerces.empty
 
-    arrondissements = sorted(commerces["arrondissement"].astype(int).tolist())
-    with st.container(border=True):
-        st.markdown("#### Noter votre arrondissement")
-        arrondissement = st.selectbox(
-            "Choisir votre arrondissement",
-            arrondissements,
-            index=None,
-            placeholder="",
-            key="noter_arrondissement_select",
-        )
-        noter_arrondissement = st.button(
-            "Noter cet arrondissement",
-            type="primary",
-            key="noter_arrondissement_bouton",
+    arrondissement = None
+    noter_arrondissement = False
+    if donnees_commerces_disponibles:
+        arrondissements = sorted(commerces["arrondissement"].astype(int).tolist())
+        with st.container(border=True):
+            st.markdown("#### Noter votre arrondissement")
+            arrondissement = st.selectbox(
+                "Choisir votre arrondissement",
+                arrondissements,
+                index=None,
+                placeholder="",
+                key="noter_arrondissement_select",
+            )
+            noter_arrondissement = st.button(
+                "Noter cet arrondissement",
+                type="primary",
+                key="noter_arrondissement_bouton",
+            )
+    else:
+        st.info(
+            "Les statistiques commerces par arrondissement sont temporairement "
+            "indisponibles. L'analyse d'adresse exacte reste disponible."
         )
 
     with st.container(border=True):
@@ -363,7 +369,11 @@ def afficher_noter_endroit() -> None:
         afficher_resultat_geocodage(resultat_geocodage)
 
     arrondissement_note = st.session_state.get("arrondissement_note")
-    if arrondissement_note is not None and arrondissement_note == arrondissement:
+    if (
+        donnees_commerces_disponibles
+        and arrondissement_note is not None
+        and arrondissement_note == arrondissement
+    ):
         afficher_resultat_arrondissement(commerces, int(arrondissement_note))
 
     afficher_historique_adresses()

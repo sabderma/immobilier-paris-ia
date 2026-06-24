@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import MagicMock, Mock, patch
 
@@ -1390,6 +1392,68 @@ class TestApiSecurity(unittest.TestCase):
             payload["data"][0]["score_proximite_quotidienne_sur_10"],
             10.0,
         )
+
+    def test_commerces_paris_repond_vide_si_open_data_timeout(self):
+        commerces_service.charger_commerces_paris.cache_clear()
+        with tempfile.TemporaryDirectory() as dossier_cache:
+            cache_path = Path(dossier_cache) / "commerces_cache.json"
+            with (
+                patch.object(commerces_service, "COMMERCES_CACHE_PATH", cache_path),
+                patch.object(
+                    commerces_service.requests,
+                    "get",
+                    side_effect=commerces_service.requests.Timeout("timeout"),
+                ),
+            ):
+                response = client.get("/commerces/paris", headers=AUTH_HEADERS)
+        commerces_service.charger_commerces_paris.cache_clear()
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["source_etat"], "indisponible")
+        self.assertEqual(payload["nombre_resultats"], 0)
+        self.assertEqual(payload["data"], [])
+
+    def test_commerces_paris_utilise_le_cache_local_si_open_data_timeout(self):
+        cache_payload = {
+            "results": [
+                {
+                    "departement_commune": 75111,
+                    "libelle_de_commune": ["Paris 11e Arrondissement"],
+                    "population_2010": 153202,
+                    "superette": 29,
+                    "epicerie": 154,
+                    "boulangerie": 128,
+                    "boucherie_charcuterie": 68,
+                    "poissonnerie": 7,
+                }
+            ]
+        }
+
+        commerces_service.charger_commerces_paris.cache_clear()
+        with tempfile.TemporaryDirectory() as dossier_cache:
+            cache_path = Path(dossier_cache) / "commerces_cache.json"
+            cache_path.write_text(json.dumps(cache_payload), encoding="utf-8")
+            with (
+                patch.object(commerces_service, "COMMERCES_CACHE_PATH", cache_path),
+                patch.object(
+                    commerces_service.requests,
+                    "get",
+                    side_effect=commerces_service.requests.Timeout("timeout"),
+                ),
+            ):
+                response = client.get(
+                    "/commerces/paris?arrondissement=11",
+                    headers=AUTH_HEADERS,
+                )
+        commerces_service.charger_commerces_paris.cache_clear()
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["source_etat"], "disponible")
+        self.assertEqual(payload["nombre_resultats"], 1)
+        self.assertEqual(payload["data"][0]["arrondissement"], 11)
+        self.assertEqual(payload["data"][0]["source_donnees"], "cache_local")
 
     def test_score_arrondissement_applique_les_ponderations(self):
         reponse_api = Mock()
