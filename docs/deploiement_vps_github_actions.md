@@ -29,6 +29,21 @@ Dossier de production : /home/ubuntu/immobilier-paris-ia
 Le VPS contient un fichier `.env` de production. Ce fichier reste uniquement sur
 le serveur et ne doit pas être commit dans Git.
 
+## Compte super admin applicatif
+
+Le compte super admin de l'application est cree ou repare au demarrage de
+l'API si ces variables existent dans le fichier `.env` du VPS :
+
+```text
+SUPER_ADMIN_EMAIL=admin@gmail.com
+SUPER_ADMIN_PASSWORD=<mot-de-passe-admin>
+```
+
+Le mot de passe est hache par le backend avant enregistrement en base. Eviter
+un mot de passe faible en production. Si le compte existe deja, il est reactive,
+passe en role `super_admin`, et son mot de passe est remis a la valeur de
+`SUPER_ADMIN_PASSWORD` au prochain demarrage de l'API.
+
 ## Cle SSH de deploiement
 
 Une clé SSH dédiée au déploiement GitHub Actions a été créée localement :

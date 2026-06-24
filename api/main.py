@@ -14,6 +14,7 @@ from api.metrics import (
     API_HTTP_REQUESTS_TOTAL,
 )
 from api.routers import admin, auth, dvf, location, prediction, scraping, stats, system, users
+from api.services.auth import initialiser_super_admin_depuis_env
 
 
 configurer_journalisation()
@@ -31,6 +32,24 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def initialiser_comptes_systeme() -> None:
+    try:
+        super_admin_initialise = initialiser_super_admin_depuis_env()
+    except Exception:
+        logger.exception(
+            "super_admin_initialization_failed",
+            extra={"event": "super_admin_initialization_failed"},
+        )
+        return
+
+    if super_admin_initialise:
+        logger.info(
+            "super_admin_initialized",
+            extra={"event": "super_admin_initialized"},
+        )
 
 
 def _route_label(request: Request) -> str:

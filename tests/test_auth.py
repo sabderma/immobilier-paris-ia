@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -109,6 +109,49 @@ class TestInscription(unittest.TestCase):
         self.assertFalse(
             auth_service.verifier_mot_de_passe("mauvais-mot-de-passe", password_hash)
         )
+
+
+class TestInitialisationSuperAdmin(unittest.TestCase):
+    def test_initialisation_ignoree_sans_variables(self):
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch.object(auth_service, "charger_env"),
+        ):
+            resultat = auth_service.initialiser_super_admin_depuis_env()
+
+        self.assertFalse(resultat)
+
+    def test_initialisation_cree_ou_repare_le_super_admin(self):
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "SUPER_ADMIN_EMAIL": " Admin@Gmail.com ",
+                    "SUPER_ADMIN_PASSWORD": "admin123",
+                },
+                clear=True,
+            ),
+            patch.object(auth_service, "charger_env"),
+            patch.object(
+                auth_service,
+                "hacher_mot_de_passe",
+                return_value="hash-admin",
+            ),
+            patch.object(auth_service.engine, "begin", return_value=contexte),
+        ):
+            resultat = auth_service.initialiser_super_admin_depuis_env()
+
+        self.assertTrue(resultat)
+        connexion.execute.assert_called_once()
+        params = connexion.execute.call_args.args[1]
+        self.assertEqual(params["email"], "admin@gmail.com")
+        self.assertEqual(params["password_hash"], "hash-admin")
+        self.assertEqual(params["role"], "super_admin")
 
 
 class TestConnexion(unittest.TestCase):

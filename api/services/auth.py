@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import os
+import re
 from typing import Any, Optional
 
 from argon2 import PasswordHasher
@@ -19,6 +20,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_MINUTES = 30
 ROLES_ADMIN = {"admin", "super_admin"}
+ROLE_SUPER_ADMIN = "super_admin"
 
 
 def hacher_mot_de_passe(password: str) -> str:
@@ -32,6 +34,73 @@ def verifier_mot_de_passe(password: str, password_hash: str) -> bool:
         return password_hasher.verify(password_hash, password)
     except Exception:
         return False
+
+
+def initialiser_super_admin_depuis_env() -> bool:
+    """Crée ou répare le compte super admin configuré dans l'environnement."""
+    charger_env()
+
+    email = (os.getenv("SUPER_ADMIN_EMAIL") or "").strip().lower()
+    password = os.getenv("SUPER_ADMIN_PASSWORD")
+
+    if not email and not password:
+        return False
+
+    if not email or not password:
+        raise RuntimeError(
+            "SUPER_ADMIN_EMAIL et SUPER_ADMIN_PASSWORD doivent être configurés ensemble."
+        )
+
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise RuntimeError("SUPER_ADMIN_EMAIL doit contenir une adresse email valide.")
+
+    if len(password) < 8:
+        raise RuntimeError(
+            "SUPER_ADMIN_PASSWORD doit contenir au moins 8 caractères."
+        )
+
+    password_hash = hacher_mot_de_passe(password)
+
+    with engine.begin() as connexion:
+        connexion.execute(
+            text(
+                """
+                WITH utilisateur_existant AS (
+                    UPDATE users
+                    SET
+                        password_hash = :password_hash,
+                        role = :role,
+                        is_active = TRUE,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE LOWER(email) = LOWER(:email)
+                    RETURNING id
+                )
+                INSERT INTO users (
+                    email,
+                    password_hash,
+                    first_name,
+                    last_name,
+                    role,
+                    is_active
+                )
+                SELECT
+                    :email,
+                    :password_hash,
+                    'Admin',
+                    'Principal',
+                    :role,
+                    TRUE
+                WHERE NOT EXISTS (SELECT 1 FROM utilisateur_existant);
+                """
+            ),
+            {
+                "email": email,
+                "password_hash": password_hash,
+                "role": ROLE_SUPER_ADMIN,
+            },
+        )
+
+    return True
 
 
 def obtenir_cle_jwt() -> str:
