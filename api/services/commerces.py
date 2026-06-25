@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 import requests
 
-from api.core import CHAMPS_COMMERCES, COMMERCES_PARIS_API_URL
+from api.core import CHAMPS_COMMERCES, COMMERCES_PARIS_API_URL, ROOT_DIR
 
 
 logger = logging.getLogger("immobilier_paris.api")
@@ -58,6 +58,12 @@ COMMERCES_CACHE_PATH = Path(
     os.getenv(
         "COMMERCES_PARIS_CACHE_PATH",
         "/tmp/immobilier_paris_commerces_cache.json",
+    )
+)
+COMMERCES_FALLBACK_PATH = Path(
+    os.getenv(
+        "COMMERCES_PARIS_FALLBACK_PATH",
+        str(ROOT_DIR / "data/final/commerces_paris_secours.json"),
     )
 )
 _CACHE_COMMERCES: tuple[dict[str, Any], ...] | None = None
@@ -228,6 +234,25 @@ def sauvegarder_cache_disque_commerces(resultats: list[dict[str, Any]]) -> None:
         )
 
 
+def charger_snapshot_local_commerces() -> list[dict[str, Any]]:
+    if not COMMERCES_FALLBACK_PATH.exists():
+        return []
+
+    try:
+        payload = json.loads(COMMERCES_FALLBACK_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning(
+            "commerces_fallback_unavailable",
+            extra={"fallback_path": str(COMMERCES_FALLBACK_PATH), "error": str(exc)},
+        )
+        return []
+
+    resultats = payload.get("results", []) if isinstance(payload, dict) else payload
+    if not isinstance(resultats, list):
+        return []
+    return [resultat for resultat in resultats if isinstance(resultat, dict)]
+
+
 def recuperer_resultats_commerces() -> tuple[list[dict[str, Any]], str]:
     try:
         response = requests.get(
@@ -259,6 +284,15 @@ def recuperer_resultats_commerces() -> tuple[list[dict[str, Any]], str]:
     resultats_cache = charger_cache_disque_commerces()
     if resultats_cache:
         return resultats_cache, "cache_local"
+
+    resultats_fallback = charger_snapshot_local_commerces()
+    if resultats_fallback:
+        logger.warning(
+            "commerces_using_local_fallback",
+            extra={"fallback_path": str(COMMERCES_FALLBACK_PATH)},
+        )
+        return resultats_fallback, "snapshot_local"
+
     return [], "indisponible"
 
 

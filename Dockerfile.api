@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY api ./api
 COPY src ./src
 COPY models ./models
+COPY data/final/commerces_paris_secours.json ./data/final/commerces_paris_secours.json
 COPY tests/test_prediction.py ./tests/test_prediction.py
 
 RUN python -m unittest discover -s tests -p "test_prediction.py" -v

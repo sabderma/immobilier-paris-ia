@@ -28,6 +28,19 @@ Dans Grafana, le dashboard C20 montrait en meme temps :
 L'incident ne venait donc pas d'une API completement arretee, mais d'une route
 qui restait bloquee trop longtemps avant de repondre.
 
+Apres une premiere correction, l'erreur bloquante a disparu, mais une regression
+fonctionnelle restait visible : le message suivant s'affichait et la notation de
+l'arrondissement n'etait plus disponible.
+
+```text
+Les statistiques commerces par arrondissement sont temporairement indisponibles.
+L'analyse d'adresse exacte reste disponible.
+```
+
+Ce second constat a montre que la route repondait bien, mais qu'elle ne
+fournissait plus de donnees exploitables lorsque Open Data Ile-de-France et le
+cache serveur etaient indisponibles.
+
 ## Reproduction
 
 Depuis l'interface :
@@ -35,6 +48,8 @@ Depuis l'interface :
 1. Ouvrir l'application en ligne.
 2. Aller sur **Analyser votre endroit**.
 3. Constater le message d'erreur Streamlit sur `/commerces/paris`.
+4. Apres le premier correctif, constater que le bloc **Noter votre
+   arrondissement** reste absent quand la route retourne `data = []`.
 
 Depuis le diagnostic technique, l'appel a la source externe utilisee par la route
 a aussi ete teste :
@@ -70,12 +85,25 @@ Avant correction :
 La cause principale est donc une absence de degradation controlee quand la
 dependance externe `data.iledefrance.fr` devient lente ou indisponible.
 
+La cause de la regression restante etait plus precise :
+
+- le fallback sans cache retournait une liste vide ;
+- l'interface ne pouvait donc plus construire le tableau des 20 arrondissements ;
+- la notation d'arrondissement dependait encore indirectement de la source
+  externe au moment de l'affichage ;
+- l'image Docker API ne contenait pas de jeu local de secours pour garantir le
+  fonctionnement hors ligne de cette fonctionnalite.
+
 ## Solution implementee
 
 Fichiers modifies :
 
+- `.dockerignore`
+- `.gitignore`
+- `Dockerfile.api`
 - `api/services/commerces.py`
 - `api/routers/location.py`
+- `data/final/commerces_paris_secours.json`
 - `streamlit/frontend/views/location_rating.py`
 - `tests/test_api.py`
 
@@ -91,6 +119,13 @@ Corrections apportees :
   dependance externe a chaque affichage de page ;
 - retour d'une liste vide controlee si aucune donnee ni cache ne sont
   disponibles, au lieu de bloquer puis produire une erreur 5xx ;
+- ajout d'un snapshot local de secours contenant les 20 arrondissements de Paris
+  pour restaurer la notation meme quand la source externe est indisponible ;
+- copie explicite de ce snapshot dans l'image Docker API ;
+- exceptions `.gitignore` et `.dockerignore` pour versionner et embarquer ce
+  fichier de secours ;
+- tracabilite de l'origine des donnees avec `source_donnees = "open_data"`,
+  `"cache_local"` ou `"snapshot_local"` ;
 - ajout du champ `source_etat` dans la reponse API pour rendre l'etat de la
   source explicite ;
 - adaptation de l'interface Streamlit pour garder l'analyse d'adresse exacte
@@ -102,7 +137,11 @@ Corrections apportees :
 Tests automatises ajoutes :
 
 - timeout de l'Open Data sans cache : `/commerces/paris` retourne `200`,
-  `source_etat = "indisponible"` et `data = []` ;
+  `source_etat = "disponible"` et les 20 arrondissements depuis le snapshot
+  local ;
+- absence totale de source, testee en neutralisant aussi le snapshot :
+  `/commerces/paris` retourne `200`, `source_etat = "indisponible"` et
+  `data = []` ;
 - timeout de l'Open Data avec cache local : `/commerces/paris` retourne les
   donnees du cache avec `source_donnees = "cache_local"`.
 
@@ -115,7 +154,7 @@ python3 -m unittest discover -s tests -p test_api.py -k commerces
 Resultat :
 
 ```text
-Ran 3 tests in 0.013s
+Ran 4 tests in 0.019s
 OK
 ```
 
@@ -128,7 +167,7 @@ python3 -m unittest discover -s tests
 Resultat :
 
 ```text
-Ran 80 tests in 0.502s
+Ran 81 tests in 0.482s
 OK
 ```
 
@@ -136,12 +175,15 @@ Le comportement attendu apres deploiement est le suivant :
 
 - la page **Analyser votre endroit** ne doit plus afficher l'erreur
   `Read timed out` sur `/commerces/paris` ;
+- le bloc **Noter votre arrondissement** doit rester disponible, meme si
+  Open Data Ile-de-France ne repond pas ;
 - la route API doit repondre rapidement, meme si Open Data Ile-de-France est
   lent ou indisponible ;
 - Grafana doit montrer une baisse des 5xx sur `/commerces/paris` et une latence
   P95 inferieure au seuil d'alerte C20 ;
 - les logs doivent contenir un avertissement explicite si la source externe est
-  indisponible.
+  indisponible, puis l'utilisation du snapshot local si aucun cache n'est
+  disponible.
 
 ## Versionnement attendu
 

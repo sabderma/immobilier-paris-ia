@@ -1385,7 +1385,10 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["nombre_resultats"], 1)
         self.assertEqual(payload["data"][0]["arrondissement"], 11)
-        self.assertEqual(payload["data"][0]["nom_arrondissement"], "Paris 11e Arrondissement")
+        self.assertEqual(
+            payload["data"][0]["nom_arrondissement"],
+            "Paris 11e Arrondissement",
+        )
         self.assertEqual(payload["data"][0]["commerces_alimentaires"], 386)
         self.assertEqual(payload["data"][0]["score_arrondissement_sur_10"], 10.0)
         self.assertEqual(
@@ -1393,12 +1396,40 @@ class TestApiSecurity(unittest.TestCase):
             10.0,
         )
 
-    def test_commerces_paris_repond_vide_si_open_data_timeout(self):
+    def test_commerces_paris_utilise_snapshot_local_si_open_data_timeout(self):
         commerces_service.charger_commerces_paris.cache_clear()
         with tempfile.TemporaryDirectory() as dossier_cache:
             cache_path = Path(dossier_cache) / "commerces_cache.json"
             with (
                 patch.object(commerces_service, "COMMERCES_CACHE_PATH", cache_path),
+                patch.object(
+                    commerces_service.requests,
+                    "get",
+                    side_effect=commerces_service.requests.Timeout("timeout"),
+                ),
+            ):
+                response = client.get("/commerces/paris", headers=AUTH_HEADERS)
+        commerces_service.charger_commerces_paris.cache_clear()
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["source_etat"], "disponible")
+        self.assertEqual(payload["nombre_resultats"], 20)
+        self.assertEqual(payload["data"][10]["arrondissement"], 11)
+        self.assertEqual(payload["data"][10]["source_donnees"], "snapshot_local")
+
+    def test_commerces_paris_repond_vide_si_aucune_source_disponible(self):
+        commerces_service.charger_commerces_paris.cache_clear()
+        with tempfile.TemporaryDirectory() as dossier_cache:
+            cache_path = Path(dossier_cache) / "commerces_cache.json"
+            fallback_path = Path(dossier_cache) / "commerces_fallback.json"
+            with (
+                patch.object(commerces_service, "COMMERCES_CACHE_PATH", cache_path),
+                patch.object(
+                    commerces_service,
+                    "COMMERCES_FALLBACK_PATH",
+                    fallback_path,
+                ),
                 patch.object(
                     commerces_service.requests,
                     "get",
