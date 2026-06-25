@@ -70,6 +70,88 @@ TIME_TOTAL:12.004988
 Cette reproduction confirme que la dependance Open Data pouvait ne pas repondre
 dans un delai acceptable.
 
+## Deroule complet de resolution
+
+### 1. Observation du symptome
+
+Le premier signal est venu de l'application en ligne : la page
+**Analyser votre endroit** affichait une erreur Streamlit sur la route
+`/commerces/paris`.
+
+Le message visible indiquait que Streamlit attendait l'API interne jusqu'a son
+timeout de 60 secondes :
+
+```text
+HTTPConnectionPool(host='api', port=8000): Read timed out. (read timeout=60)
+```
+
+En parallele, Grafana montrait que l'API et PostgreSQL etaient disponibles. Le
+probleme etait donc localise sur une route applicative lente, pas sur un arret
+global de l'application.
+
+### 2. Reproduction technique
+
+La route `/commerces/paris` a ete analysee cote code. Elle recuperait les
+statistiques de commerces via une API externe Open Data Ile-de-France.
+
+L'appel direct a cette source externe avec `curl --max-time 12` a reproduit un
+timeout. Cela a permis d'isoler la dependance externe comme facteur declencheur
+de l'incident.
+
+### 3. Premiere correction
+
+La premiere correction a transforme l'erreur bloquante en degradation controlee.
+L'objectif etait que la route FastAPI reponde vite, meme quand Open Data
+Ile-de-France ne repond pas.
+
+Cette correction a ajoute :
+
+- un timeout court cote API ;
+- un cache disque local ;
+- un cache memoire avec TTL ;
+- une reponse controlee en cas d'indisponibilite ;
+- des logs explicites pour le diagnostic.
+
+Apres deploiement, le message rouge `Read timed out` avait disparu.
+
+### 4. Regression fonctionnelle detectee
+
+Une deuxieme verification utilisateur a montre que le bloc
+**Noter votre arrondissement** ne s'affichait toujours pas. L'erreur technique
+avait ete absorbee, mais la route retournait `data = []` lorsque Open Data et le
+cache etaient indisponibles.
+
+Cette situation ne produisait plus de 5xx, mais elle empechait toujours la
+fonction attendue par l'utilisateur.
+
+### 5. Deuxieme correction
+
+La deuxieme correction a ajoute un snapshot local de secours contenant les 20
+arrondissements de Paris. Ce fichier permet a l'application de continuer a
+afficher la notation d'arrondissement, meme si la source Open Data est lente ou
+indisponible et meme si aucun cache serveur n'existe encore.
+
+Le snapshot est versionne dans Git et copie dans l'image Docker API.
+
+### 6. Validation et livraison
+
+Les tests automatises ont ete lances localement, puis les changements ont ete
+pousses sur GitHub. Les Pull Requests ont declenche GitHub Actions, avec tests,
+build Docker et deploiement serveur.
+
+La verification finale a ete faite directement sur le VPS avec un appel interne
+a `/commerces/paris`. La reponse de production contenait :
+
+```json
+{
+  "source_etat": "disponible",
+  "nombre_resultats": 20,
+  "source_donnees": "snapshot_local"
+}
+```
+
+Le retour utilisateur a confirme que la page fonctionne sur le site en ligne.
+
 ## Cause racine
 
 La route FastAPI `/commerces/paris` appelait directement l'API Open Data
@@ -132,6 +214,116 @@ Corrections apportees :
   disponible meme si les statistiques commerces par arrondissement sont
   temporairement indisponibles.
 
+## Details techniques de la correction
+
+### `api/services/commerces.py`
+
+Le coeur de la correction est dans le service `commerces`.
+
+Techniques ajoutees :
+
+- lecture robuste des variables d'environnement avec `lire_float_env()` pour
+  configurer les timeouts et les TTL sans modifier le code ;
+- `requests.get(..., timeout=charger_timeout_commerces())` pour eviter qu'un
+  appel externe bloque la route FastAPI ;
+- `charger_cache_disque_commerces()` pour relire les dernieres donnees valides
+  stockees localement ;
+- `sauvegarder_cache_disque_commerces()` pour ecrire le cache quand Open Data
+  repond correctement ;
+- `charger_snapshot_local_commerces()` pour charger le fichier de secours
+  `data/final/commerces_paris_secours.json` ;
+- variable `_CACHE_COMMERCES` et date `_CACHE_COMMERCES_EXPIRE_AT` pour eviter
+  de recalculer ou rappeler la source externe a chaque affichage Streamlit ;
+- champ `source_donnees` ajoute a chaque arrondissement pour tracer l'origine
+  des donnees : `open_data`, `cache_local` ou `snapshot_local`.
+
+La strategie de fallback est maintenant :
+
+1. essayer Open Data Ile-de-France ;
+2. si Open Data echoue, utiliser le cache disque ;
+3. si le cache n'existe pas, utiliser le snapshot local ;
+4. si aucune source n'existe, retourner une liste vide controlee.
+
+Ce choix evite les erreurs 5xx et preserve la fonctionnalite principale.
+
+### `api/routers/location.py`
+
+La route `/commerces/paris` expose maintenant `source_etat`.
+
+Si la liste des commerces contient des donnees, `source_etat` vaut
+`disponible`. Si toutes les sources echouent, il vaut `indisponible`.
+
+Ce champ permet a l'interface et au diagnostic de distinguer :
+
+- une route API fonctionnelle avec donnees disponibles ;
+- une route API fonctionnelle mais sans source exploitable.
+
+### `streamlit/frontend/views/location_rating.py`
+
+L'ecran **Analyser votre endroit** ne bloque plus toute la page lorsque les
+donnees d'arrondissement sont indisponibles.
+
+La logique est la suivante :
+
+- si le `DataFrame` commerces contient des lignes, afficher le bloc
+  **Noter votre arrondissement** ;
+- sinon afficher un message d'information ;
+- dans les deux cas, conserver l'analyse d'adresse exacte disponible.
+
+Apres l'ajout du snapshot local, le `DataFrame` contient de nouveau les 20
+arrondissements en production, donc le bloc de notation redevient visible.
+
+### `Dockerfile.api`, `.dockerignore` et `.gitignore`
+
+Une erreur possible etait de corriger localement sans embarquer le fichier de
+secours dans l'image Docker.
+
+Pour eviter cela :
+
+- `.gitignore` autorise explicitement
+  `data/final/commerces_paris_secours.json` ;
+- `.dockerignore` autorise aussi ce fichier dans le contexte de build Docker ;
+- `Dockerfile.api` copie le snapshot dans l'image API avec :
+
+```dockerfile
+COPY data/final/commerces_paris_secours.json ./data/final/commerces_paris_secours.json
+```
+
+Cette partie garantit que la correction fonctionne aussi apres deploiement, pas
+seulement dans le dossier local.
+
+### `tests/test_api.py`
+
+Les tests automatises couvrent les scenarios critiques :
+
+- retour normal d'un arrondissement normalise ;
+- timeout Open Data avec snapshot local disponible ;
+- timeout Open Data avec cache local disponible ;
+- timeout Open Data sans cache et sans snapshot ;
+- calcul des scores d'arrondissement.
+
+Les tests utilisent `patch.object()` pour simuler les timeouts et remplacer les
+chemins de cache/snapshot par des fichiers temporaires. Cela permet de tester la
+logique de fallback sans dependre du reseau.
+
+## Ce que j'ai fait concretement dans le code
+
+1. J'ai identifie que `/commerces/paris` dependait d'un appel externe lent.
+2. J'ai ajoute un timeout applicatif court pour eviter le blocage de FastAPI.
+3. J'ai ajoute un cache disque pour reutiliser la derniere reponse valide.
+4. J'ai ajoute un cache memoire TTL pour reduire les appels repetes.
+5. J'ai ajoute des logs de diagnostic quand Open Data est indisponible.
+6. J'ai ajoute `source_etat` dans la reponse API.
+7. J'ai adapte Streamlit pour ne pas bloquer l'analyse d'adresse exacte.
+8. J'ai ajoute un snapshot local des 20 arrondissements.
+9. J'ai modifie Docker pour embarquer ce snapshot dans l'image API.
+10. J'ai ajoute des tests de timeout, cache et fallback.
+11. J'ai pousse les corrections sur GitHub.
+12. J'ai verifie les GitHub Actions.
+13. J'ai merge les Pull Requests.
+14. J'ai attendu le deploiement serveur.
+15. J'ai verifie la route en production par SSH et `curl`.
+
 ## Validation
 
 Tests automatises ajoutes :
@@ -185,17 +377,50 @@ Le comportement attendu apres deploiement est le suivant :
   indisponible, puis l'utilisation du snapshot local si aucun cache n'est
   disponible.
 
-## Versionnement attendu
+## Versionnement et deploiement realises
 
-Pour finaliser la preuve C21, la correction doit etre versionnee dans Git avec
-les fichiers ci-dessus, puis integree via la chaine de livraison continue.
+La correction a ete versionnee et livree en deux etapes :
 
-Exemple de message de commit :
+- PR #1 : correction du timeout et degradation controlee de `/commerces/paris` ;
+- PR #2 : ajout du snapshot local pour restaurer la notation d'arrondissement.
 
-```text
-fix: rendre /commerces/paris resilient aux timeouts Open Data
-```
+Pull Requests :
 
-Apres push ou merge request, GitHub Actions doit relancer les tests applicatifs
-et reconstruire les images Docker API et Streamlit avant de deployer la version
-corrigee en ligne.
+- `https://github.com/sabderma/immobilier-paris-ia/pull/1`
+- `https://github.com/sabderma/immobilier-paris-ia/pull/2`
+
+GitHub Actions a valide :
+
+- les tests applicatifs ;
+- la validation du modele IA ;
+- la construction des images Docker API et Streamlit ;
+- le deploiement serveur.
+
+Verification de production :
+
+- conteneurs API et Streamlit recrees sur le VPS ;
+- `/commerces/paris` retourne `200` ;
+- `source_etat = "disponible"` ;
+- `nombre_resultats = 20` ;
+- les donnees proviennent du fallback `snapshot_local` lorsque Open Data est
+  indisponible.
+
+## Statut final de la competence C21
+
+La competence C21 est complete et defendable devant le jury.
+
+Le dossier contient :
+
+- l'incident initial ;
+- les symptomes visibles ;
+- la reproduction ;
+- la cause racine ;
+- les techniques de debogage ;
+- les changements de code ;
+- les tests automatises ;
+- le versionnement GitHub ;
+- la livraison continue ;
+- la verification en production.
+
+Le jury reste le seul decisionnaire officiel, mais le projet contient maintenant
+une preuve complete de resolution d'incident technique du debut jusqu'a la fin.

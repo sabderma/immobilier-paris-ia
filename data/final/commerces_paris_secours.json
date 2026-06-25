@@ -1,25 +1,1696 @@
 {
-  "source": "Snapshot local de secours - Base permanente des equipements 2012",
+  "source": "Snapshot local de secours genere depuis Open Data Ile-de-France",
+  "genere_le": "2026-06-25T19:34:01.413165+00:00",
+  "source_brute": "data/raw/api/commerces_paris_open_data.json",
+  "nombre_resultats": 20,
   "results": [
-    {"departement_commune": 75101, "libelle_de_commune": ["Paris 1er Arrondissement"], "population_2010": 17443, "supermarche": 2, "superette": 5, "epicerie": 18, "boulangerie": 20, "boucherie_charcuterie": 8, "poissonnerie": 2, "fleuriste": 8, "magasin_d_optique": 7, "magasin_de_vetements": 50, "librairie_papeterie_journaux": 10, "magasin_de_chaussures": 15, "magasin_d_equipements_du_foyer": 20, "parfumerie": 8, "horlogerie_bijouterie": 10, "droguerie_quincaillerie_bricolage": 5, "geo_point_2d": {"lat": 48.8626, "lon": 2.3363}},
-    {"departement_commune": 75102, "libelle_de_commune": ["Paris 2e Arrondissement"], "population_2010": 22400, "supermarche": 2, "superette": 6, "epicerie": 22, "boulangerie": 24, "boucherie_charcuterie": 9, "poissonnerie": 2, "fleuriste": 9, "magasin_d_optique": 8, "magasin_de_vetements": 60, "librairie_papeterie_journaux": 12, "magasin_de_chaussures": 18, "magasin_d_equipements_du_foyer": 24, "parfumerie": 9, "horlogerie_bijouterie": 12, "droguerie_quincaillerie_bricolage": 5, "geo_point_2d": {"lat": 48.8681, "lon": 2.3429}},
-    {"departement_commune": 75103, "libelle_de_commune": ["Paris 3e Arrondissement"], "population_2010": 35655, "supermarche": 3, "superette": 8, "epicerie": 32, "boulangerie": 38, "boucherie_charcuterie": 15, "poissonnerie": 3, "fleuriste": 14, "magasin_d_optique": 10, "magasin_de_vetements": 70, "librairie_papeterie_journaux": 15, "magasin_de_chaussures": 18, "magasin_d_equipements_du_foyer": 28, "parfumerie": 10, "horlogerie_bijouterie": 12, "droguerie_quincaillerie_bricolage": 8, "geo_point_2d": {"lat": 48.8629, "lon": 2.3600}},
-    {"departement_commune": 75104, "libelle_de_commune": ["Paris 4e Arrondissement"], "population_2010": 28192, "supermarche": 2, "superette": 7, "epicerie": 28, "boulangerie": 32, "boucherie_charcuterie": 13, "poissonnerie": 3, "fleuriste": 12, "magasin_d_optique": 9, "magasin_de_vetements": 60, "librairie_papeterie_journaux": 14, "magasin_de_chaussures": 16, "magasin_d_equipements_du_foyer": 22, "parfumerie": 10, "horlogerie_bijouterie": 11, "droguerie_quincaillerie_bricolage": 7, "geo_point_2d": {"lat": 48.8543, "lon": 2.3576}},
-    {"departement_commune": 75105, "libelle_de_commune": ["Paris 5e Arrondissement"], "population_2010": 60938, "supermarche": 5, "superette": 12, "epicerie": 55, "boulangerie": 58, "boucherie_charcuterie": 25, "poissonnerie": 4, "fleuriste": 22, "magasin_d_optique": 15, "magasin_de_vetements": 80, "librairie_papeterie_journaux": 25, "magasin_de_chaussures": 20, "magasin_d_equipements_du_foyer": 30, "parfumerie": 12, "horlogerie_bijouterie": 12, "droguerie_quincaillerie_bricolage": 10, "geo_point_2d": {"lat": 48.8444, "lon": 2.3505}},
-    {"departement_commune": 75106, "libelle_de_commune": ["Paris 6e Arrondissement"], "population_2010": 43143, "supermarche": 4, "superette": 10, "epicerie": 45, "boulangerie": 50, "boucherie_charcuterie": 20, "poissonnerie": 4, "fleuriste": 18, "magasin_d_optique": 16, "magasin_de_vetements": 90, "librairie_papeterie_journaux": 26, "magasin_de_chaussures": 25, "magasin_d_equipements_du_foyer": 32, "parfumerie": 14, "horlogerie_bijouterie": 15, "droguerie_quincaillerie_bricolage": 10, "geo_point_2d": {"lat": 48.8493, "lon": 2.3327}},
-    {"departement_commune": 75107, "libelle_de_commune": ["Paris 7e Arrondissement"], "population_2010": 57442, "supermarche": 5, "superette": 10, "epicerie": 42, "boulangerie": 48, "boucherie_charcuterie": 18, "poissonnerie": 3, "fleuriste": 20, "magasin_d_optique": 15, "magasin_de_vetements": 85, "librairie_papeterie_journaux": 18, "magasin_de_chaussures": 20, "magasin_d_equipements_du_foyer": 30, "parfumerie": 12, "horlogerie_bijouterie": 14, "droguerie_quincaillerie_bricolage": 9, "geo_point_2d": {"lat": 48.8565, "lon": 2.3126}},
-    {"departement_commune": 75108, "libelle_de_commune": ["Paris 8e Arrondissement"], "population_2010": 39175, "supermarche": 4, "superette": 8, "epicerie": 38, "boulangerie": 42, "boucherie_charcuterie": 14, "poissonnerie": 2, "fleuriste": 18, "magasin_d_optique": 18, "magasin_de_vetements": 140, "librairie_papeterie_journaux": 18, "magasin_de_chaussures": 42, "magasin_d_equipements_du_foyer": 34, "parfumerie": 24, "horlogerie_bijouterie": 30, "droguerie_quincaillerie_bricolage": 8, "geo_point_2d": {"lat": 48.8727, "lon": 2.3126}},
-    {"departement_commune": 75109, "libelle_de_commune": ["Paris 9e Arrondissement"], "population_2010": 60139, "supermarche": 6, "superette": 14, "epicerie": 70, "boulangerie": 65, "boucherie_charcuterie": 26, "poissonnerie": 5, "fleuriste": 28, "magasin_d_optique": 18, "magasin_de_vetements": 120, "librairie_papeterie_journaux": 24, "magasin_de_chaussures": 36, "magasin_d_equipements_du_foyer": 38, "parfumerie": 18, "horlogerie_bijouterie": 20, "droguerie_quincaillerie_bricolage": 12, "geo_point_2d": {"lat": 48.8772, "lon": 2.3375}},
-    {"departement_commune": 75110, "libelle_de_commune": ["Paris 10e Arrondissement"], "population_2010": 94926, "supermarche": 10, "superette": 22, "epicerie": 100, "boulangerie": 82, "boucherie_charcuterie": 36, "poissonnerie": 6, "fleuriste": 30, "magasin_d_optique": 22, "magasin_de_vetements": 110, "librairie_papeterie_journaux": 26, "magasin_de_chaussures": 34, "magasin_d_equipements_du_foyer": 40, "parfumerie": 16, "horlogerie_bijouterie": 16, "droguerie_quincaillerie_bricolage": 15, "geo_point_2d": {"lat": 48.8760, "lon": 2.3609}},
-    {"departement_commune": 75111, "libelle_de_commune": ["Paris 11e Arrondissement"], "population_2010": 153202, "supermarche": 28, "superette": 29, "epicerie": 154, "boulangerie": 128, "boucherie_charcuterie": 68, "poissonnerie": 7, "fleuriste": 54, "magasin_d_optique": 30, "magasin_de_vetements": 140, "librairie_papeterie_journaux": 35, "magasin_de_chaussures": 38, "magasin_d_equipements_du_foyer": 55, "parfumerie": 18, "horlogerie_bijouterie": 18, "droguerie_quincaillerie_bricolage": 18, "geo_point_2d": {"lat": 48.8594, "lon": 2.3787}},
-    {"departement_commune": 75112, "libelle_de_commune": ["Paris 12e Arrondissement"], "population_2010": 144595, "supermarche": 18, "superette": 25, "epicerie": 100, "boulangerie": 110, "boucherie_charcuterie": 50, "poissonnerie": 8, "fleuriste": 42, "magasin_d_optique": 28, "magasin_de_vetements": 100, "librairie_papeterie_journaux": 28, "magasin_de_chaussures": 30, "magasin_d_equipements_du_foyer": 44, "parfumerie": 16, "horlogerie_bijouterie": 16, "droguerie_quincaillerie_bricolage": 16, "geo_point_2d": {"lat": 48.8406, "lon": 2.3958}},
-    {"departement_commune": 75113, "libelle_de_commune": ["Paris 13e Arrondissement"], "population_2010": 182032, "supermarche": 22, "superette": 30, "epicerie": 120, "boulangerie": 120, "boucherie_charcuterie": 55, "poissonnerie": 8, "fleuriste": 40, "magasin_d_optique": 30, "magasin_de_vetements": 90, "librairie_papeterie_journaux": 28, "magasin_de_chaussures": 28, "magasin_d_equipements_du_foyer": 42, "parfumerie": 15, "horlogerie_bijouterie": 14, "droguerie_quincaillerie_bricolage": 18, "geo_point_2d": {"lat": 48.8322, "lon": 2.3556}},
-    {"departement_commune": 75114, "libelle_de_commune": ["Paris 14e Arrondissement"], "population_2010": 137189, "supermarche": 16, "superette": 24, "epicerie": 95, "boulangerie": 105, "boucherie_charcuterie": 48, "poissonnerie": 7, "fleuriste": 38, "magasin_d_optique": 28, "magasin_de_vetements": 90, "librairie_papeterie_journaux": 26, "magasin_de_chaussures": 26, "magasin_d_equipements_du_foyer": 38, "parfumerie": 14, "horlogerie_bijouterie": 14, "droguerie_quincaillerie_bricolage": 16, "geo_point_2d": {"lat": 48.8331, "lon": 2.3264}},
-    {"departement_commune": 75115, "libelle_de_commune": ["Paris 15e Arrondissement"], "population_2010": 236491, "supermarche": 30, "superette": 42, "epicerie": 150, "boulangerie": 160, "boucherie_charcuterie": 70, "poissonnerie": 10, "fleuriste": 60, "magasin_d_optique": 45, "magasin_de_vetements": 130, "librairie_papeterie_journaux": 40, "magasin_de_chaussures": 40, "magasin_d_equipements_du_foyer": 60, "parfumerie": 22, "horlogerie_bijouterie": 20, "droguerie_quincaillerie_bricolage": 25, "geo_point_2d": {"lat": 48.8412, "lon": 2.3003}},
-    {"departement_commune": 75116, "libelle_de_commune": ["Paris 16e Arrondissement"], "population_2010": 169372, "supermarche": 20, "superette": 30, "epicerie": 100, "boulangerie": 120, "boucherie_charcuterie": 50, "poissonnerie": 8, "fleuriste": 55, "magasin_d_optique": 40, "magasin_de_vetements": 140, "librairie_papeterie_journaux": 35, "magasin_de_chaussures": 40, "magasin_d_equipements_du_foyer": 55, "parfumerie": 24, "horlogerie_bijouterie": 24, "droguerie_quincaillerie_bricolage": 18, "geo_point_2d": {"lat": 48.8640, "lon": 2.2769}},
-    {"departement_commune": 75117, "libelle_de_commune": ["Paris 17e Arrondissement"], "population_2010": 170174, "supermarche": 22, "superette": 34, "epicerie": 110, "boulangerie": 125, "boucherie_charcuterie": 55, "poissonnerie": 8, "fleuriste": 58, "magasin_d_optique": 38, "magasin_de_vetements": 130, "librairie_papeterie_journaux": 34, "magasin_de_chaussures": 38, "magasin_d_equipements_du_foyer": 52, "parfumerie": 20, "horlogerie_bijouterie": 20, "droguerie_quincaillerie_bricolage": 20, "geo_point_2d": {"lat": 48.8873, "lon": 2.3068}},
-    {"departement_commune": 75118, "libelle_de_commune": ["Paris 18e Arrondissement"], "population_2010": 200631, "supermarche": 25, "superette": 40, "epicerie": 160, "boulangerie": 140, "boucherie_charcuterie": 62, "poissonnerie": 9, "fleuriste": 50, "magasin_d_optique": 34, "magasin_de_vetements": 120, "librairie_papeterie_journaux": 35, "magasin_de_chaussures": 35, "magasin_d_equipements_du_foyer": 48, "parfumerie": 16, "horlogerie_bijouterie": 15, "droguerie_quincaillerie_bricolage": 24, "geo_point_2d": {"lat": 48.8926, "lon": 2.3444}},
-    {"departement_commune": 75119, "libelle_de_commune": ["Paris 19e Arrondissement"], "population_2010": 187603, "supermarche": 22, "superette": 36, "epicerie": 130, "boulangerie": 120, "boucherie_charcuterie": 54, "poissonnerie": 8, "fleuriste": 42, "magasin_d_optique": 30, "magasin_de_vetements": 80, "librairie_papeterie_journaux": 30, "magasin_de_chaussures": 25, "magasin_d_equipements_du_foyer": 42, "parfumerie": 13, "horlogerie_bijouterie": 12, "droguerie_quincaillerie_bricolage": 22, "geo_point_2d": {"lat": 48.8823, "lon": 2.3822}},
-    {"departement_commune": 75120, "libelle_de_commune": ["Paris 20e Arrondissement"], "population_2010": 197067, "supermarche": 24, "superette": 38, "epicerie": 145, "boulangerie": 130, "boucherie_charcuterie": 58, "poissonnerie": 8, "fleuriste": 45, "magasin_d_optique": 32, "magasin_de_vetements": 85, "librairie_papeterie_journaux": 30, "magasin_de_chaussures": 26, "magasin_d_equipements_du_foyer": 45, "parfumerie": 14, "horlogerie_bijouterie": 12, "droguerie_quincaillerie_bricolage": 24, "geo_point_2d": {"lat": 48.8635, "lon": 2.4012}}
+    {
+      "departement": 75,
+      "departement_commune": 75101,
+      "libelle_de_commune": [
+        "Paris 1er Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 17308,
+      "hypermarche": 1,
+      "supermarche": 2,
+      "grande_surface_de_bricolage": 2,
+      "superette": 9,
+      "epicerie": 25,
+      "boulangerie": 36,
+      "boucherie_charcuterie": 10,
+      "produits_surgeles": 0,
+      "poissonnerie": 2,
+      "librairie_papeterie_journaux": 82,
+      "magasin_de_vetements": 608,
+      "magasin_d_equipements_du_foyer": 28,
+      "magasin_de_chaussures": 99,
+      "magasin_d_electromenager_et_de_mat_audio_video": 15,
+      "magasin_de_meubles": 33,
+      "magasin_d_articles_de_sports_et_de_loisirs": 21,
+      "magasin_de_revetements_murs_et_sols": 5,
+      "droguerie_quincaillerie_bricolage": 7,
+      "parfumerie": 82,
+      "horlogerie_bijouterie": 130,
+      "fleuriste": 33,
+      "magasin_d_optique": 31,
+      "station_service": 1,
+      "geo_point_2d": {
+        "lon": 2.336293446550539,
+        "lat": 48.8626304851685
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.344559180836944,
+                48.85399290271931
+              ],
+              [
+                2.332852282604382,
+                48.85930633356469
+              ],
+              [
+                2.320781393695372,
+                48.86307865626878
+              ],
+              [
+                2.325754809597834,
+                48.869546095073304
+              ],
+              [
+                2.327877416924118,
+                48.869863809746434
+              ],
+              [
+                2.350834505477619,
+                48.863344374598334
+              ],
+              [
+                2.350088493587214,
+                48.86195533215501
+              ],
+              [
+                2.344559180836944,
+                48.85399290271931
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75102,
+      "libelle_de_commune": [
+        "Paris 2e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 23009,
+      "hypermarche": 0,
+      "supermarche": 4,
+      "grande_surface_de_bricolage": 4,
+      "superette": 9,
+      "epicerie": 23,
+      "boulangerie": 29,
+      "boucherie_charcuterie": 10,
+      "produits_surgeles": 1,
+      "poissonnerie": 1,
+      "librairie_papeterie_journaux": 72,
+      "magasin_de_vetements": 469,
+      "magasin_d_equipements_du_foyer": 22,
+      "magasin_de_chaussures": 41,
+      "magasin_d_electromenager_et_de_mat_audio_video": 12,
+      "magasin_de_meubles": 13,
+      "magasin_d_articles_de_sports_et_de_loisirs": 8,
+      "magasin_de_revetements_murs_et_sols": 3,
+      "droguerie_quincaillerie_bricolage": 7,
+      "parfumerie": 30,
+      "horlogerie_bijouterie": 54,
+      "fleuriste": 14,
+      "magasin_d_optique": 31,
+      "station_service": 0,
+      "geo_point_2d": {
+        "lon": 2.344107166658533,
+        "lat": 48.86790337886785
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.350834505477619,
+                48.863344374598334
+              ],
+              [
+                2.327877416924118,
+                48.869863809746434
+              ],
+              [
+                2.347826239446091,
+                48.870630685567946
+              ],
+              [
+                2.354114163249875,
+                48.86927979700135
+              ],
+              [
+                2.350834505477619,
+                48.863344374598334
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75103,
+      "libelle_de_commune": [
+        "Paris 3e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 35652,
+      "hypermarche": 1,
+      "supermarche": 4,
+      "grande_surface_de_bricolage": 1,
+      "superette": 12,
+      "epicerie": 34,
+      "boulangerie": 36,
+      "boucherie_charcuterie": 5,
+      "produits_surgeles": 3,
+      "poissonnerie": 1,
+      "librairie_papeterie_journaux": 29,
+      "magasin_de_vetements": 350,
+      "magasin_d_equipements_du_foyer": 34,
+      "magasin_de_chaussures": 51,
+      "magasin_d_electromenager_et_de_mat_audio_video": 12,
+      "magasin_de_meubles": 32,
+      "magasin_d_articles_de_sports_et_de_loisirs": 13,
+      "magasin_de_revetements_murs_et_sols": 2,
+      "droguerie_quincaillerie_bricolage": 14,
+      "parfumerie": 30,
+      "horlogerie_bijouterie": 52,
+      "fleuriste": 20,
+      "magasin_d_optique": 27,
+      "station_service": 0,
+      "geo_point_2d": {
+        "lon": 2.359361058970589,
+        "lat": 48.86305413181178
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.3684017253737,
+                48.855739961952956
+              ],
+              [
+                2.350088493587214,
+                48.86195533215501
+              ],
+              [
+                2.350834505477619,
+                48.863344374598334
+              ],
+              [
+                2.354114163249875,
+                48.86927979700135
+              ],
+              [
+                2.363856758564782,
+                48.86743436510144
+              ],
+              [
+                2.3684017253737,
+                48.855739961952956
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75104,
+      "libelle_de_commune": [
+        "Paris 4e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 28012,
+      "hypermarche": 0,
+      "supermarche": 3,
+      "grande_surface_de_bricolage": 1,
+      "superette": 8,
+      "epicerie": 42,
+      "boulangerie": 45,
+      "boucherie_charcuterie": 16,
+      "produits_surgeles": 0,
+      "poissonnerie": 2,
+      "librairie_papeterie_journaux": 74,
+      "magasin_de_vetements": 315,
+      "magasin_d_equipements_du_foyer": 65,
+      "magasin_de_chaussures": 46,
+      "magasin_d_electromenager_et_de_mat_audio_video": 12,
+      "magasin_de_meubles": 22,
+      "magasin_d_articles_de_sports_et_de_loisirs": 11,
+      "magasin_de_revetements_murs_et_sols": 2,
+      "droguerie_quincaillerie_bricolage": 4,
+      "parfumerie": 37,
+      "horlogerie_bijouterie": 34,
+      "fleuriste": 37,
+      "magasin_d_optique": 36,
+      "station_service": 0,
+      "geo_point_2d": {
+        "lon": 2.357361938142205,
+        "lat": 48.854228281954754
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.364320760755825,
+                48.846167205800846
+              ],
+              [
+                2.344559180836944,
+                48.85399290271931
+              ],
+              [
+                2.350088493587214,
+                48.86195533215501
+              ],
+              [
+                2.3684017253737,
+                48.855739961952956
+              ],
+              [
+                2.369018230803884,
+                48.853225030730016
+              ],
+              [
+                2.364320760755825,
+                48.846167205800846
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75105,
+      "libelle_de_commune": [
+        "Paris 5e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 60938,
+      "hypermarche": 0,
+      "supermarche": 6,
+      "grande_surface_de_bricolage": 3,
+      "superette": 11,
+      "epicerie": 66,
+      "boulangerie": 73,
+      "boucherie_charcuterie": 28,
+      "produits_surgeles": 6,
+      "poissonnerie": 6,
+      "librairie_papeterie_journaux": 179,
+      "magasin_de_vetements": 134,
+      "magasin_d_equipements_du_foyer": 29,
+      "magasin_de_chaussures": 22,
+      "magasin_d_electromenager_et_de_mat_audio_video": 15,
+      "magasin_de_meubles": 19,
+      "magasin_d_articles_de_sports_et_de_loisirs": 39,
+      "magasin_de_revetements_murs_et_sols": 5,
+      "droguerie_quincaillerie_bricolage": 13,
+      "parfumerie": 20,
+      "horlogerie_bijouterie": 20,
+      "fleuriste": 30,
+      "magasin_d_optique": 29,
+      "station_service": 1,
+      "geo_point_2d": {
+        "lon": 2.349859385560182,
+        "lat": 48.844508659617546
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.365944019143637,
+                48.84490772386109
+              ],
+              [
+                2.351573383125364,
+                48.83683535107211
+              ],
+              [
+                2.342031572330786,
+                48.83830317558654
+              ],
+              [
+                2.336591298996422,
+                48.83969412678994
+              ],
+              [
+                2.344559180836944,
+                48.85399290271931
+              ],
+              [
+                2.364320760755825,
+                48.846167205800846
+              ],
+              [
+                2.365944019143637,
+                48.84490772386109
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75106,
+      "libelle_de_commune": [
+        "Paris 6e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 43451,
+      "hypermarche": 0,
+      "supermarche": 7,
+      "grande_surface_de_bricolage": 1,
+      "superette": 12,
+      "epicerie": 40,
+      "boulangerie": 56,
+      "boucherie_charcuterie": 18,
+      "produits_surgeles": 2,
+      "poissonnerie": 5,
+      "librairie_papeterie_journaux": 176,
+      "magasin_de_vetements": 610,
+      "magasin_d_equipements_du_foyer": 69,
+      "magasin_de_chaussures": 135,
+      "magasin_d_electromenager_et_de_mat_audio_video": 8,
+      "magasin_de_meubles": 45,
+      "magasin_d_articles_de_sports_et_de_loisirs": 12,
+      "magasin_de_revetements_murs_et_sols": 12,
+      "droguerie_quincaillerie_bricolage": 7,
+      "parfumerie": 41,
+      "horlogerie_bijouterie": 67,
+      "fleuriste": 26,
+      "magasin_d_optique": 44,
+      "station_service": 0,
+      "geo_point_2d": {
+        "lon": 2.332670898588416,
+        "lat": 48.84896809191946
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.336591298996422,
+                48.83969412678994
+              ],
+              [
+                2.324660773025275,
+                48.84352162052588
+              ],
+              [
+                2.316633528047582,
+                48.84675871366723
+              ],
+              [
+                2.329309953608925,
+                48.852838166117515
+              ],
+              [
+                2.332852282604382,
+                48.85930633356469
+              ],
+              [
+                2.344559180836944,
+                48.85399290271931
+              ],
+              [
+                2.336591298996422,
+                48.83969412678994
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75107,
+      "libelle_de_commune": [
+        "Paris 7e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 57974,
+      "hypermarche": 0,
+      "supermarche": 15,
+      "grande_surface_de_bricolage": 0,
+      "superette": 11,
+      "epicerie": 46,
+      "boulangerie": 56,
+      "boucherie_charcuterie": 22,
+      "produits_surgeles": 2,
+      "poissonnerie": 4,
+      "librairie_papeterie_journaux": 92,
+      "magasin_de_vetements": 253,
+      "magasin_d_equipements_du_foyer": 70,
+      "magasin_de_chaussures": 49,
+      "magasin_d_electromenager_et_de_mat_audio_video": 10,
+      "magasin_de_meubles": 86,
+      "magasin_d_articles_de_sports_et_de_loisirs": 7,
+      "magasin_de_revetements_murs_et_sols": 18,
+      "droguerie_quincaillerie_bricolage": 11,
+      "parfumerie": 28,
+      "horlogerie_bijouterie": 44,
+      "fleuriste": 39,
+      "magasin_d_optique": 33,
+      "station_service": 3,
+      "geo_point_2d": {
+        "lon": 2.312438687733857,
+        "lat": 48.85608259819694
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.316633528047582,
+                48.84675871366723
+              ],
+              [
+                2.307341120736737,
+                48.84770356794504
+              ],
+              [
+                2.2897837280763698,
+                48.85812314611537
+              ],
+              [
+                2.301556199832536,
+                48.86348063063825
+              ],
+              [
+                2.320781393695372,
+                48.86307865626878
+              ],
+              [
+                2.332852282604382,
+                48.85930633356469
+              ],
+              [
+                2.329309953608925,
+                48.852838166117515
+              ],
+              [
+                2.316633528047582,
+                48.84675871366723
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75108,
+      "libelle_de_commune": [
+        "Paris 8e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 41280,
+      "hypermarche": 0,
+      "supermarche": 23,
+      "grande_surface_de_bricolage": 1,
+      "superette": 13,
+      "epicerie": 51,
+      "boulangerie": 61,
+      "boucherie_charcuterie": 15,
+      "produits_surgeles": 5,
+      "poissonnerie": 1,
+      "librairie_papeterie_journaux": 127,
+      "magasin_de_vetements": 650,
+      "magasin_d_equipements_du_foyer": 106,
+      "magasin_de_chaussures": 113,
+      "magasin_d_electromenager_et_de_mat_audio_video": 45,
+      "magasin_de_meubles": 68,
+      "magasin_d_articles_de_sports_et_de_loisirs": 29,
+      "magasin_de_revetements_murs_et_sols": 17,
+      "droguerie_quincaillerie_bricolage": 9,
+      "parfumerie": 98,
+      "horlogerie_bijouterie": 141,
+      "fleuriste": 39,
+      "magasin_d_optique": 91,
+      "station_service": 4,
+      "geo_point_2d": {
+        "lon": 2.312582560420059,
+        "lat": 48.87252726662346
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.320781393695372,
+                48.86307865626878
+              ],
+              [
+                2.301556199832536,
+                48.86348063063825
+              ],
+              [
+                2.295145331385798,
+                48.87386647602374
+              ],
+              [
+                2.301813412942564,
+                48.878869911069266
+              ],
+              [
+                2.327115254528243,
+                48.883484486689106
+              ],
+              [
+                2.325754809597834,
+                48.869546095073304
+              ],
+              [
+                2.320781393695372,
+                48.86307865626878
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75109,
+      "libelle_de_commune": [
+        "Paris 9e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 60139,
+      "hypermarche": 0,
+      "supermarche": 19,
+      "grande_surface_de_bricolage": 1,
+      "superette": 17,
+      "epicerie": 98,
+      "boulangerie": 78,
+      "boucherie_charcuterie": 34,
+      "produits_surgeles": 2,
+      "poissonnerie": 4,
+      "librairie_papeterie_journaux": 156,
+      "magasin_de_vetements": 449,
+      "magasin_d_equipements_du_foyer": 60,
+      "magasin_de_chaussures": 94,
+      "magasin_d_electromenager_et_de_mat_audio_video": 50,
+      "magasin_de_meubles": 32,
+      "magasin_d_articles_de_sports_et_de_loisirs": 15,
+      "magasin_de_revetements_murs_et_sols": 2,
+      "droguerie_quincaillerie_bricolage": 8,
+      "parfumerie": 74,
+      "horlogerie_bijouterie": 92,
+      "fleuriste": 37,
+      "magasin_d_optique": 61,
+      "station_service": 0,
+      "geo_point_2d": {
+        "lon": 2.337460241388529,
+        "lat": 48.87689616237872
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.325754809597834,
+                48.869546095073304
+              ],
+              [
+                2.327115254528243,
+                48.883484486689106
+              ],
+              [
+                2.349545307310846,
+                48.88362643315055
+              ],
+              [
+                2.347826239446091,
+                48.870630685567946
+              ],
+              [
+                2.327877416924118,
+                48.869863809746434
+              ],
+              [
+                2.325754809597834,
+                48.869546095073304
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75110,
+      "libelle_de_commune": [
+        "Paris 10e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 95394,
+      "hypermarche": 0,
+      "supermarche": 21,
+      "grande_surface_de_bricolage": 3,
+      "superette": 26,
+      "epicerie": 153,
+      "boulangerie": 85,
+      "boucherie_charcuterie": 68,
+      "produits_surgeles": 7,
+      "poissonnerie": 8,
+      "librairie_papeterie_journaux": 114,
+      "magasin_de_vetements": 496,
+      "magasin_d_equipements_du_foyer": 44,
+      "magasin_de_chaussures": 46,
+      "magasin_d_electromenager_et_de_mat_audio_video": 53,
+      "magasin_de_meubles": 32,
+      "magasin_d_articles_de_sports_et_de_loisirs": 15,
+      "magasin_de_revetements_murs_et_sols": 16,
+      "droguerie_quincaillerie_bricolage": 17,
+      "parfumerie": 78,
+      "horlogerie_bijouterie": 34,
+      "fleuriste": 37,
+      "magasin_d_optique": 40,
+      "station_service": 2,
+      "geo_point_2d": {
+        "lon": 2.361112904561707,
+        "lat": 48.87602855694339
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.363856758564782,
+                48.86743436510144
+              ],
+              [
+                2.354114163249875,
+                48.86927979700135
+              ],
+              [
+                2.347826239446091,
+                48.870630685567946
+              ],
+              [
+                2.349545307310846,
+                48.88362643315055
+              ],
+              [
+                2.364673564731968,
+                48.884292229428034
+              ],
+              [
+                2.36929440059686,
+                48.88332740002614
+              ],
+              [
+                2.377012647123743,
+                48.87191931652078
+              ],
+              [
+                2.363856758564782,
+                48.86743436510144
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75111,
+      "libelle_de_commune": [
+        "Paris 11e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 153202,
+      "hypermarche": 0,
+      "supermarche": 28,
+      "grande_surface_de_bricolage": 5,
+      "superette": 29,
+      "epicerie": 154,
+      "boulangerie": 128,
+      "boucherie_charcuterie": 68,
+      "produits_surgeles": 10,
+      "poissonnerie": 7,
+      "librairie_papeterie_journaux": 137,
+      "magasin_de_vetements": 380,
+      "magasin_d_equipements_du_foyer": 65,
+      "magasin_de_chaussures": 46,
+      "magasin_d_electromenager_et_de_mat_audio_video": 60,
+      "magasin_de_meubles": 99,
+      "magasin_d_articles_de_sports_et_de_loisirs": 35,
+      "magasin_de_revetements_murs_et_sols": 14,
+      "droguerie_quincaillerie_bricolage": 36,
+      "parfumerie": 36,
+      "horlogerie_bijouterie": 25,
+      "fleuriste": 54,
+      "magasin_d_optique": 61,
+      "station_service": 1,
+      "geo_point_2d": {
+        "lon": 2.378741060237548,
+        "lat": 48.85941549762748
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.399114284416081,
+                48.84810075930868
+              ],
+              [
+                2.369018230803884,
+                48.853225030730016
+              ],
+              [
+                2.3684017253737,
+                48.855739961952956
+              ],
+              [
+                2.363856758564782,
+                48.86743436510144
+              ],
+              [
+                2.377012647123743,
+                48.87191931652078
+              ],
+              [
+                2.399114284416081,
+                48.84810075930868
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75112,
+      "libelle_de_commune": [
+        "Paris 12e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 144262,
+      "hypermarche": 0,
+      "supermarche": 25,
+      "grande_surface_de_bricolage": 4,
+      "superette": 21,
+      "epicerie": 106,
+      "boulangerie": 123,
+      "boucherie_charcuterie": 53,
+      "produits_surgeles": 10,
+      "poissonnerie": 8,
+      "librairie_papeterie_journaux": 126,
+      "magasin_de_vetements": 189,
+      "magasin_d_equipements_du_foyer": 49,
+      "magasin_de_chaussures": 31,
+      "magasin_d_electromenager_et_de_mat_audio_video": 39,
+      "magasin_de_meubles": 72,
+      "magasin_d_articles_de_sports_et_de_loisirs": 26,
+      "magasin_de_revetements_murs_et_sols": 7,
+      "droguerie_quincaillerie_bricolage": 31,
+      "parfumerie": 37,
+      "horlogerie_bijouterie": 28,
+      "fleuriste": 45,
+      "magasin_d_optique": 57,
+      "station_service": 8,
+      "geo_point_2d": {
+        "lon": 2.419807034965275,
+        "lat": 48.83515623066034
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.461247496771534,
+                48.8183490440576
+              ],
+              [
+                2.4366907978696952,
+                48.81846971395911
+              ],
+              [
+                2.429882219759825,
+                48.8233570150159
+              ],
+              [
+                2.419985643502435,
+                48.82408288251116
+              ],
+              [
+                2.40329566085689,
+                48.82924409837715
+              ],
+              [
+                2.390069237832736,
+                48.82569680951253
+              ],
+              [
+                2.365944019143637,
+                48.84490772386109
+              ],
+              [
+                2.364320760755825,
+                48.846167205800846
+              ],
+              [
+                2.369018230803884,
+                48.853225030730016
+              ],
+              [
+                2.399114284416081,
+                48.84810075930868
+              ],
+              [
+                2.415973775474602,
+                48.846628365398026
+              ],
+              [
+                2.4136540051209963,
+                48.83722772586137
+              ],
+              [
+                2.416529888908085,
+                48.83468760023271
+              ],
+              [
+                2.423034713728125,
+                48.84272345280952
+              ],
+              [
+                2.427516511860881,
+                48.841575821289226
+              ],
+              [
+                2.447852027015208,
+                48.84481015467711
+              ],
+              [
+                2.467245943197848,
+                48.839088269853825
+              ],
+              [
+                2.465755861466258,
+                48.82628372037433
+              ],
+              [
+                2.461247496771534,
+                48.8183490440576
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75113,
+      "libelle_de_commune": [
+        "Paris 13e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 181532,
+      "hypermarche": 3,
+      "supermarche": 28,
+      "grande_surface_de_bricolage": 4,
+      "superette": 24,
+      "epicerie": 114,
+      "boulangerie": 104,
+      "boucherie_charcuterie": 48,
+      "produits_surgeles": 10,
+      "poissonnerie": 4,
+      "librairie_papeterie_journaux": 87,
+      "magasin_de_vetements": 171,
+      "magasin_d_equipements_du_foyer": 30,
+      "magasin_de_chaussures": 27,
+      "magasin_d_electromenager_et_de_mat_audio_video": 28,
+      "magasin_de_meubles": 18,
+      "magasin_d_articles_de_sports_et_de_loisirs": 18,
+      "magasin_de_revetements_murs_et_sols": 5,
+      "droguerie_quincaillerie_bricolage": 10,
+      "parfumerie": 27,
+      "horlogerie_bijouterie": 31,
+      "fleuriste": 38,
+      "magasin_d_optique": 46,
+      "station_service": 6,
+      "geo_point_2d": {
+        "lon": 2.362468228516128,
+        "lat": 48.82871768452136
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.343909438065682,
+                48.815757146101575
+              ],
+              [
+                2.342031572330786,
+                48.83830317558654
+              ],
+              [
+                2.351573383125364,
+                48.83683535107211
+              ],
+              [
+                2.365944019143637,
+                48.84490772386109
+              ],
+              [
+                2.390069237832736,
+                48.82569680951253
+              ],
+              [
+                2.3642070157190442,
+                48.81639743914582
+              ],
+              [
+                2.356354375206668,
+                48.815959695907644
+              ],
+              [
+                2.352867224066928,
+                48.81821631152152
+              ],
+              [
+                2.343909438065682,
+                48.815757146101575
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75114,
+      "libelle_de_commune": [
+        "Paris 14e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 138299,
+      "hypermarche": 1,
+      "supermarche": 28,
+      "grande_surface_de_bricolage": 3,
+      "superette": 12,
+      "epicerie": 105,
+      "boulangerie": 108,
+      "boucherie_charcuterie": 47,
+      "produits_surgeles": 7,
+      "poissonnerie": 8,
+      "librairie_papeterie_journaux": 104,
+      "magasin_de_vetements": 251,
+      "magasin_d_equipements_du_foyer": 49,
+      "magasin_de_chaussures": 42,
+      "magasin_d_electromenager_et_de_mat_audio_video": 18,
+      "magasin_de_meubles": 37,
+      "magasin_d_articles_de_sports_et_de_loisirs": 21,
+      "magasin_de_revetements_murs_et_sols": 5,
+      "droguerie_quincaillerie_bricolage": 23,
+      "parfumerie": 35,
+      "horlogerie_bijouterie": 31,
+      "fleuriste": 49,
+      "magasin_d_optique": 42,
+      "station_service": 3,
+      "geo_point_2d": {
+        "lon": 2.327100883257538,
+        "lat": 48.82899321160942
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.343909438065682,
+                48.815757146101575
+              ],
+              [
+                2.33190893200826,
+                48.817012789148606
+              ],
+              [
+                2.314148423547311,
+                48.822290551056035
+              ],
+              [
+                2.3013208062670962,
+                48.82513028921857
+              ],
+              [
+                2.324660773025275,
+                48.84352162052588
+              ],
+              [
+                2.336591298996422,
+                48.83969412678994
+              ],
+              [
+                2.342031572330786,
+                48.83830317558654
+              ],
+              [
+                2.343909438065682,
+                48.815757146101575
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75115,
+      "libelle_de_commune": [
+        "Paris 15e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 236715,
+      "hypermarche": 3,
+      "supermarche": 47,
+      "grande_surface_de_bricolage": 10,
+      "superette": 32,
+      "epicerie": 132,
+      "boulangerie": 147,
+      "boucherie_charcuterie": 71,
+      "produits_surgeles": 14,
+      "poissonnerie": 14,
+      "librairie_papeterie_journaux": 180,
+      "magasin_de_vetements": 352,
+      "magasin_d_equipements_du_foyer": 70,
+      "magasin_de_chaussures": 72,
+      "magasin_d_electromenager_et_de_mat_audio_video": 43,
+      "magasin_de_meubles": 60,
+      "magasin_d_articles_de_sports_et_de_loisirs": 28,
+      "magasin_de_revetements_murs_et_sols": 20,
+      "droguerie_quincaillerie_bricolage": 30,
+      "parfumerie": 72,
+      "horlogerie_bijouterie": 52,
+      "fleuriste": 123,
+      "magasin_d_optique": 70,
+      "station_service": 12,
+      "geo_point_2d": {
+        "lon": 2.293559372435076,
+        "lat": 48.84015541860987
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.3013208062670962,
+                48.82513028921857
+              ],
+              [
+                2.289399238300263,
+                48.82835177916151
+              ],
+              [
+                2.280857987861738,
+                48.83133163356634
+              ],
+              [
+                2.271928340063522,
+                48.82888525520508
+              ],
+              [
+                2.267617156346577,
+                48.83420124774352
+              ],
+              [
+                2.262784637049641,
+                48.833928727333785
+              ],
+              [
+                2.2897837280763698,
+                48.85812314611537
+              ],
+              [
+                2.307341120736737,
+                48.84770356794504
+              ],
+              [
+                2.316633528047582,
+                48.84675871366723
+              ],
+              [
+                2.324660773025275,
+                48.84352162052588
+              ],
+              [
+                2.3013208062670962,
+                48.82513028921857
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75116,
+      "libelle_de_commune": [
+        "Paris 16e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 171124,
+      "hypermarche": 4,
+      "supermarche": 26,
+      "grande_surface_de_bricolage": 2,
+      "superette": 20,
+      "epicerie": 107,
+      "boulangerie": 105,
+      "boucherie_charcuterie": 57,
+      "produits_surgeles": 5,
+      "poissonnerie": 13,
+      "librairie_papeterie_journaux": 125,
+      "magasin_de_vetements": 503,
+      "magasin_d_equipements_du_foyer": 76,
+      "magasin_de_chaussures": 82,
+      "magasin_d_electromenager_et_de_mat_audio_video": 36,
+      "magasin_de_meubles": 60,
+      "magasin_d_articles_de_sports_et_de_loisirs": 23,
+      "magasin_de_revetements_murs_et_sols": 19,
+      "droguerie_quincaillerie_bricolage": 24,
+      "parfumerie": 72,
+      "horlogerie_bijouterie": 69,
+      "fleuriste": 70,
+      "magasin_d_optique": 69,
+      "station_service": 10,
+      "geo_point_2d": {
+        "lon": 2.262099559395783,
+        "lat": 48.86039876035177
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.262784637049641,
+                48.833928727333785
+              ],
+              [
+                2.253560441074077,
+                48.836857452382674
+              ],
+              [
+                2.248055951073368,
+                48.8463203628684
+              ],
+              [
+                2.224224570225082,
+                48.85351605360997
+              ],
+              [
+                2.22566343769455,
+                48.859407216119635
+              ],
+              [
+                2.231736346483731,
+                48.86906948087001
+              ],
+              [
+                2.245698308986428,
+                48.87646099663309
+              ],
+              [
+                2.255286342223301,
+                48.87435360532045
+              ],
+              [
+                2.259975318376052,
+                48.88019244458198
+              ],
+              [
+                2.279946531161416,
+                48.87857850316618
+              ],
+              [
+                2.295145331385798,
+                48.87386647602374
+              ],
+              [
+                2.301556199832536,
+                48.86348063063825
+              ],
+              [
+                2.2897837280763698,
+                48.85812314611537
+              ],
+              [
+                2.262784637049641,
+                48.833928727333785
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75117,
+      "libelle_de_commune": [
+        "Paris 17e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 169325,
+      "hypermarche": 2,
+      "supermarche": 29,
+      "grande_surface_de_bricolage": 3,
+      "superette": 30,
+      "epicerie": 137,
+      "boulangerie": 133,
+      "boucherie_charcuterie": 77,
+      "produits_surgeles": 9,
+      "poissonnerie": 14,
+      "librairie_papeterie_journaux": 145,
+      "magasin_de_vetements": 468,
+      "magasin_d_equipements_du_foyer": 63,
+      "magasin_de_chaussures": 79,
+      "magasin_d_electromenager_et_de_mat_audio_video": 40,
+      "magasin_de_meubles": 72,
+      "magasin_d_articles_de_sports_et_de_loisirs": 37,
+      "magasin_de_revetements_murs_et_sols": 16,
+      "droguerie_quincaillerie_bricolage": 27,
+      "parfumerie": 63,
+      "horlogerie_bijouterie": 46,
+      "fleuriste": 77,
+      "magasin_d_optique": 73,
+      "station_service": 4,
+      "geo_point_2d": {
+        "lon": 2.307485559493426,
+        "lat": 48.88733716648682
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.295145331385798,
+                48.87386647602374
+              ],
+              [
+                2.279946531161416,
+                48.87857850316618
+              ],
+              [
+                2.284458220522186,
+                48.88563837078377
+              ],
+              [
+                2.3037771140328482,
+                48.89415199628832
+              ],
+              [
+                2.319884458526643,
+                48.90045886733915
+              ],
+              [
+                2.329983250052526,
+                48.90116329738005
+              ],
+              [
+                2.327115254528243,
+                48.883484486689106
+              ],
+              [
+                2.301813412942564,
+                48.878869911069266
+              ],
+              [
+                2.295145331385798,
+                48.87386647602374
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75118,
+      "libelle_de_commune": [
+        "Paris 18e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 202685,
+      "hypermarche": 0,
+      "supermarche": 33,
+      "grande_surface_de_bricolage": 4,
+      "superette": 20,
+      "epicerie": 260,
+      "boulangerie": 155,
+      "boucherie_charcuterie": 116,
+      "produits_surgeles": 9,
+      "poissonnerie": 20,
+      "librairie_papeterie_journaux": 106,
+      "magasin_de_vetements": 473,
+      "magasin_d_equipements_du_foyer": 67,
+      "magasin_de_chaussures": 52,
+      "magasin_d_electromenager_et_de_mat_audio_video": 59,
+      "magasin_de_meubles": 28,
+      "magasin_d_articles_de_sports_et_de_loisirs": 11,
+      "magasin_de_revetements_murs_et_sols": 6,
+      "droguerie_quincaillerie_bricolage": 30,
+      "parfumerie": 86,
+      "horlogerie_bijouterie": 67,
+      "fleuriste": 46,
+      "magasin_d_optique": 61,
+      "station_service": 4,
+      "geo_point_2d": {
+        "lon": 2.348711933867703,
+        "lat": 48.892735074561706
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.327115254528243,
+                48.883484486689106
+              ],
+              [
+                2.329983250052526,
+                48.90116329738005
+              ],
+              [
+                2.351872524767704,
+                48.901526565807224
+              ],
+              [
+                2.365839954946483,
+                48.901610328262414
+              ],
+              [
+                2.370286443740823,
+                48.901651775250755
+              ],
+              [
+                2.3712731072200492,
+                48.89563154752747
+              ],
+              [
+                2.364673564731968,
+                48.884292229428034
+              ],
+              [
+                2.349545307310846,
+                48.88362643315055
+              ],
+              [
+                2.327115254528243,
+                48.883484486689106
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75119,
+      "libelle_de_commune": [
+        "Paris 19e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 186652,
+      "hypermarche": 0,
+      "supermarche": 27,
+      "grande_surface_de_bricolage": 4,
+      "superette": 32,
+      "epicerie": 127,
+      "boulangerie": 118,
+      "boucherie_charcuterie": 68,
+      "produits_surgeles": 10,
+      "poissonnerie": 11,
+      "librairie_papeterie_journaux": 81,
+      "magasin_de_vetements": 193,
+      "magasin_d_equipements_du_foyer": 19,
+      "magasin_de_chaussures": 28,
+      "magasin_d_electromenager_et_de_mat_audio_video": 26,
+      "magasin_de_meubles": 13,
+      "magasin_d_articles_de_sports_et_de_loisirs": 4,
+      "magasin_de_revetements_murs_et_sols": 3,
+      "droguerie_quincaillerie_bricolage": 11,
+      "parfumerie": 31,
+      "horlogerie_bijouterie": 19,
+      "fleuriste": 30,
+      "magasin_d_optique": 54,
+      "station_service": 8,
+      "geo_point_2d": {
+        "lon": 2.384694327870042,
+        "lat": 48.88686862295828
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.377012647123743,
+                48.87191931652078
+              ],
+              [
+                2.36929440059686,
+                48.88332740002614
+              ],
+              [
+                2.364673564731968,
+                48.884292229428034
+              ],
+              [
+                2.3712731072200492,
+                48.89563154752747
+              ],
+              [
+                2.370286443740823,
+                48.901651775250755
+              ],
+              [
+                2.389444302557232,
+                48.90115742325012
+              ],
+              [
+                2.396499648232744,
+                48.896193002584575
+              ],
+              [
+                2.398637534206755,
+                48.889413910167804
+              ],
+              [
+                2.400339329688884,
+                48.88374772032462
+              ],
+              [
+                2.410694436897796,
+                48.878475126642535
+              ],
+              [
+                2.377012647123743,
+                48.87191931652078
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    },
+    {
+      "departement": 75,
+      "departement_commune": 75120,
+      "libelle_de_commune": [
+        "Paris 20e Arrondissement"
+      ],
+      "arrondissement": 751,
+      "canton_ville": 7599,
+      "zone_d_emploi": 1101,
+      "unite_urbaine": "00851",
+      "population_2010": 196880,
+      "hypermarche": 2,
+      "supermarche": 34,
+      "grande_surface_de_bricolage": 7,
+      "superette": 27,
+      "epicerie": 184,
+      "boulangerie": 124,
+      "boucherie_charcuterie": 84,
+      "produits_surgeles": 8,
+      "poissonnerie": 5,
+      "librairie_papeterie_journaux": 96,
+      "magasin_de_vetements": 258,
+      "magasin_d_equipements_du_foyer": 35,
+      "magasin_de_chaussures": 41,
+      "magasin_d_electromenager_et_de_mat_audio_video": 49,
+      "magasin_de_meubles": 36,
+      "magasin_d_articles_de_sports_et_de_loisirs": 9,
+      "magasin_de_revetements_murs_et_sols": 7,
+      "droguerie_quincaillerie_bricolage": 22,
+      "parfumerie": 34,
+      "horlogerie_bijouterie": 30,
+      "fleuriste": 45,
+      "magasin_d_optique": 50,
+      "station_service": 4,
+      "geo_point_2d": {
+        "lon": 2.400819826729021,
+        "lat": 48.86318677744551
+      },
+      "geo_shape": {
+        "type": "Feature",
+        "geometry": {
+          "coordinates": [
+            [
+              [
+                2.415973775474602,
+                48.846628365398026
+              ],
+              [
+                2.399114284416081,
+                48.84810075930868
+              ],
+              [
+                2.377012647123743,
+                48.87191931652078
+              ],
+              [
+                2.410694436897796,
+                48.878475126642535
+              ],
+              [
+                2.41326361312058,
+                48.873118745190126
+              ],
+              [
+                2.415319163395038,
+                48.855177988140646
+              ],
+              [
+                2.416339717281352,
+                48.8492382734074
+              ],
+              [
+                2.415973775474602,
+                48.846628365398026
+              ]
+            ]
+          ],
+          "type": "Polygon"
+        },
+        "properties": {}
+      }
+    }
   ]
 }

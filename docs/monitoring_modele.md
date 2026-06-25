@@ -7,8 +7,12 @@ L’objectif est de surveiller le modèle de prédiction immobilière utilisé d
 Le modèle surveillé est le modèle XGBoost qui prédit le prix d’un bien immobilier à Paris.
 
 Ce document sert de preuve pour la compétence **C11** : monitorer un modèle
-d'intelligence artificielle. Le monitoring global de l'application est documenté
-séparément dans `docs/monitoring_application.md` pour la compétence **C20**.
+d'intelligence artificielle. Il contient aussi la surveillance du service IA
+externe OpenAI utilisé pour le résumé de secteur, utile pour la compétence
+**C8**.
+
+Le monitoring global de l'application est documenté séparément dans
+`docs/monitoring_application.md` pour la compétence **C20**.
 
 ## Modèle concerné
 
@@ -17,6 +21,14 @@ séparément dans `docs/monitoring_application.md` pour la compétence **C20**.
 - Type de modèle : modèle de régression
 - Objectif : prédire le prix estimé d’un appartement à Paris
 - Route API concernée : POST /prediction/prix
+
+Service IA externe surveillé :
+
+- Service : OpenAI API
+- Usage : génération optionnelle du résumé de secteur
+- Route applicative concernée : POST /geocodage/adresse
+- Configuration : `OPENAI_API_KEY`, `OPENAI_MODEL`, timeout, retries et
+  limitation de sortie
 
 ## Outils choisis
 
@@ -49,6 +61,10 @@ Pour valider le monitoring du modèle, plusieurs métriques sont suivies.
 | model_evaluation_rmse_euros | Erreur donnant plus d’importance aux grandes erreurs | Détecter les prédictions très éloignées du prix réel |
 | model_evaluation_r2_score | Part de la variation des prix expliquée par le modèle | Évaluer la qualité globale du modèle |
 | model_evaluation_test_samples | Nombre de ventes utilisées pour l’évaluation | Vérifier que l’évaluation repose sur suffisamment de données |
+| openai_summary_calls_total | Nombre d'appels OpenAI pour le résumé de secteur | Suivre l'utilisation du service IA externe |
+| openai_summary_errors_total | Nombre d'erreurs OpenAI par modèle et type d'erreur | Détecter une indisponibilité ou une mauvaise configuration |
+| openai_summary_request_duration_seconds | Durée des appels OpenAI | Détecter une latence excessive du service IA externe |
+| openai_summary_service_configured | Etat de configuration OpenAI : 1 configuré, 0 non configuré | Vérifier que le service IA externe est prêt |
 
 ## Pourquoi ces métriques sont importantes ?
 
@@ -61,6 +77,9 @@ Elles permettent notamment de répondre aux questions suivantes :
 - Le modèle génère-t-il des erreurs ?
 - Les prix estimés sont-ils cohérents ?
 - Certains arrondissements sont-ils plus demandés que d’autres ?
+- Le service OpenAI est-il bien configuré ?
+- Le résumé OpenAI répond-il dans un temps acceptable ?
+- Les erreurs du service IA externe restent-elles maîtrisées ?
 
 ## Erreur moyenne du modèle
 
@@ -93,3 +112,20 @@ modèle :
 
 Ce contrôle renforce la compétence **C11**, car il prouve que le monitoring du
 modèle est accessible automatiquement depuis l'application.
+
+Le même test vérifie aussi la présence des métriques OpenAI, ce qui renforce la
+preuve de paramétrage et de supervision du service IA externe pour la compétence
+**C8**.
+
+## Dashboard Grafana
+
+Dans Grafana, le dashboard à ouvrir est :
+
+`Immobilier Paris` > `C11 - Monitoring modele IA`
+
+Ce dashboard contient les panneaux XGBoost et les panneaux OpenAI suivants :
+
+- `OpenAI configure`
+- `Appels OpenAI`
+- `Erreurs OpenAI`
+- `Latence OpenAI P95`

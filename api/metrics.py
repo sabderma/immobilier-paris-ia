@@ -40,6 +40,28 @@ API_DATABASE_HEALTH_STATUS = Gauge(
     "Etat de la connexion PostgreSQL de l'application: 1 disponible, 0 indisponible.",
 )
 
+OPENAI_SUMMARY_CALLS_TOTAL = Counter(
+    "openai_summary_calls_total",
+    "Nombre total d'appels au service OpenAI pour le resume de secteur.",
+    ["model", "status"],
+)
+OPENAI_SUMMARY_ERRORS_TOTAL = Counter(
+    "openai_summary_errors_total",
+    "Nombre total d'erreurs du service OpenAI pour le resume de secteur.",
+    ["model", "error_type"],
+)
+OPENAI_SUMMARY_REQUEST_DURATION_SECONDS = Histogram(
+    "openai_summary_request_duration_seconds",
+    "Duree des appels au service OpenAI pour le resume de secteur.",
+    ["model"],
+    buckets=(0.5, 1, 2.5, 5, 10, 15, 20, 25, 30),
+)
+OPENAI_SUMMARY_SERVICE_CONFIGURED = Gauge(
+    "openai_summary_service_configured",
+    "Etat de configuration du resume OpenAI: 1 configure, 0 non configure.",
+    ["model"],
+)
+
 MODEL_PREDICTIONS_TOTAL = Counter(
     "model_predictions_total",
     "Nombre total de predictions realisees par le modele.",
@@ -120,6 +142,11 @@ def charger_metriques_evaluation(
 MODEL_PREDICTIONS_TOTAL.labels(model="XGBRegressor")
 MODEL_PREDICTION_ERRORS_TOTAL.labels(model="XGBRegressor")
 MODEL_PREDICTION_DURATION_SECONDS.labels(model="XGBRegressor")
+OPENAI_SUMMARY_CALLS_TOTAL.labels(model="gpt-5.4-mini", status="success")
+OPENAI_SUMMARY_CALLS_TOTAL.labels(model="gpt-5.4-mini", status="error")
+OPENAI_SUMMARY_ERRORS_TOTAL.labels(model="gpt-5.4-mini", error_type="OpenAIError")
+OPENAI_SUMMARY_REQUEST_DURATION_SECONDS.labels(model="gpt-5.4-mini")
+OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model="gpt-5.4-mini").set(0)
 for arrondissement in range(1, 21):
     MODEL_PREDICTIONS_BY_ARRONDISSEMENT.labels(
         arrondissement=str(arrondissement)

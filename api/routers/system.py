@@ -1,11 +1,21 @@
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from sqlalchemy import text
 
-from api.core import engine
-from api.metrics import API_DATABASE_HEALTH_STATUS, CONTENT_TYPE_LATEST, generate_latest
+from api.core import charger_env, engine
+from api.metrics import (
+    API_DATABASE_HEALTH_STATUS,
+    CONTENT_TYPE_LATEST,
+    OPENAI_SUMMARY_SERVICE_CONFIGURED,
+    generate_latest,
+)
+
+
+OPENAI_MODEL_PAR_DEFAUT = "gpt-5.4-mini"
 
 
 router = APIRouter()
@@ -30,6 +40,13 @@ def actualiser_sante_base() -> Exception | None:
         return exc
 
 
+def actualiser_configuration_openai() -> None:
+    charger_env()
+    modele = os.getenv("OPENAI_MODEL", OPENAI_MODEL_PAR_DEFAUT)
+    est_configure = 1 if os.getenv("OPENAI_API_KEY") else 0
+    OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model=modele).set(est_configure)
+
+
 @router.get("/health")
 def health_check() -> dict[str, str]:
     erreur = actualiser_sante_base()
@@ -43,4 +60,5 @@ def health_check() -> dict[str, str]:
 @router.get("/metrics")
 def metrics() -> Response:
     actualiser_sante_base()
+    actualiser_configuration_openai()
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
