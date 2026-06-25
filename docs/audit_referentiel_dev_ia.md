@@ -31,12 +31,12 @@ compétences devant un jury.
 
 | Niveau de preuve | Nombre | Compétences |
 |---|---:|---|
-| SOLIDE | 7 | C2, C3, C5, C9, C10, C11, C12 |
+| SOLIDE | 9 | C2, C3, C5, C7, C9, C10, C11, C12, C21 |
 | PARTIEL | 9 | C1, C4, C8, C13, C15, C17, C18, C19, C20 |
-| NON DÉMONTRÉ | 5 | C6, C7, C14, C16, C21 |
+| NON DÉMONTRÉ | 3 | C6, C14, C16 |
 
-Cette estimation ne signifie pas « 7 compétences officiellement validées ».
-Elle signifie que 7 compétences disposent déjà de preuves techniques fortes.
+Cette estimation ne signifie pas « 9 compétences officiellement validées ».
+Elle signifie que 9 compétences disposent déjà de preuves techniques fortes.
 
 ## Vérifications réellement effectuées
 
@@ -241,23 +241,51 @@ synthèses datées et recommandations appliquées au projet.
 
 ## C7 - Identifier et recommander des services d'IA préexistants
 
-**État : NON DÉMONTRÉ**
+**État : SOLIDE**
 
 ### Preuves présentes
 
-- Le projet compare Random Forest et XGBoost.
+- Benchmark formalisé dans `docs/benchmark_services_ia_c7.md`.
+- Comparaison technique Random Forest / XGBoost dans
+  `src/prediction/comparaison_modeles_prix.py`.
+- Résultats chiffrés dans
+  `models/comparaison_xgboost_random_forest_prix.json` et
+  `models/comparaison_xgboost_random_forest_prix.csv`.
+- Modèle retenu exposé dans l'API via `api/services/prediction.py`.
+- Service OpenAI intégré pour le résumé de secteur dans
+  `api/services/location_summary.py`.
+- Tests de l'intégration OpenAI dans `tests/test_api.py`.
 
-### Pourquoi cela ne suffit pas
+### Techniques et choix de code
 
-Le référentiel demande un benchmark formalisé de services d'IA préexistants,
-avec besoins, contraintes, solutions étudiées et écartées, avantages,
-inconvénients, prérequis et démarche écoresponsable. Aucun document de ce type
-n'a été trouvé.
+- Le benchmark compare `RandomForestRegressor` et `XGBRegressor` sur les mêmes
+  variables : surface, nombre de pièces et arrondissement.
+- Le prétraitement utilise un `ColumnTransformer` avec
+  `OneHotEncoder(handle_unknown="ignore")` pour l'arrondissement.
+- Les modèles sont évalués avec `MAE`, `RMSE` et `R2`.
+- Le choix XGBoost est justifié par les résultats :
+  `RMSE = 197 974.42`, meilleur que Random Forest à `205 470.48`.
+- Le modèle de production est chargé avec `joblib` et gardé en cache mémoire
+  pour éviter un rechargement à chaque appel API.
+- OpenAI est utilisé uniquement pour rédiger un résumé court à partir des
+  données de proximité déjà calculées.
+- L'appel OpenAI est configuré avec timeout, `max_retries=1`, `store=False` et
+  un prompt qui interdit d'inventer des informations absentes des données.
+- Les tests vérifient que les coordonnées brutes ne sont pas envoyées à OpenAI
+  et que le résumé reste optionnel sans clé API.
 
-### À faire
+### Recommandation retenue
 
-Créer un benchmark comparant au minimum plusieurs solutions pour la prédiction
-immobilière : service d'IA externe, modèle local et option sans IA externe.
+- Retenir XGBoost local pour la prédiction immobilière.
+- Retenir OpenAI uniquement pour le résumé textuel optionnel.
+- Écarter une API AutoML externe pour la prédiction afin de limiter les coûts,
+  la dépendance fournisseur et l'envoi de données.
+
+### Statut
+
+La compétence C7 est maintenant complète et défendable : le dépôt contient le
+benchmark, les preuves techniques, les résultats chiffrés, la recommandation et
+les références au code.
 
 ## C8 - Paramétrer un service d'intelligence artificielle
 
@@ -539,28 +567,43 @@ de cycles ou rituels. Relier les tâches aux commits et aux livrables.
 
 ## C21 - Résoudre et documenter un incident technique
 
-**État : NON DÉMONTRÉ**
+**État : SOLIDE**
 
 ### Preuves présentes
 
-- L'historique Git montre des évolutions et corrections, mais aucun dossier
-  d'incident complet n'a été trouvé.
+- Dossier complet de résolution dans
+  `docs/resolution_incident_c21_commerces_paris.md`.
+- Incident réel sur `/commerces/paris` observé en production.
+- Symptôme initial documenté : timeout Streamlit `Read timed out`.
+- Reproduction technique avec appel direct à la dépendance Open Data
+  Île-de-France.
+- Cause racine documentée : dépendance externe lente sans dégradation contrôlée.
+- Correction dans `api/services/commerces.py` avec timeout, cache disque, cache
+  mémoire TTL et snapshot local.
+- Correction Docker avec copie de
+  `data/final/commerces_paris_secours.json` dans l'image API.
+- Tests automatisés dans `tests/test_api.py`.
+- Pull Requests GitHub #1 et #2.
+- GitHub Actions et déploiement serveur vérifiés.
 
-### Ce qui manque
+### Techniques et choix de code
 
-- Incident choisi et clairement décrit.
-- Message d'erreur ou symptôme initial.
-- Étapes de reproduction.
-- Recherche de la cause racine.
-- Procédure de débogage.
-- Solution testée.
-- Preuve du commit ou de la pull request corrigeant l'incident.
+- `requests.get(..., timeout=...)` limite le temps d'attente vers Open Data.
+- Le cache disque conserve la dernière réponse valide.
+- Le cache mémoire évite les appels répétés à la dépendance externe.
+- Le snapshot local assure le retour des 20 arrondissements même sans Open Data.
+- `source_etat` et `source_donnees` rendent l'état de la source observable.
+- Streamlit garde l'analyse d'adresse exacte disponible même si les statistiques
+  d'arrondissement sont indisponibles.
+- Docker embarque explicitement le fichier de secours dans l'image API.
+- Les tests utilisent des mocks de timeout et des fichiers temporaires pour
+  valider les chemins Open Data, cache, snapshot et indisponibilité totale.
 
-### À faire
+### Statut
 
-Documenter un incident réel déjà rencontré, par exemple une erreur de modèle,
-de connexion PostgreSQL, de route API ou d'intégration IGN, avec toutes les
-étapes de reproduction, diagnostic, correction et validation.
+La compétence C21 est complète et défendable : le dépôt contient l'incident, le
+diagnostic, la correction, les tests, les PR, le déploiement et la vérification
+production.
 
 # Priorités recommandées
 
@@ -575,10 +618,8 @@ de connexion PostgreSQL, de route API ou d'intégration IGN, avec toutes les
 ## Priorité 2 - Couvrir les compétences actuellement non démontrées
 
 1. C6 : créer la veille technique et réglementaire.
-2. C7 : rédiger le benchmark de services d'IA.
-3. C14 : rédiger besoins, parcours, user stories et accessibilité.
-4. C16 : fournir les preuves de gestion agile.
-5. C21 : rédiger un dossier complet de résolution d'incident.
+2. C14 : rédiger besoins, parcours, user stories et accessibilité.
+3. C16 : fournir les preuves de gestion agile.
 
 ## Priorité 3 - Transformer les compétences partielles en preuves solides
 
@@ -599,10 +640,12 @@ confirmée. En revanche, le projet démontre déjà fortement :
 - SQL et extraction de données : C2
 - Agrégation et nettoyage : C3
 - API REST de données : C5
+- Benchmark et recommandation de services IA : C7
 - API exposant le modèle : C9
 - Intégration de l'API dans l'application : C10
 - Monitoring du modèle : C11
 - Tests automatisés du modèle : C12
+- Résolution et documentation d'incident technique : C21
 
 Les autres compétences sont soit partielles, soit non encore démontrées dans
 les livrables actuels. Le plus gros travail restant n'est pas uniquement du

@@ -22,7 +22,7 @@ ROLE_SUPER_ADMIN = "super_admin"
 VUES_ADMIN = [
     "Utilisateurs",
     "Historique global des prédictions",
-    "Historique global des adresses exactes",
+    "Historique global des adresses masquées",
 ]
 HAUTEUR_PANNEAU_ADMIN = 680
 
@@ -197,11 +197,11 @@ def afficher_adresses_admin(addresses: pd.DataFrame) -> None:
             f"""
             <div class="admin-history-card">
                 <div>
-                    <div class="admin-card-kicker">Adresse exacte</div>
-                    <div class="admin-address-title">{_html(adresse.get("address"))}</div>
+                    <div class="admin-card-kicker">Adresse masquée</div>
+                    <div class="admin-address-title">{_html(adresse.get("address_apercu"))}</div>
                     <div class="admin-chip-row">
-                        <span class="admin-chip">Lat. {float(adresse.get("latitude", 0)):.5f}</span>
-                        <span class="admin-chip">Long. {float(adresse.get("longitude", 0)):.5f}</span>
+                        <span class="admin-chip">Lat. {float(adresse.get("latitude", 0)):.3f}</span>
+                        <span class="admin-chip">Long. {float(adresse.get("longitude", 0)):.3f}</span>
                     </div>
                 </div>
                 <div class="admin-history-side">
@@ -218,7 +218,7 @@ def afficher_admin() -> None:
     st.markdown("### Administration")
     st.caption(
         "Espace réservé aux administrateurs : suivi des utilisateurs, "
-        "des prédictions et des adresses exactes."
+        "des prédictions et des adresses masquées."
     )
 
     overview = charger_admin_overview()

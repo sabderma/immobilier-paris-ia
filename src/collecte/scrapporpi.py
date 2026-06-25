@@ -3,7 +3,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import csv
 import time
 import re
@@ -23,20 +23,65 @@ except:
     print("Cookies déjà acceptés ou bouton non présent.")
 
 
+def get_next_button():
+    """Essaie plusieurs sélecteurs pour trouver le bouton Suivant."""
+    selectors = [
+        "li.c-pagination__item.c-pagination__item--next a",
+        "a[aria-label='Page suivante']",
+        "a[rel='next']",
+        ".c-pagination__item--next a",
+        "a.c-pagination__link--next",
+    ]
+    for sel in selectors:
+        try:
+            btn = driver.find_element(By.CSS_SELECTOR, sel)
+            return btn
+        except NoSuchElementException:
+            continue
+
+    # Fallback : cherche un lien contenant "suivant" dans le texte
+    try:
+        btn = driver.find_element(By.XPATH, "//a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'suivant')]")
+        return btn
+    except NoSuchElementException:
+        return None
+
+
+def is_button_disabled(btn):
+    """Vérifie si le bouton ou son parent est désactivé."""
+    try:
+        parent = btn.find_element(By.XPATH, "./..")
+        classes = parent.get_attribute("class") or ""
+        if "disabled" in classes or "is-disabled" in classes:
+            return True
+    except:
+        pass
+    btn_class = btn.get_attribute("class") or ""
+    if "disabled" in btn_class or "is-disabled" in btn_class:
+        return True
+    if btn.get_attribute("aria-disabled") == "true":
+        return True
+    return False
+
+
 with open("data/raw/scraping/annonces_orpi_paris.csv", "w", newline="", encoding="utf-8") as file:
     writer = csv.writer(file)
     writer.writerow(["type", "prix", "prix_m2", "surface", "nb_pieces", "localisation", "details"])
 
     page = 1
-    while page<100 :
+    while page < 100:
         print(f"\n========== PAGE {page} ==========\n")
-    
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_all_elements_located((
-                By.CSS_SELECTOR,
-                "li.o-grid__col.u-flex.u-flex-column.c-results__list__item"
-            ))
-        )
+
+        try:
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_all_elements_located((
+                    By.CSS_SELECTOR,
+                    "li.o-grid__col.u-flex.u-flex-column.c-results__list__item"
+                ))
+            )
+        except TimeoutException:
+            print("Timeout : aucune annonce détectée sur cette page.")
+            break
 
         time.sleep(2)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -124,34 +169,31 @@ with open("data/raw/scraping/annonces_orpi_paris.csv", "w", newline="", encoding
             except NoSuchElementException:
                 pass
 
-            # ---------- AFFICHAGE ----------
-            print(f"{i}. {type_bien}")
-            print(f"   Prix        : {prix}")
-            print(f"   Prix/m²     : {prix_m2}")
-            print(f"   Surface     : {surface}")
-            print(f"   Pièces      : {nb_pieces}")
-            print(f"   Localisation: {localisation}")
-            print(f"   Détails     : {details}\n")
-
+            print(f"{i}. {type_bien} | {prix} | {surface} | {nb_pieces} | {localisation}")
             writer.writerow([type_bien, prix, prix_m2, surface, nb_pieces, localisation, details])
 
         # ---------- PAGE SUIVANTE ----------
-        try:
-            next_button = driver.find_element(
-                By.CSS_SELECTOR,
-                "li.c-pagination__item.c-pagination__item--next a"
-            )
-            parent_li = next_button.find_element(By.XPATH, "./..")
-            if "is-disabled" in parent_li.get_attribute("class"):
-                print(" Pas de bouton 'Suivant' : fin des pages.")
-                break
-            else:
-                next_button.click()
-                page += 1
-                time.sleep(4)
-        except NoSuchElementException:
-            print("Aucune autre page trouvée.")
+        next_btn = get_next_button()
+
+        if next_btn is None:
+            print("Bouton 'Suivant' introuvable : fin du scraping.")
             break
 
-print("\n Scraping terminé — toutes les pages ont été parcourues.")
+        if is_button_disabled(next_btn):
+            print("Bouton 'Suivant' désactivé : dernière page atteinte.")
+            break
+
+        # Scroll jusqu'au bouton puis clic
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_btn)
+        time.sleep(1)
+        try:
+            next_btn.click()
+        except:
+            # Si le clic normal échoue, on force via JavaScript
+            driver.execute_script("arguments[0].click();", next_btn)
+
+        page += 1
+        time.sleep(4)
+
+print("\nScraping terminé — toutes les pages ont été parcourues.")
 driver.quit()

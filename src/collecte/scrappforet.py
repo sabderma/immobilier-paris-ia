@@ -25,13 +25,26 @@ try:
 except:
     print("Cookies déjà acceptés ou bouton non présent.")
 
-# ------------------ Scroll manuel ------------------
-input("Scrolle manuellement jusqu'en bas de la page, puis appuie sur ENTRÉE ici...")
+# ------------------ Scroll automatique ------------------
+print("Scroll automatique en cours...")
+
+last_height = driver.execute_script("return document.body.scrollHeight")
+
+while True:
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(2)
+    new_height = driver.execute_script("return document.body.scrollHeight")
+    if new_height == last_height:
+        print("Bas de page atteint.")
+        break
+    last_height = new_height
+
+time.sleep(1)
 
 # ------------------ Récupération des annonces ------------------
 cards = driver.find_elements(By.CSS_SELECTOR, "article.min-w-0")
 
-print(f"\nTotal d'annonces détectées après scroll manuel : {len(cards)}\n")
+print(f"\nTotal d'annonces détectées après scroll : {len(cards)}\n")
 
 with open("data/raw/scraping/annonces_laforet_paris_complet.csv", "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)

@@ -59,10 +59,24 @@ class AdminAddressResponse(BaseModel):
     user_email: str
     first_name: Optional[str]
     last_name: Optional[str]
-    address: str
+    address_apercu: str
     latitude: float
     longitude: float
     created_at: datetime
+
+
+def masquer_adresse_admin(adresse: Any) -> str:
+    """Masque l'adresse exacte dans l'espace admin pour limiter les donnees exposees."""
+    texte = str(adresse or "").strip()
+    return "Adresse masquee" if texte else "Adresse non renseignee"
+
+
+def normaliser_adresse_admin(ligne: Any) -> dict[str, Any]:
+    donnees = dict(ligne)
+    donnees["address_apercu"] = masquer_adresse_admin(donnees.pop("address", None))
+    donnees["latitude"] = round(float(donnees["latitude"]), 3)
+    donnees["longitude"] = round(float(donnees["longitude"]), 3)
+    return donnees
 
 
 @router.get("/overview", response_model=AdminOverviewResponse)
@@ -275,4 +289,7 @@ def lister_adresses_admin(
             {"limit": limit},
         ).mappings().all()
 
-    return [AdminAddressResponse.model_validate(dict(ligne)) for ligne in lignes]
+    return [
+        AdminAddressResponse.model_validate(normaliser_adresse_admin(ligne))
+        for ligne in lignes
+    ]

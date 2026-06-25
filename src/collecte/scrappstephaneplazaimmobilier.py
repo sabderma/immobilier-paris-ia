@@ -23,9 +23,21 @@ try:
 except Exception:
     print("Cookies déjà acceptés ou bouton non présent.")
 
+# ------------------ Scroll automatique ------------------
+print("Scroll automatique en cours...")
 
-# ------------------ Scroll manuel ------------------
-input("Scrolle manuellement jusqu'en bas puis appuie sur ENTRÉE...")
+last_height = driver.execute_script("return document.body.scrollHeight")
+
+while True:
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(2)
+    new_height = driver.execute_script("return document.body.scrollHeight")
+    if new_height == last_height:
+        print("Bas de page atteint.")
+        break
+    last_height = new_height
+
+time.sleep(1)
 
 # ------------------ Scrape & CSV ------------------
 with open("data/raw/scraping/annonces_plaza_paris.csv", "w", newline="", encoding="utf-8") as f:
@@ -66,7 +78,7 @@ with open("data/raw/scraping/annonces_plaza_paris.csv", "w", newline="", encodin
         except NoSuchElementException:
             pass
 
-        bloc_txt = titre or card.text  # fallback robuste
+        bloc_txt = titre or card.text
 
         # type
         if re.search(r"appartement", bloc_txt, re.I):
@@ -84,7 +96,7 @@ with open("data/raw/scraping/annonces_plaza_paris.csv", "w", newline="", encodin
         if m:
             surface = f"{m.group(1).replace(',', '.')} m²"
 
-        # ---- DÉTAILS  ----
+        # ---- DÉTAILS ----
         try:
             p = card.find_element(By.CSS_SELECTOR, "p")
             txt = p.text.strip()

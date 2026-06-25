@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any
 
 from openai import OpenAI, OpenAIError
 
 from api.core import charger_env
+from api.metrics import (
+    OPENAI_SUMMARY_CALLS_TOTAL,
+    OPENAI_SUMMARY_ERRORS_TOTAL,
+    OPENAI_SUMMARY_REQUEST_DURATION_SECONDS,
+    OPENAI_SUMMARY_SERVICE_CONFIGURED,
+)
 
 
 MODELE_RESUME_LIEU_PAR_DEFAUT = "gpt-5.4-mini"
@@ -67,12 +74,15 @@ def generer_resume_lieu(
     proximite: dict[str, Any],
 ) -> dict[str, str]:
     charger_env()
+    modele = os.getenv("OPENAI_MODEL", MODELE_RESUME_LIEU_PAR_DEFAUT)
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
+        OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model=modele).set(0)
         return {"erreur": "Le résumé OpenAI n'est pas configuré."}
 
-    modele = os.getenv("OPENAI_MODEL", MODELE_RESUME_LIEU_PAR_DEFAUT)
+    OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model=modele).set(1)
     donnees = construire_donnees_resume(adresse_normalisee, proximite)
+    debut = time.perf_counter()
 
     try:
         client = OpenAI(
@@ -90,11 +100,28 @@ def generer_resume_lieu(
         )
         texte = response.output_text.strip()
     except (OpenAIError, ValueError) as exc:
+        OPENAI_SUMMARY_REQUEST_DURATION_SECONDS.labels(model=modele).observe(
+            time.perf_counter() - debut
+        )
+        OPENAI_SUMMARY_CALLS_TOTAL.labels(model=modele, status="error").inc()
+        OPENAI_SUMMARY_ERRORS_TOTAL.labels(
+            model=modele,
+            error_type=type(exc).__name__,
+        ).inc()
         return {"erreur": f"Le résumé OpenAI est temporairement indisponible : {exc}"}
 
+    OPENAI_SUMMARY_REQUEST_DURATION_SECONDS.labels(model=modele).observe(
+        time.perf_counter() - debut
+    )
     if not texte:
+        OPENAI_SUMMARY_CALLS_TOTAL.labels(model=modele, status="error").inc()
+        OPENAI_SUMMARY_ERRORS_TOTAL.labels(
+            model=modele,
+            error_type="empty_response",
+        ).inc()
         return {"erreur": "OpenAI n'a pas retourné de résumé."}
 
+    OPENAI_SUMMARY_CALLS_TOTAL.labels(model=modele, status="success").inc()
     return {
         "texte": texte,
         "modele": modele,

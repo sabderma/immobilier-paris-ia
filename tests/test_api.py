@@ -486,6 +486,10 @@ class TestApiSecurity(unittest.TestCase):
             'model_evaluation_rmse_euros{model="XGBRegressor"}',
             'model_evaluation_r2_score{model="XGBRegressor"}',
             'model_evaluation_test_samples{model="XGBRegressor"}',
+            'openai_summary_calls_total{model="gpt-5.4-mini",status="success"}',
+            "openai_summary_errors_total",
+            "openai_summary_request_duration_seconds_bucket",
+            'openai_summary_service_configured{model="gpt-5.4-mini"}',
             'api_http_requests_total{method="GET",route="/",status_code="200"}',
             "api_http_request_duration_seconds_bucket",
             "api_database_health_status",
@@ -879,6 +883,38 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["total_admins"], 1)
 
+    def test_admin_liste_adresses_sans_exposer_adresse_exacte(self):
+        main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
+            lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
+        )
+        connexion = MagicMock()
+        contexte = MagicMock()
+        contexte.__enter__.return_value = connexion
+        contexte.__exit__.return_value = None
+        connexion.execute.return_value.mappings.return_value.all.return_value = [
+            {
+                "id": 4,
+                "user_id": 7,
+                "user_email": "test@example.com",
+                "first_name": "Malek",
+                "last_name": "Silarbi",
+                "address": "71 Rue de Passy 75016 Paris",
+                "latitude": 48.857919,
+                "longitude": 2.277151,
+                "created_at": "2026-06-16T19:00:00Z",
+            }
+        ]
+
+        with patch.object(admin_router.engine, "connect", return_value=contexte):
+            response = client.get("/admin/addresses")
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("address", payload[0])
+        self.assertEqual(payload[0]["address_apercu"], "Adresse masquee")
+        self.assertEqual(payload[0]["latitude"], 48.858)
+        self.assertEqual(payload[0]["longitude"], 2.277)
+
     def test_admin_modifie_role_utilisateur(self):
         main.app.dependency_overrides[auth_service.obtenir_admin_courant] = (
             lambda: {"id": 1, "email": "admin@example.com", "role": "admin"}
@@ -1069,6 +1105,50 @@ class TestApiSecurity(unittest.TestCase):
         self.assertNotIn("latitude", appel["input"])
         self.assertNotIn("longitude", appel["input"])
         self.assertIn("Passy", appel["input"])
+        metriques = system_router.generate_latest().decode("utf-8")
+        self.assertIn(
+            'openai_summary_calls_total{model="gpt-5.4-mini",status="success"}',
+            metriques,
+        )
+        self.assertIn(
+            'openai_summary_service_configured{model="gpt-5.4-mini"} 1.0',
+            metriques,
+        )
+
+    def test_resume_openai_trace_les_erreurs_dans_prometheus(self):
+        client_openai = Mock()
+        client_openai.responses.create.side_effect = ValueError("erreur test")
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "OPENAI_API_KEY": "test-openai-key",
+                    "OPENAI_MODEL": "gpt-5.4-mini",
+                },
+            ),
+            patch.object(location_summary_service, "charger_env"),
+            patch.object(
+                location_summary_service,
+                "OpenAI",
+                return_value=client_openai,
+            ),
+        ):
+            resultat = location_summary_service.generer_resume_lieu(
+                "71 Rue de Passy 75016 Paris",
+                {"totaux": {}},
+            )
+
+        self.assertIn("temporairement indisponible", resultat["erreur"])
+        metriques = system_router.generate_latest().decode("utf-8")
+        self.assertIn(
+            'openai_summary_calls_total{model="gpt-5.4-mini",status="error"}',
+            metriques,
+        )
+        self.assertIn(
+            'openai_summary_errors_total{error_type="ValueError",model="gpt-5.4-mini"}',
+            metriques,
+        )
 
     def test_resume_openai_reste_optionnel_sans_cle(self):
         with (
