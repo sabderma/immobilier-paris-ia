@@ -77,7 +77,10 @@ def _supprimer_utilisateur(user_id: int) -> None:
 def afficher_gestion_utilisateurs(utilisateurs: pd.DataFrame) -> None:
     admin_id = _utilisateur_connecte_id()
 
-    for _, utilisateur in utilisateurs.iterrows():
+    for index_utilisateur, (_, utilisateur) in enumerate(
+        utilisateurs.iterrows(),
+        start=1,
+    ):
         user_id = int(utilisateur["id"])
         role_actuel = str(utilisateur["role"])
         est_compte_connecte = user_id == admin_id
@@ -95,11 +98,12 @@ def afficher_gestion_utilisateurs(utilisateurs: pd.DataFrame) -> None:
         )
         roles_disponibles = ROLES if role_actuel in ROLES else [role_actuel]
 
-        with st.container(border=True):
+        with st.container(border=True, key=f"admin_user_block_{user_id}"):
             st.markdown(
                 f"""
                 <div class="admin-user-card">
                     <div>
+                        <div class="admin-user-index">Utilisateur {index_utilisateur}</div>
                         <div class="admin-card-kicker">Compte utilisateur</div>
                         <div class="admin-card-title">{_html(utilisateur.get("email"))}</div>
                         <div class="admin-card-subtitle">{_html(_nom_utilisateur(utilisateur))}</div>
@@ -119,6 +123,7 @@ def afficher_gestion_utilisateurs(utilisateurs: pd.DataFrame) -> None:
                         <strong>{_html(role_actuel)}</strong>
                     </div>
                 </div>
+                <div class="admin-user-actions-title">Gestion du compte</div>
                 """,
                 unsafe_allow_html=True,
             )

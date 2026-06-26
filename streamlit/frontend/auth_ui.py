@@ -68,9 +68,9 @@ def _formulaire_inscription() -> None:
     with st.form("formulaire_inscription_utilisateur"):
         col1, col2 = st.columns(2)
         with col1:
-            first_name = st.text_input("Prénom", placeholder="Malek")
+            first_name = st.text_input("Prénom")
         with col2:
-            last_name = st.text_input("Nom", placeholder="Silarbi")
+            last_name = st.text_input("Nom")
 
         email = st.text_input("Email", placeholder="exemple@mail.com")
         password = st.text_input("Mot de passe", type="password")
@@ -145,6 +145,18 @@ def afficher_page_authentification() -> None:
                 _formulaire_connexion()
             with onglet_inscription:
                 _formulaire_inscription()
+
+    st.markdown(
+        """
+        <div class="auth-rgpd-contact">
+            Pour toute demande concernant vos coordonnées, vos données
+            personnelles, une suppression de données ou toute autre demande,
+            veuillez contacter l'adresse
+            <a href="mailto:ssabderma@gmail.com">ssabderma@gmail.com</a>.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _modifier_profil(utilisateur: dict[str, Any]) -> None:

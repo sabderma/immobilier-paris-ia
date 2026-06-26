@@ -40,6 +40,17 @@ def _formater_coordonnees(valeur: Any) -> str:
         return "—"
 
 
+def _entete_section_analyse(titre: str) -> None:
+    st.markdown(
+        f"""
+        <div class="location-section-title">
+            <div class="location-section-heading">{escape(titre)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def _carte_adresse_historique(ligne: dict[str, Any]) -> str:
     adresse = escape(str(ligne.get("address") or "Adresse exacte"))
     return f"""
@@ -65,36 +76,37 @@ def _carte_adresse_historique(ligne: dict[str, Any]) -> str:
 
 
 def afficher_historique_adresses() -> None:
-    st.markdown("#### Historique de mes adresses exactes")
+    with st.container(border=True, key="location_section_history"):
+        _entete_section_analyse("Historique de mes adresses exactes")
 
-    try:
-        historique = api_get_json(
-            API_ENDPOINTS["user_addresses"],
-            arreter_sur_erreur=False,
+        try:
+            historique = api_get_json(
+                API_ENDPOINTS["user_addresses"],
+                arreter_sur_erreur=False,
+            )
+        except ErreurApi as exc:
+            st.caption(f"Historique indisponible : {exc.message}")
+            return
+
+        if not historique:
+            st.info("Aucune adresse exacte enregistrée pour le moment.")
+            return
+
+        historique_trie = sorted(
+            historique,
+            key=lambda ligne: ligne.get("created_at") or "",
+            reverse=True,
         )
-    except ErreurApi as exc:
-        st.caption(f"Historique indisponible : {exc.message}")
-        return
 
-    if not historique:
-        st.info("Aucune adresse exacte enregistrée pour le moment.")
-        return
-
-    historique_trie = sorted(
-        historique,
-        key=lambda ligne: ligne.get("created_at") or "",
-        reverse=True,
-    )
-
-    for ligne in historique_trie:
-        address_id = int(ligne["id"])
-        st.markdown(_carte_adresse_historique(ligne), unsafe_allow_html=True)
-        if st.button(
-            "Effacer",
-            key=f"effacer_adresse_{address_id}",
-            width="stretch",
-        ):
-            supprimer_adresse_historique(address_id)
+        for ligne in historique_trie:
+            address_id = int(ligne["id"])
+            st.markdown(_carte_adresse_historique(ligne), unsafe_allow_html=True)
+            if st.button(
+                "Effacer",
+                key=f"effacer_adresse_{address_id}",
+                width="stretch",
+            ):
+                supprimer_adresse_historique(address_id)
 
 
 def afficher_lieux_proches(
@@ -312,8 +324,8 @@ def afficher_noter_endroit() -> None:
     noter_arrondissement = False
     if donnees_commerces_disponibles:
         arrondissements = sorted(commerces["arrondissement"].astype(int).tolist())
-        with st.container(border=True):
-            st.markdown("#### Noter votre arrondissement")
+        with st.container(border=True, key="location_section_arrondissement"):
+            _entete_section_analyse("Noter votre arrondissement")
             arrondissement = st.selectbox(
                 "Choisir votre arrondissement",
                 arrondissements,
@@ -327,13 +339,15 @@ def afficher_noter_endroit() -> None:
                 key="noter_arrondissement_bouton",
             )
     else:
-        st.info(
-            "Les statistiques commerces par arrondissement sont temporairement "
-            "indisponibles. L'analyse d'adresse exacte reste disponible."
-        )
+        with st.container(border=True, key="location_section_arrondissement"):
+            _entete_section_analyse("Noter votre arrondissement")
+            st.info(
+                "Les statistiques commerces par arrondissement sont temporairement "
+                "indisponibles. L'analyse d'adresse exacte reste disponible."
+            )
 
-    with st.container(border=True):
-        st.markdown("#### Localiser votre adresse exacte avec les alentours")
+    with st.container(border=True, key="location_section_address"):
+        _entete_section_analyse("Localiser votre adresse exacte avec les alentours")
         adresse_exacte = st.text_input(
             "Adresse exacte à Paris",
             placeholder="Ex : 71 rue de Passy, Paris 16e",

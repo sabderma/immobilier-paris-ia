@@ -614,6 +614,38 @@ def styles() -> None:
                 color: #be123c !important;
                 opacity: 1 !important;
             }
+            [class*="st-key-location_section_"] {
+                background:
+                    linear-gradient(90deg, rgba(225, 29, 72, 0.045), transparent 240px),
+                    #ffffff;
+                border: 1px solid #cbd5e1 !important;
+                border-left: 5px solid #e11d48 !important;
+                border-radius: 0.95rem !important;
+                box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+                margin: 1rem 0 1.25rem;
+                padding: 1rem 1.05rem 1.1rem;
+            }
+            [class*="st-key-location_section_"] [data-testid="stVerticalBlockBorderWrapper"] {
+                border: none !important;
+                padding: 0 !important;
+            }
+            .location-section-title {
+                align-items: center;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                margin: 0 0 0.95rem;
+                padding-bottom: 0.85rem;
+            }
+            .location-section-heading {
+                color: #111827 !important;
+                flex: 1 1 auto;
+                font-size: 1.15rem;
+                font-weight: 900;
+                line-height: 1.2;
+                margin: 0;
+                min-width: 0;
+                overflow-wrap: anywhere;
+            }
             .address-history-card {
                 background: #ffffff;
                 border: 1px solid #e5e7eb;
@@ -735,6 +767,22 @@ def styles() -> None:
                 margin: 0.9rem auto 0;
                 max-width: 620px;
             }
+            .auth-rgpd-contact {
+                color: #64748b;
+                font-size: 0.86rem;
+                line-height: 1.55;
+                margin: 1.2rem auto 0;
+                max-width: 560px;
+                text-align: center;
+            }
+            .auth-rgpd-contact a {
+                color: #be123c;
+                font-weight: 800;
+                text-decoration: none;
+            }
+            .auth-rgpd-contact a:hover {
+                text-decoration: underline;
+            }
             [data-testid="stPopover"] button {
                 background: #fff1f2 !important;
                 border: 1px solid #fb7185 !important;
@@ -763,7 +811,31 @@ def styles() -> None:
                 text-decoration: none;
                 word-break: break-word;
             }
-            .admin-user-card,
+            [class*="st-key-admin_user_block_"] {
+                background:
+                    linear-gradient(90deg, rgba(225, 29, 72, 0.045), transparent 220px),
+                    #ffffff;
+                border: 1px solid #cbd5e1 !important;
+                border-left: 5px solid #e11d48 !important;
+                border-radius: 0.95rem !important;
+                box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+                margin: 1rem 0 1.45rem;
+                padding: 1rem 1.05rem 1.05rem;
+            }
+            [class*="st-key-admin_user_block_"] [data-testid="stVerticalBlockBorderWrapper"] {
+                border: none !important;
+                padding: 0 !important;
+            }
+            .admin-user-card {
+                align-items: center;
+                background: transparent;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                gap: 1rem;
+                justify-content: space-between;
+                margin: 0 0 0.9rem;
+                padding: 0 0 0.95rem;
+            }
             .admin-history-card {
                 align-items: center;
                 background:
@@ -777,6 +849,17 @@ def styles() -> None:
                 justify-content: space-between;
                 margin: 0.85rem 0 0.75rem;
                 padding: 1rem 1.05rem;
+            }
+            .admin-user-index {
+                background: #111827;
+                border-radius: 999px;
+                color: #ffffff;
+                display: inline-flex;
+                font-size: 0.72rem;
+                font-weight: 900;
+                line-height: 1;
+                margin-bottom: 0.45rem;
+                padding: 0.38rem 0.6rem;
             }
             .admin-card-kicker {
                 color: #e11d48;
@@ -866,6 +949,14 @@ def styles() -> None:
                 font-size: 0.94rem;
                 font-weight: 900;
                 word-break: break-word;
+            }
+            .admin-user-actions-title {
+                border-top: 1px solid #e2e8f0;
+                color: #334155;
+                font-size: 0.82rem;
+                font-weight: 900;
+                margin: 0.85rem 0 0.55rem;
+                padding-top: 0.85rem;
             }
             .admin-history-card {
                 border-left: 4px solid #fb7185;
