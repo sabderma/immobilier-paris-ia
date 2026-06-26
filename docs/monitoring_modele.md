@@ -5,6 +5,9 @@
 L’objectif est de surveiller le modèle de prédiction immobilière utilisé dans le projet afin de vérifier son bon fonctionnement après son intégration dans l’application.
 
 Le modèle surveillé est le modèle XGBoost qui prédit le prix d’un bien immobilier à Paris.
+Le dashboard modèle IA suit aussi le service OpenAI utilisé pour générer le
+résumé de proximité d'une adresse, car il fait partie des fonctionnalités IA
+exposées à l'utilisateur.
 
 Ce document sert de preuve pour la compétence **C11** : monitorer un modèle
 d'intelligence artificielle. Le monitoring global de l'application est documenté
@@ -49,6 +52,10 @@ Pour valider le monitoring du modèle, plusieurs métriques sont suivies.
 | model_evaluation_rmse_euros | Erreur donnant plus d’importance aux grandes erreurs | Détecter les prédictions très éloignées du prix réel |
 | model_evaluation_r2_score | Part de la variation des prix expliquée par le modèle | Évaluer la qualité globale du modèle |
 | model_evaluation_test_samples | Nombre de ventes utilisées pour l’évaluation | Vérifier que l’évaluation repose sur suffisamment de données |
+| openai_summary_service_configured | Indique si le service OpenAI est configuré | Vérifier que le résumé IA peut fonctionner |
+| openai_summary_calls_total | Nombre d'appels au service OpenAI | Suivre l'utilisation du résumé IA |
+| openai_summary_errors_total | Nombre d'erreurs OpenAI | Détecter les problèmes de génération de résumé |
+| openai_summary_request_duration_seconds | Durée des appels OpenAI | Détecter une latence trop élevée du service IA |
 
 ## Pourquoi ces métriques sont importantes ?
 
@@ -61,6 +68,8 @@ Elles permettent notamment de répondre aux questions suivantes :
 - Le modèle génère-t-il des erreurs ?
 - Les prix estimés sont-ils cohérents ?
 - Certains arrondissements sont-ils plus demandés que d’autres ?
+- Le service OpenAI de résumé est-il configuré ?
+- Les résumés OpenAI répondent-ils sans erreur et dans un délai acceptable ?
 
 ## Erreur moyenne du modèle
 
@@ -93,3 +102,22 @@ modèle :
 
 Ce contrôle renforce la compétence **C11**, car il prouve que le monitoring du
 modèle est accessible automatiquement depuis l'application.
+
+## Monitoring du résumé OpenAI
+
+Le service OpenAI est surveillé dans le dashboard `C11 - Monitoring modele IA`,
+et non dans le dashboard applicatif C20. Cette séparation permet de garder le
+dashboard C20 pour la disponibilité technique de l'application, et de suivre les
+fonctionnalités IA dans le dashboard modèle.
+
+Les panneaux Grafana ajoutés pour OpenAI sont :
+
+- `OpenAI configure` : indique si une clé OpenAI est disponible ;
+- `Appels OpenAI` : nombre d'appels au résumé IA sur la période affichée ;
+- `Erreurs OpenAI` : nombre d'erreurs sur la période affichée ;
+- `Latence OpenAI P95` : temps de réponse du service OpenAI.
+
+Prometheus charge aussi deux alertes dédiées au modèle IA :
+
+- `OpenAIResumeErreursElevees` ;
+- `OpenAIResumeLatenceElevee`.

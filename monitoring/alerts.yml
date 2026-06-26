@@ -40,3 +40,25 @@ groups:
         annotations:
           summary: "Latence API P95 elevee"
           description: "95% des requetes API prennent plus de 2 secondes sur les 5 dernieres minutes."
+
+  - name: immobilier-paris-modele-ia
+    rules:
+      - alert: OpenAIResumeErreursElevees
+        expr: increase(openai_summary_errors_total[10m]) >= 3
+        for: 1m
+        labels:
+          severity: warning
+          competence: c8
+        annotations:
+          summary: "Erreurs du service OpenAI de resume"
+          description: "Au moins 3 erreurs OpenAI ont ete observees sur les 10 dernieres minutes."
+
+      - alert: OpenAIResumeLatenceElevee
+        expr: histogram_quantile(0.95, sum by (le) (rate(openai_summary_request_duration_seconds_bucket[10m]))) > 20
+        for: 2m
+        labels:
+          severity: warning
+          competence: c8
+        annotations:
+          summary: "Latence OpenAI elevee"
+          description: "Le P95 des appels OpenAI depasse 20 secondes sur les 10 dernieres minutes."

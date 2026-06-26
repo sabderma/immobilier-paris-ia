@@ -90,6 +90,27 @@ MODEL_EVALUATION_TEST_SAMPLES = Gauge(
     "Nombre de ventes utilisees pour evaluer le modele.",
     ["model"],
 )
+OPENAI_SUMMARY_CALLS_TOTAL = Counter(
+    "openai_summary_calls_total",
+    "Nombre total d'appels au service OpenAI de resume de quartier.",
+    ["model", "status"],
+)
+OPENAI_SUMMARY_ERRORS_TOTAL = Counter(
+    "openai_summary_errors_total",
+    "Nombre total d'erreurs pendant les resumes OpenAI de quartier.",
+    ["model"],
+)
+OPENAI_SUMMARY_REQUEST_DURATION_SECONDS = Histogram(
+    "openai_summary_request_duration_seconds",
+    "Temps necessaire pour generer un resume OpenAI de quartier.",
+    ["model"],
+    buckets=(0.5, 1, 2.5, 5, 10, 20, 30, 60),
+)
+OPENAI_SUMMARY_SERVICE_CONFIGURED = Gauge(
+    "openai_summary_service_configured",
+    "Etat de configuration du service OpenAI: 1 configure, 0 non configure.",
+    ["model"],
+)
 
 
 def charger_metriques_evaluation(
@@ -120,6 +141,11 @@ def charger_metriques_evaluation(
 MODEL_PREDICTIONS_TOTAL.labels(model="XGBRegressor")
 MODEL_PREDICTION_ERRORS_TOTAL.labels(model="XGBRegressor")
 MODEL_PREDICTION_DURATION_SECONDS.labels(model="XGBRegressor")
+OPENAI_SUMMARY_CALLS_TOTAL.labels(model="gpt-5.4-mini", status="success")
+OPENAI_SUMMARY_CALLS_TOTAL.labels(model="gpt-5.4-mini", status="error")
+OPENAI_SUMMARY_ERRORS_TOTAL.labels(model="gpt-5.4-mini")
+OPENAI_SUMMARY_REQUEST_DURATION_SECONDS.labels(model="gpt-5.4-mini")
+OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model="gpt-5.4-mini").set(0)
 for arrondissement in range(1, 21):
     MODEL_PREDICTIONS_BY_ARRONDISSEMENT.labels(
         arrondissement=str(arrondissement)

@@ -486,6 +486,11 @@ class TestApiSecurity(unittest.TestCase):
             'model_evaluation_rmse_euros{model="XGBRegressor"}',
             'model_evaluation_r2_score{model="XGBRegressor"}',
             'model_evaluation_test_samples{model="XGBRegressor"}',
+            'openai_summary_service_configured{model="gpt-5.4-mini"}',
+            'openai_summary_calls_total{model="gpt-5.4-mini",status="success"}',
+            'openai_summary_calls_total{model="gpt-5.4-mini",status="error"}',
+            'openai_summary_errors_total{model="gpt-5.4-mini"}',
+            "openai_summary_request_duration_seconds_bucket",
             'api_http_requests_total{method="GET",route="/",status_code="200"}',
             "api_http_request_duration_seconds_bucket",
             "api_database_health_status",
@@ -1069,6 +1074,15 @@ class TestApiSecurity(unittest.TestCase):
         self.assertNotIn("latitude", appel["input"])
         self.assertNotIn("longitude", appel["input"])
         self.assertIn("Passy", appel["input"])
+        metriques = system_router.generate_latest().decode("utf-8")
+        self.assertRegex(
+            metriques,
+            r'openai_summary_calls_total\{model="gpt-5\.4-mini",status="success"\} [1-9]',
+        )
+        self.assertIn(
+            'openai_summary_service_configured{model="gpt-5.4-mini"} 1.0',
+            metriques,
+        )
 
     def test_resume_openai_reste_optionnel_sans_cle(self):
         with (
@@ -1083,6 +1097,41 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(
             resultat,
             {"erreur": "Le résumé OpenAI n'est pas configuré."},
+        )
+
+    def test_resume_openai_trace_les_erreurs_dans_prometheus(self):
+        client_openai = Mock()
+        client_openai.responses.create.side_effect = ValueError("service indisponible")
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "OPENAI_API_KEY": "test-openai-key",
+                    "OPENAI_MODEL": "gpt-5.4-mini",
+                },
+            ),
+            patch.object(location_summary_service, "charger_env"),
+            patch.object(
+                location_summary_service,
+                "OpenAI",
+                return_value=client_openai,
+            ),
+        ):
+            resultat = location_summary_service.generer_resume_lieu(
+                "71 Rue de Passy 75016 Paris",
+                {"totaux": {}},
+            )
+
+        self.assertIn("temporairement indisponible", resultat["erreur"])
+        metriques = system_router.generate_latest().decode("utf-8")
+        self.assertRegex(
+            metriques,
+            r'openai_summary_calls_total\{model="gpt-5\.4-mini",status="error"\} [1-9]',
+        )
+        self.assertRegex(
+            metriques,
+            r'openai_summary_errors_total\{model="gpt-5\.4-mini"\} [1-9]',
         )
 
     def test_geocodage_ign_normalise_une_adresse_parisienne_exacte(self):
