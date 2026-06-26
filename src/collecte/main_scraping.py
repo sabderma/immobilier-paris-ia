@@ -1,11 +1,5 @@
-from scrapporpi import scrapporpi
-from scrappforet import scrappforet
-from scrapplefigaro import scrapplefigaro
-from scrappcentury21 import scrappcentury21
-from scrappstephaneplazaimmobilier import scrappstephaneplazaimmobilier
+from pipeline_collecte import main
 
-scrapporpi()
-scrappforet()
-scrapplefigaro()
-scrappcentury21()
-scrappstephaneplazaimmobilier()
+
+if __name__ == "__main__":
+    raise SystemExit(main())
