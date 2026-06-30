@@ -1,15 +1,21 @@
+"""Nettoyage et aggregation des fichiers DVF de Paris.
+
+Ce script nettoie les fichiers DVF par annee, garde les ventes d'appartements a
+Paris, cree des colonnes utiles, puis fusionne tout dans un fichier final.
+"""
+
 import pandas as pd
 from pathlib import Path
 
-# Dossiers
+# Dossiers des donnees brutes et des donnees nettoyees.
 RAW_DIR = Path("data/raw/DVF")
 OUTPUT_DIR = Path("data/processed")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Années à nettoyer
+# Annees DVF a nettoyer et fusionner.
 annees = [2025, 2024, 2023, 2022, 2021]
 
-# Stocker tous les fichiers nettoyés
+# Stocke chaque annee nettoyee avant la fusion finale.
 dfs_clean = []
 
 for annee in annees:
@@ -19,20 +25,20 @@ for annee in annees:
 
     df = pd.read_csv(fichier, low_memory=False)
 
-    # Normaliser les noms de colonnes
+    # Normalise les noms de colonnes pour eviter les soucis de majuscules/espaces.
     df.columns = df.columns.str.lower().str.strip()
 
-    # Garder seulement Paris
+    # Garde seulement les mutations du departement 75.
     df["code_departement"] = df["code_departement"].astype(str)
     df = df[df["code_departement"] == "75"]
 
-    # Garder seulement les ventes d'appartements
+    # Garde seulement les ventes d'appartements, le perimetre du projet.
     df = df[
         (df["nature_mutation"] == "Vente") &
         (df["type_local"] == "Appartement")
     ]
 
-    # Convertir les colonnes numériques
+    # Convertit les colonnes utiles en numerique pour calculer et filtrer.
     colonnes_num = [
         "valeur_fonciere",
         "surface_reelle_bati",
@@ -44,7 +50,7 @@ for annee in annees:
     for col in colonnes_num:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Supprimer les lignes inutilisables
+    # Supprime les lignes sans prix, surface ou coordonnees.
     df = df.dropna(subset=[
         "valeur_fonciere",
         "surface_reelle_bati",
@@ -58,7 +64,7 @@ for annee in annees:
         (df["nombre_pieces_principales"] > 0)
     ]
 
-    # Supprimer les valeurs absurdes
+    # Supprime les valeurs trop extremes pour obtenir un jeu plus stable.
     df = df[
         (df["surface_reelle_bati"] >= 9) &
         (df["surface_reelle_bati"] <= 300) &
@@ -66,31 +72,31 @@ for annee in annees:
         (df["valeur_fonciere"] <= 5000000)
     ]
 
-    # Créer les colonnes utiles
+    # Cree les colonnes de temps et le prix au m2.
     df["date_mutation"] = pd.to_datetime(df["date_mutation"], errors="coerce")
     df["annee_vente"] = df["date_mutation"].dt.year
     df["mois_vente"] = df["date_mutation"].dt.month
 
     df["prix_m2"] = df["valeur_fonciere"] / df["surface_reelle_bati"]
 
-    # Corriger code postal
+    # Corrige le code postal avant de calculer l'arrondissement.
     df["code_postal"] = pd.to_numeric(df["code_postal"], errors="coerce")
     df = df.dropna(subset=["code_postal"])
     df["code_postal"] = df["code_postal"].astype(int).astype(str)
 
-    # Garder seulement les codes postaux de Paris
+    # Garde seulement les codes postaux commencant par 75.
     df = df[df["code_postal"].str.startswith("75")]
 
-    # Créer arrondissement
+    # Cree l'arrondissement avec les deux derniers chiffres du code postal.
     df["arrondissement"] = df["code_postal"].str[-2:].astype(int)
 
-    # Supprimer les prix/m² absurdes
+    # Supprime les prix au m2 trop bas ou trop hauts pour Paris.
     df = df[
         (df["prix_m2"] >= 3000) &
         (df["prix_m2"] <= 25000)
     ]
 
-    # Colonnes finales
+    # Colonnes finales conservees pour l'analyse, l'API et le modele.
     colonnes_finales = [
         "id_mutation",
         "date_mutation",
@@ -111,7 +117,7 @@ for annee in annees:
 
     df_final = df[colonnes_finales].drop_duplicates()
 
-    # Sauvegarde fichier par année
+    # Sauvegarde un fichier propre par annee.
     fichier_sortie = OUTPUT_DIR / f"dvf_paris_clean_{annee}.csv"
     df_final.to_csv(fichier_sortie, index=False)
 
@@ -120,7 +126,7 @@ for annee in annees:
 
     dfs_clean.append(df_final)
 
-# Fusionner les 5 années dans un seul fichier
+# Fusionne les 5 annees dans un seul fichier final.
 df_all = pd.concat(dfs_clean, ignore_index=True)
 df_all = df_all.drop_duplicates()
 

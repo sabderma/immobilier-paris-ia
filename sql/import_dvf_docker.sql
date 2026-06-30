@@ -1,3 +1,12 @@
+-- =========================================================
+-- IMPORT AUTOMATIQUE DES CSV DANS POSTGRESQL
+-- =========================================================
+-- Ce fichier est execute par Docker au premier demarrage de la base.
+-- Il charge d'abord les CSV dans des tables temporaires, puis copie les
+-- donnees dans les vraies tables du projet.
+-- =========================================================
+
+-- Table temporaire pour charger le CSV DVF avant insertion finale.
 CREATE TEMP TABLE dvf_import (
     id_mutation VARCHAR(50),
     date_mutation DATE,
@@ -20,6 +29,7 @@ COPY dvf_import
 FROM '/docker-entrypoint-initdb.d/dvf.csv'
 WITH (FORMAT CSV, HEADER TRUE);
 
+-- Insertion des DVF nettoyes dans la table finale.
 INSERT INTO dvf_paris_appartements (
     id_mutation,
     date_mutation,
@@ -55,6 +65,7 @@ SELECT
     latitude
 FROM dvf_import;
 
+-- Table temporaire pour charger le CSV golden scraping.
 CREATE TEMP TABLE scraping_import (
     source VARCHAR(100),
     type VARCHAR(50),
@@ -69,6 +80,7 @@ COPY scraping_import
 FROM '/docker-entrypoint-initdb.d/scraping.csv'
 WITH (FORMAT CSV, HEADER TRUE);
 
+-- Insertion des annonces propres dans la table golden.
 INSERT INTO golden_data_scraping (
     source,
     type,

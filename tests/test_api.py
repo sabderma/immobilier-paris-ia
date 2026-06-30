@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# C18 : ce fichier est lance automatiquement par GitHub Actions.
+# Il verifie les routes API principales de l'application.
+# C19 : la livraison relance ces tests avant de publier Docker.
+
 import json
 import os
 from pathlib import Path
@@ -38,6 +42,7 @@ client = TestClient(main.app)
 AUTH_HEADERS = {"X-API-Key": os.environ["API_KEY"]}
 
 
+# Jeu de donnees minimal pour tester les routes C17 sans lancer PostgreSQL.
 def fake_lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
     if "FROM dvf_paris_appartements" in query:
         return pd.DataFrame(
@@ -67,6 +72,8 @@ def fake_lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
 
 
 class TestApiSecurity(unittest.TestCase):
+    """Tests C17/C18 sur les routes API et leur securite de base."""
+
     @staticmethod
     def _resultat_mapping_one_or_none(valeur):
         resultat = MagicMock()
@@ -77,6 +84,7 @@ class TestApiSecurity(unittest.TestCase):
         main.app.dependency_overrides.clear()
 
     def test_accueil_est_public(self):
+        # C18 : premier controle simple pour verifier que l'API repond.
         response = client.get("/")
 
         self.assertEqual(response.status_code, 200)
@@ -86,6 +94,7 @@ class TestApiSecurity(unittest.TestCase):
         )
 
     def test_health_retourne_status_ok_quand_la_base_repond(self):
+        # C20 : la route de sante doit confirmer que PostgreSQL repond.
         connexion = MagicMock()
         contexte = MagicMock()
         contexte.__enter__.return_value = connexion
@@ -99,6 +108,7 @@ class TestApiSecurity(unittest.TestCase):
         connexion.execute.assert_called_once()
 
     def test_metrics_application_expose_sante_base_et_requetes_http(self):
+        # C20 : ce test verifie les metriques application lues par Prometheus.
         connexion = MagicMock()
         contexte = MagicMock()
         contexte.__enter__.return_value = connexion
@@ -116,6 +126,7 @@ class TestApiSecurity(unittest.TestCase):
         )
 
     def test_points_dvf_refuse_une_requete_sans_cle_api(self):
+        # C17 : les donnees protegees ne doivent pas sortir sans X-API-Key.
         response = client.get("/dvf/points")
 
         self.assertEqual(response.status_code, 401)
@@ -128,6 +139,7 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.json()["detail"], "Clé API invalide")
 
     def test_points_dvf_accepte_une_bonne_cle_api(self):
+        # C17 : avec la bonne cle, la route peut retourner les points de carte.
         with patch.object(dvf_router, "lire_sql", side_effect=fake_lire_sql):
             response = client.get("/dvf/points?limit=1", headers=AUTH_HEADERS)
 
@@ -173,6 +185,7 @@ class TestApiSecurity(unittest.TestCase):
         )
 
     def test_annonces_scraping_utilisent_la_table_golden_et_les_filtres(self):
+        # C17 : la page annonces depend de cette route avec filtres et pagination.
         annonces = pd.DataFrame(
             [
                 {
@@ -263,11 +276,13 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(params_dvf["annee_vente"], 2025)
 
     def test_export_csv_demande_une_cle_api(self):
+        # C17 : l'export CSV reste aussi derriere la cle API.
         response = client.get("/dvf/export.csv")
 
         self.assertEqual(response.status_code, 401)
 
     def test_prediction_prix_retourne_un_prix_estime(self):
+        # C9 : ce test verifie que l'endpoint du modele retourne une reponse JSON.
         payload = {
             "surface": 45,
             "nombre_pieces": 2,
@@ -304,7 +319,35 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.json()["modele"], "XGBRegressor")
         enregistrer_prediction.assert_not_called()
 
+    def test_prediction_prix_demande_une_cle_api(self):
+        # C9 : sans X-API-Key, le modele ne doit pas etre accessible.
+        response = client.post(
+            "/prediction/prix",
+            json={
+                "surface": 45,
+                "nombre_pieces": 2,
+                "arrondissement": 11,
+            },
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_prediction_prix_refuse_une_mauvaise_cle_api(self):
+        # C9 : une mauvaise cle API bloque aussi l'appel au modele.
+        response = client.post(
+            "/prediction/prix",
+            json={
+                "surface": 45,
+                "nombre_pieces": 2,
+                "arrondissement": 11,
+            },
+            headers={"X-API-Key": "mauvaise-cle"},
+        )
+
+        self.assertEqual(response.status_code, 403)
+
     def test_prediction_prix_refuse_les_valeurs_irrealistes(self):
+        # C9 : Pydantic bloque les entrees impossibles avant d'appeler le modele.
         cas_invalides = [
             {
                 "nom": "surface trop petite",
@@ -366,6 +409,7 @@ class TestApiSecurity(unittest.TestCase):
         charger_mae.assert_not_called()
 
     def test_prediction_connectee_est_enregistree_dans_l_historique(self):
+        # C9 : la prediction fonctionne aussi quand un utilisateur est connecte.
         payload = {
             "surface": 45,
             "nombre_pieces": 2,
@@ -465,6 +509,7 @@ class TestApiSecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["detail"], "Prédiction introuvable.")
 
+    # C11 : ce test verifie que /metrics expose les metriques du modele IA.
     def test_metrics_expose_les_metriques_du_modele(self):
         connexion = MagicMock()
         contexte = MagicMock()
@@ -1002,6 +1047,7 @@ class TestApiSecurity(unittest.TestCase):
         )
 
     def test_resume_openai_utilise_uniquement_les_donnees_de_proximite(self):
+        # Ce test prouve que OpenAI sert a rediger, pas a inventer les donnees.
         proximite = {
             "rayon_metres": 500,
             "distance": "à vol d'oiseau",
@@ -1070,6 +1116,7 @@ class TestApiSecurity(unittest.TestCase):
         )
         appel = client_openai.responses.create.call_args.kwargs
         self.assertEqual(appel["model"], "gpt-5.4-mini")
+        # `store=False` montre que l'appel OpenAI est limite pour le projet.
         self.assertFalse(appel["store"])
         self.assertNotIn("latitude", appel["input"])
         self.assertNotIn("longitude", appel["input"])
@@ -1085,6 +1132,7 @@ class TestApiSecurity(unittest.TestCase):
         )
 
     def test_resume_openai_reste_optionnel_sans_cle(self):
+        # Si la cle OpenAI manque, l'application ne doit pas etre bloquee.
         with (
             patch.dict(os.environ, {}, clear=True),
             patch.object(location_summary_service, "charger_env"),
@@ -1100,6 +1148,7 @@ class TestApiSecurity(unittest.TestCase):
         )
 
     def test_resume_openai_trace_les_erreurs_dans_prometheus(self):
+        # Les erreurs OpenAI sont suivies pour voir si le service externe pose probleme.
         client_openai = Mock()
         client_openai.responses.create.side_effect = ValueError("service indisponible")
 

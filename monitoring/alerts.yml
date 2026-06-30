@@ -1,5 +1,6 @@
 groups:
   - name: immobilier-paris-application
+    # C20 : ces alertes surveillent l'application complete.
     rules:
       - alert: ApiIndisponible
         expr: up{job="immobilier-paris-api"} == 0
@@ -43,12 +44,35 @@ groups:
 
   - name: immobilier-paris-modele-ia
     rules:
+      # C11 : alerte si le modele de prix commence a faire trop d'erreurs.
+      - alert: ModelePredictionErreursElevees
+        expr: increase(model_prediction_errors_total[10m]) >= 3
+        for: 1m
+        labels:
+          severity: warning
+          competence: c11
+        annotations:
+          summary: "Erreurs du modele de prediction"
+          description: "Au moins 3 erreurs de prediction ont ete observees sur les 10 dernieres minutes."
+
+      # C11 : alerte si le modele devient trop lent pour l'utilisateur.
+      - alert: ModelePredictionLatenceElevee
+        expr: histogram_quantile(0.95, sum by (le) (rate(model_prediction_duration_seconds_bucket[10m]))) > 2
+        for: 2m
+        labels:
+          severity: warning
+          competence: c11
+        annotations:
+          summary: "Latence du modele de prediction elevee"
+          description: "Le P95 des predictions depasse 2 secondes sur les 10 dernieres minutes."
+
+      # C11 : je surveille aussi OpenAI, car le resume est une fonctionnalite IA.
       - alert: OpenAIResumeErreursElevees
         expr: increase(openai_summary_errors_total[10m]) >= 3
         for: 1m
         labels:
           severity: warning
-          competence: c8
+          competence: c11
         annotations:
           summary: "Erreurs du service OpenAI de resume"
           description: "Au moins 3 erreurs OpenAI ont ete observees sur les 10 dernieres minutes."
@@ -58,7 +82,7 @@ groups:
         for: 2m
         labels:
           severity: warning
-          competence: c8
+          competence: c11
         annotations:
           summary: "Latence OpenAI elevee"
           description: "Le P95 des appels OpenAI depasse 20 secondes sur les 10 dernieres minutes."

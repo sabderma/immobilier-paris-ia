@@ -1,3 +1,10 @@
+"""Nettoyage source vers master pour les annonces de scraping.
+
+Ce script part du fichier fusionne, normalise les colonnes principales, supprime
+les types non utiles, calcule des valeurs manquantes et produit le fichier
+master.
+"""
+
 import pandas as pd
 import re
 from pathlib import Path
@@ -27,7 +34,8 @@ VALEURS_MANQUANTES = [
 
 
 def est_valeur_manquante(val):
-    """Vérifie si une valeur est vide ou non disponible."""
+    """Verifie si une valeur est vide ou non disponible."""
+
     if pd.isna(val):
         return True
 
@@ -41,7 +49,8 @@ def est_valeur_manquante(val):
 # =====================================================
 
 def clean_prix(val):
-    """Nettoie le prix : '550 000 €' -> 550000.0"""
+    """Nettoie le prix : '550 000 €' -> 550000.0."""
+
     if est_valeur_manquante(val):
         return val
 
@@ -58,7 +67,8 @@ def clean_prix(val):
 
 
 def clean_surface(val):
-    """Nettoie la surface : '54 m²' -> 54.0"""
+    """Nettoie la surface : '54 m²' -> 54.0."""
+
     if est_valeur_manquante(val):
         return val
 
@@ -76,7 +86,8 @@ def clean_surface(val):
 
 
 def clean_prix_m2(val):
-    """Nettoie le prix au m² : '10 185 €/m²' -> 10185.0"""
+    """Nettoie le prix au m2 : '10 185 €/m²' -> 10185.0."""
+
     if est_valeur_manquante(val):
         return val
 
@@ -106,7 +117,7 @@ def clean_prix_m2(val):
 
 def clean_type(val_type, val_details):
     """
-    Nettoie le type de bien.
+    Nettoie le type de bien avec le type et le texte details.
 
     Exemple :
     'Appartement F3 à vendre' -> 'Appartement'
@@ -150,7 +161,8 @@ def clean_type(val_type, val_details):
 
 
 def clean_nb_pieces(val):
-    """Nettoie le nombre de pièces : '3 pièces' -> 3."""
+    """Nettoie le nombre de pieces : '3 pièces' -> 3."""
+
     if est_valeur_manquante(val):
         return val
 
@@ -166,7 +178,7 @@ def clean_nb_pieces(val):
 
 def clean_localisation(val):
     """
-    Nettoie la localisation.
+    Nettoie la localisation pour garder un code postal ou un texte propre.
 
     Exemple :
     'PARIS 75018' -> '75018'
@@ -193,7 +205,8 @@ def clean_localisation(val):
 # =====================================================
 
 def charger_donnees():
-    """Charge le fichier CSV brut."""
+    """Charge le fichier fusionne avant nettoyage master."""
+
     print("Chargement du fichier CSV...")
 
     df = pd.read_csv(INPUT_PATH)
@@ -206,7 +219,7 @@ def charger_donnees():
 
 
 def verifier_colonnes(df):
-    """Vérifie que toutes les colonnes nécessaires existent."""
+    """Verifie que toutes les colonnes necessaires existent."""
 
     colonnes_obligatoires = [
         "type",
@@ -230,12 +243,12 @@ def verifier_colonnes(df):
 
 
 def nettoyer_donnees(df):
-    """Applique tout le nettoyage sur le DataFrame."""
+    """Applique le nettoyage source -> master sur le DataFrame."""
 
     print("\nDébut du nettoyage...")
 
     df = df.copy()
-    # Uniformisation des valeurs manquantes dans toutes les colonnes
+    # Uniformisation des valeurs manquantes dans toutes les colonnes.
     df = df.replace([
         "non renseigne",
         "non renseigné",
@@ -246,14 +259,14 @@ def nettoyer_donnees(df):
         ""
     ], "non disponible")
 
-    # Nettoyage du type
+    # Nettoyage du type de bien avec le type initial et les details.
     print("Nettoyage de la colonne type...")
     df["type_clean"] = df.apply(
         lambda row: clean_type(row["type"], row["details"]),
         axis=1
     )
 
-    # Suppression des types non utiles
+    # Suppression des types qui ne rentrent pas dans le perimetre immobilier vise.
     print("Suppression des types non utiles...")
 
     type_lower = df["type_clean"].fillna("").str.lower()
@@ -273,7 +286,7 @@ def nettoyer_donnees(df):
 
     df = df[~types_a_supprimer]
 
-    # Nettoyage numérique
+    # Nettoyage numerique : prix, surface, prix au m2 et pieces.
     print("Nettoyage des colonnes numériques...")
 
     df["prix_clean"] = df["prix"].apply(clean_prix)
@@ -281,12 +294,12 @@ def nettoyer_donnees(df):
     df["prix_m2_clean"] = df["prix_m2"].apply(clean_prix_m2)
     df["nb_pieces_clean"] = df["nb_pieces"].apply(clean_nb_pieces)
 
-    # Nettoyage localisation
+    # Nettoyage localisation pour essayer de garder un code postal Paris.
     print("Nettoyage de la localisation...")
 
     df["localisation_clean"] = df["localisation"].apply(clean_localisation)
 
-    # Calcul prix/m² si absent
+    # Calcul du prix au m2 si le site ne l'a pas donne mais que prix et surface existent.
     print("Calcul du prix/m² manquant...")
 
     mask_prix_m2_manquant = (
@@ -307,7 +320,7 @@ def nettoyer_donnees(df):
     
     
 
-    # Création du DataFrame final
+    # Creation du DataFrame master avec des noms de colonnes propres.
     df_clean = df[[
         "source",
         "type_clean",
@@ -326,7 +339,7 @@ def nettoyer_donnees(df):
         "localisation_clean": "localisation"
     })
 
-    # Suppression des doublons
+    # Suppression des doublons apres normalisation.
     doublons = df_clean.duplicated().sum()
     print("Doublons supprimés :", doublons)
 
@@ -337,7 +350,7 @@ def nettoyer_donnees(df):
 
 
 def exporter_donnees(df_clean):
-    """Exporte le fichier nettoyé."""
+    """Exporte le fichier master nettoye."""
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -354,7 +367,7 @@ def exporter_donnees(df_clean):
 
 
 def main():
-    """Fonction principale."""
+    """Lance toutes les etapes du nettoyage source -> master."""
 
     df = charger_donnees()
 

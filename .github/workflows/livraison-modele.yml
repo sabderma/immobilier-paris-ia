@@ -1,5 +1,7 @@
+# C13 : cette chaine GitHub Actions valide et livre le modele IA.
 name: Livraison continue du modele IA
 
+# C13 : la chaine peut se lancer automatiquement ou manuellement.
 on:
   push:
     branches:
@@ -16,6 +18,7 @@ jobs:
   entrainer-tester-livrer:
     runs-on: ubuntu-latest
     env:
+      # C13 : ces chemins sont reutilises dans les etapes de la livraison.
       DONNEES_ENTRAINEMENT: data/final/dvf_paris_clean_2021_2025.csv
       DOSSIER_LIVRAISON: livraison
       MODELE_LIVRE: livraison/xgboost_prix_dvf.joblib
@@ -24,21 +27,26 @@ jobs:
 
     steps:
       - name: Recuperer le projet
+        # C13 : GitHub recupere le code du depot avant de travailler.
         uses: actions/checkout@v4
 
       - name: Installer Python
+        # C13 : la chaine utilise la meme famille de Python pour refaire le modele.
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Installer les dependances
+        # C13 : toutes les bibliotheques du projet sont installees dans GitHub.
         run: pip install -r requirements.txt
 
       - name: Verifier les donnees d'entrainement
+        # C12 : on teste les donnees avant de lancer l'entrainement du modele.
         run: python -m unittest discover -s tests -p "test_donnees_livraison.py" -v
 
       - name: Entrainer un nouveau modele IA
+        # C13 : si les donnees sont valides, la chaine cree un nouveau modele.
         run: |
           mkdir -p "$DOSSIER_LIVRAISON"
           python -m src.prediction.entrainement_xgboost_prix \
@@ -47,12 +55,14 @@ jobs:
             --output-metrics "$METRIQUES_LIVREES"
 
       - name: Tester le nouveau modele IA
+        # C12 : le nouveau modele doit passer les tests avant d'etre livre.
         run: |
           cp "$MODELE_LIVRE" models/xgboost_prix_dvf.joblib
           cp "$METRIQUES_LIVREES" models/xgboost_prix_dvf_metrics.json
           python -m unittest discover -s tests -p "test_prediction.py" -v
 
       - name: Generer le rapport de livraison
+        # C13 : le rapport valide le seuil R2 avant la livraison finale.
         run: |
           python scripts/generer_rapport_livraison_modele.py \
             --metrics "$METRIQUES_LIVREES" \
@@ -61,6 +71,7 @@ jobs:
           cat "$RAPPORT_LIVRAISON" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Livrer le nouveau modele valide
+        # C13 : l'artifact contient le modele, les metriques et le rapport.
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:

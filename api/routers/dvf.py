@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Routes API C17 pour mettre les donnees DVF a disposition.
+
+Ces routes retournent les filtres, les points cartographiques et un export CSV.
+"""
+
 from io import StringIO
 from typing import Optional
 
@@ -14,6 +19,8 @@ router = APIRouter()
 
 @router.get("/dvf/filtres")
 def get_filtres_dvf(_: None = Depends(verifier_cle_api)) -> dict:
+    """Retourne les bornes de filtres disponibles dans la table DVF."""
+    # C17 : ces valeurs remplissent les filtres de l'interface Streamlit.
     stats = lire_sql(
         """
         SELECT
@@ -64,6 +71,7 @@ def get_dvf_points(
     limit: int = Query(800, ge=1, le=200000),
 ) -> dict:
     """Retourne un jeu de points léger pour l'affichage cartographique."""
+    # Les filtres envoyes dans l'URL deviennent une clause WHERE SQL.
     where, params = construire_where_dvf(
         arrondissement=arrondissement,
         annee_vente=annee_vente,
@@ -127,6 +135,7 @@ def export_dvf_csv(
     nombre_pieces: Optional[int] = None,
     code_postal: Optional[str] = None,
 ) -> Response:
+    """Retourne un CSV DVF complet ou filtre selon les parametres recus."""
     aucun_filtre = all(
         valeur is None
         for valeur in [
@@ -146,6 +155,7 @@ def export_dvf_csv(
         ]
     )
     if aucun_filtre and DVF_CSV_PATH.exists():
+        # Sans filtre, on peut renvoyer directement le fichier final deja pret.
         return Response(
             DVF_CSV_PATH.read_text(encoding="utf-8"),
             media_type="text/csv",
@@ -196,6 +206,7 @@ def export_dvf_csv(
         params,
     )
     buffer = StringIO()
+    # pandas transforme le resultat SQL en texte CSV pour le telechargement.
     df.to_csv(buffer, index=False)
     return Response(
         buffer.getvalue(),

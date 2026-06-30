@@ -1,3 +1,9 @@
+"""Route FastAPI C17 qui expose le composant de prediction.
+
+Cette route recoit les donnees d'un appartement, appelle le modele XGBoost et
+retourne une reponse JSON au client.
+"""
+
 from __future__ import annotations
 
 import time
@@ -29,11 +35,13 @@ def prediction_prix(
     _: None = Depends(verifier_cle_api),
     utilisateur: Optional[dict[str, Any]] = Depends(obtenir_utilisateur_optionnel),
 ) -> PredictionPrixResponse:
+    """Retourne une estimation de prix avec le modele local XGBoost."""
     nom_modele = "XGBRegressor"
     arrondissement = str(payload.arrondissement)
     debut_prediction = time.perf_counter()
 
     try:
+        # C17 : la route transforme la requete client en appel au modele IA.
         prix_estime = predire_prix_xgboost(
             surface=payload.surface,
             nombre_pieces=payload.nombre_pieces,
@@ -47,6 +55,7 @@ def prediction_prix(
         )
         raise
 
+    # C11 : a chaque prediction, on met a jour les metriques du modele.
     MODEL_PREDICTION_DURATION_SECONDS.labels(model=nom_modele).observe(
         time.perf_counter() - debut_prediction
     )
@@ -55,6 +64,7 @@ def prediction_prix(
     MODEL_PREDICTED_PRICE_EUROS.labels(arrondissement=arrondissement).set(prix_estime)
     MODEL_INPUT_SURFACE_M2.labels(arrondissement=arrondissement).set(payload.surface)
 
+    # Si l'utilisateur est connecte, on garde son historique de prediction.
     if utilisateur is not None:
         enregistrer_prediction_utilisateur(
             user_id=utilisateur["id"],
@@ -65,6 +75,7 @@ def prediction_prix(
         )
 
     return PredictionPrixResponse(
+        # La reponse reste structuree pour etre facile a consommer cote client.
         surface=payload.surface,
         nombre_pieces=payload.nombre_pieces,
         arrondissement=payload.arrondissement,

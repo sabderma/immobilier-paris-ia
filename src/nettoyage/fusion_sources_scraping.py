@@ -1,9 +1,17 @@
+"""Fusion des fichiers bruts de scraping immobilier.
+
+Ce script correspond au debut de la C3 pour le scraping : il prend les CSV de
+chaque site, ajoute la source, puis cree un fichier fusionne pour la suite du
+nettoyage.
+"""
+
 import pandas as pd
 from pathlib import Path
 
 
 DOSSIER_SCRAPING = Path("data/raw/scraping")
 
+# Chaque fichier brut est associe au nom de sa source.
 fichiers_sources = {
     "annonces_century21_paris.csv": "century21",
     "annonces_laforet_paris_complet.csv": "laforet",
@@ -17,19 +25,20 @@ dataframes = []
 for fichier, source in fichiers_sources.items():
     chemin = DOSSIER_SCRAPING / fichier
 
+    # Lecture d'un fichier brut produit par un scraper C1.
     df = pd.read_csv(chemin)
 
-    # Ajouter la colonne source
+    # La colonne source permet de savoir de quel site vient chaque annonce.
     df["source"] = source
 
     dataframes.append(df)
 
-# Fusionner tous les CSV
+# Fusionne toutes les sources dans un seul tableau.
 df_final = pd.concat(dataframes, ignore_index=True)
 
 
 
-# Sauvegarde finale
+# Sauvegarde du fichier source fusionne, avant nettoyage master/golden.
 chemin_sortie = Path("data/processed/annonces_scraping_fusionnees.csv")
 
 

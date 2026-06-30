@@ -1,3 +1,9 @@
+"""Collecte brute des commerces parisiens depuis une API REST.
+
+Ce script appelle l'API open data, garde les parametres de la requete et ecrit
+la reponse brute dans `data/raw/api/`. Il sert de preuve C1 pour la source API.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -19,6 +25,8 @@ DEFAULT_OUTPUT_PATH = ROOT_DIR / "data/raw/api/commerces_paris_open_data.json"
 
 
 def maintenant_iso() -> str:
+    """Retourne la date de collecte pour tracer le fichier produit."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -30,6 +38,8 @@ def construire_payload_brut(
     data: dict[str, Any] | None,
     dry_run: bool,
 ) -> dict[str, Any]:
+    """Construit le JSON sauvegarde, avec les infos de source et de requete."""
+
     return {
         "source": "Open Data Ile-de-France - Base permanente des equipements 2012",
         "url": url,
@@ -48,6 +58,8 @@ def collecter_commerces_paris(
     limit: int,
     dry_run: bool,
 ) -> None:
+    """Lance la requete API et sauvegarde la reponse brute en JSON."""
+
     params = {
         "where": "departement=75",
         "limit": limit,
@@ -56,6 +68,7 @@ def collecter_commerces_paris(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     if dry_run:
+        # En mode simulation, on ecrit seulement ce qui aurait ete appele.
         payload = construire_payload_brut(
             url=COMMERCES_PARIS_API_URL,
             params=params,
@@ -74,6 +87,7 @@ def collecter_commerces_paris(
         params=params,
         timeout=(2.0, timeout),
     )
+    # Si l'API renvoie une erreur HTTP, le script s'arrete clairement.
     response.raise_for_status()
 
     payload = construire_payload_brut(
@@ -90,6 +104,8 @@ def collecter_commerces_paris(
 
 
 def construire_parser() -> argparse.ArgumentParser:
+    """Declare les options possibles pour relancer la collecte API."""
+
     parser = argparse.ArgumentParser(
         description="Collecte brute des donnees commerces Paris depuis une API REST.",
     )
@@ -120,6 +136,8 @@ def construire_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Point d'entree du script de collecte API."""
+
     args = construire_parser().parse_args()
     collecter_commerces_paris(
         output_path=args.output,

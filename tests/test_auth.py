@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# C18 : ce fichier est lance dans la CI pour verifier la connexion utilisateur.
+# C19 : ces tests evitent de livrer une application avec une connexion cassee.
+
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
@@ -23,7 +26,10 @@ client = TestClient(main.app)
 
 
 class TestInscription(unittest.TestCase):
+    """Tests C17/C18 sur la creation de compte utilisateur."""
+
     def test_inscription_cree_un_utilisateur_simple(self):
+        # C17 : l'inscription retourne un utilisateur sans mot de passe.
         utilisateur = {
             "id": 1,
             "email": "test@example.com",
@@ -112,6 +118,8 @@ class TestInscription(unittest.TestCase):
 
 
 class TestInitialisationSuperAdmin(unittest.TestCase):
+    """Tests C17 sur le compte super admin configure par l'environnement."""
+
     def test_initialisation_ignoree_sans_variables(self):
         with (
             patch.dict(os.environ, {}, clear=True),
@@ -155,7 +163,10 @@ class TestInitialisationSuperAdmin(unittest.TestCase):
 
 
 class TestConnexion(unittest.TestCase):
+    """Tests C17/C18 sur la connexion et le token JWT."""
+
     def test_connexion_retourne_un_token_et_utilisateur(self):
+        # C17 : la connexion renvoie le token utilise ensuite par Streamlit.
         resultat = {
             "access_token": "jwt-test",
             "token_type": "bearer",
@@ -235,6 +246,8 @@ class TestConnexion(unittest.TestCase):
 
 
 class TestUtilisateurConnecte(unittest.TestCase):
+    """Tests C17/C18 sur les routes qui demandent un utilisateur connecte."""
+
     def tearDown(self):
         main.app.dependency_overrides.clear()
 

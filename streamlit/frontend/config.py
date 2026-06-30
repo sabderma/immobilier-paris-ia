@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+"""Configuration utilisee par l'interface Streamlit en C17."""
+
 import os
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+# C17 : Streamlit utilise cette URL pour communiquer avec l'API FastAPI.
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 API_ENDPOINTS = {
     "health": "/health",
@@ -24,6 +27,7 @@ API_ENDPOINTS = {
     "scraping_comparaison_2025": "/stats/scraping/comparaison-dvf-2025",
     "commerces": "/commerces/paris",
     "adresse_geocodage": "/geocodage/adresse",
+    # Endpoint C17 appele par le formulaire "Predire appartement".
     "prediction_prix": "/prediction/prix",
     "auth_register": "/auth/register",
     "auth_login": "/auth/login",
@@ -59,6 +63,7 @@ def charger_env() -> None:
 
 
 def headers_api() -> dict[str, str]:
+    """Construit l'en-tete X-API-Key attendu par l'API."""
     charger_env()
     api_key = os.getenv("API_KEY")
     return {"X-API-Key": api_key} if api_key else {}

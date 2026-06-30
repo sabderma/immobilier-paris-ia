@@ -1,5 +1,7 @@
+# C18 : workflow principal pour lancer les tests de l'application automatiquement.
 name: Tests application
 
+# C18 : la CI se lance sur push, pull request, ou a la main.
 on:
   push:
     branches:
@@ -14,8 +16,10 @@ permissions:
 
 jobs:
   tester-application:
+    # C18 : un runner GitHub propre est utilise pour relancer les tests.
     runs-on: ubuntu-latest
     env:
+      # C18 : variables de test pour l'API, le JWT et la base.
       API_KEY: test-api-key
       JWT_SECRET_KEY: secret-de-test-jwt-avec-32-caracteres-minimum
       DB_USER: postgres
@@ -26,22 +30,28 @@ jobs:
 
     steps:
       - name: Recuperer le projet
+        # C18 : GitHub recupere le code du depot avant les tests.
         uses: actions/checkout@v4
 
       - name: Installer Python
+        # C18 : la CI installe Python pour executer les tests unittest.
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Installer les dependances
+        # C18 : les bibliotheques du projet sont installees comme en local.
         run: pip install -r requirements.txt
 
       - name: Tester les routes API
+        # C18 : teste l'API, la securite, la prediction, les adresses et l'admin.
         run: python -m unittest discover -s tests -p "test_api.py" -v
 
       - name: Tester l'authentification
+        # C18 : teste inscription, connexion, JWT et mots de passe.
         run: python -m unittest discover -s tests -p "test_auth.py" -v
 
       - name: Tester l'interface Streamlit
+        # C18 : teste le client API Streamlit et le HTML affiche.
         run: python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v

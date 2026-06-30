@@ -1,5 +1,6 @@
 services:
   database:
+    # C19 : base PostgreSQL utilisee par l'application sur le VPS.
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -22,6 +23,8 @@ services:
       retries: 10
 
   api:
+    # C19 : en production, on ne reconstruit pas ici.
+    # Le serveur recupere l'image deja publiee dans GHCR.
     image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER}/immobilier-paris-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
@@ -38,23 +41,27 @@ services:
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
     ports:
+      # Le port reste local au serveur, puis Nginx gere l'acces public.
       - "127.0.0.1:8002:8000"
     depends_on:
       database:
         condition: service_healthy
 
   streamlit:
+    # C19 : interface web recuperee depuis GitHub Container Registry.
     image: ${REGISTRY:-ghcr.io}/${IMAGE_OWNER}/immobilier-paris-streamlit:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       API_BASE_URL: http://api:8000
       API_KEY: ${API_KEY}
     ports:
+      # Streamlit est expose localement sur le VPS, derriere Nginx.
       - "127.0.0.1:8501:8501"
     depends_on:
       - api
 
   prometheus:
+    # C11/C20 : Prometheus collecte les metriques aussi en production.
     image: prom/prometheus:latest
     restart: unless-stopped
     command:
@@ -70,6 +77,7 @@ services:
       - api
 
   grafana:
+    # C11/C20 : Grafana affiche les dashboards de monitoring en production.
     image: grafana/grafana:latest
     restart: unless-stopped
     environment:

@@ -1,7 +1,13 @@
+"""Analyse du fichier de scraping fusionne avant nettoyage C3.
+
+Ce script aide a voir l'etat des donnees avant de passer au master puis au
+golden : colonnes, valeurs manquantes, doublons et statistiques.
+"""
+
 import pandas as pd
 
 
-# CHARGEMENT DU FICHIER
+# Chargement du fichier obtenu apres fusion des sources de scraping.
 df = pd.read_csv("data/processed/annonces_scraping_fusionnees.csv")
 
 
@@ -29,7 +35,7 @@ print(df.isnull().sum())
 print("\n========== VALEURS 'NON DISPONIBLE' ==========\n")
 
 for colonne in df.columns:
-    
+    # Chaque source peut ecrire les valeurs manquantes differemment.
     nb_non_disponible = (
         df[colonne]
         .astype(str)
@@ -56,6 +62,7 @@ print("\n========== TOTAL VALEURS PROBLÉMATIQUES ==========\n")
 
 for colonne in df.columns:
 
+    # Additionne les vrais vides et les textes du type "non disponible".
     valeurs_vides = df[colonne].isnull().sum()
 
     non_disponible = (

@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Routes API C17 pour exposer les annonces immobilieres nettoyees.
+
+Les donnees viennent surtout de la table golden_data_scraping.
+"""
+
 from typing import Optional
 
 import pandas as pd
@@ -23,6 +28,7 @@ def _where_annonces(
     nombre_pieces: Optional[int],
     source: Optional[str],
 ) -> tuple[str, dict[str, float | int | str]]:
+    """Prepare les filtres communs aux routes d'annonces."""
     return construire_where_scraping(
         arrondissement=arrondissement,
         surface_min=surface_min,
@@ -34,6 +40,8 @@ def _where_annonces(
 
 @router.get("/scraping/filtres")
 def get_filtres_scraping(_: None = Depends(verifier_cle_api)) -> dict:
+    """Retourne les filtres possibles pour les annonces."""
+    # C17 : ces filtres alimentent la page "Appartements a vendre".
     stats = lire_sql(
         """
         SELECT
@@ -75,10 +83,13 @@ def get_annonces_scraping(
     limit: int = Query(30, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ) -> dict:
+    """Retourne une page d'annonces avec filtres et pagination."""
+    # C17 : la pagination evite d'envoyer toutes les annonces d'un coup.
     where, params = _where_annonces(
         arrondissement, surface_min, surface_max, nombre_pieces, source
     )
     nombre_total = int(
+        # On compte d'abord le total pour aider le frontend a paginer.
         lire_sql(
             f"""
             SELECT COUNT(*)::INTEGER AS nombre_total
@@ -127,6 +138,7 @@ def resume_scraping(
     nombre_pieces: Optional[int] = None,
     source: Optional[str] = None,
 ) -> dict:
+    """Retourne les indicateurs principaux des annonces."""
     where, params = _where_annonces(
         arrondissement, surface_min, surface_max, nombre_pieces, source
     )
@@ -154,6 +166,7 @@ def stats_scraping_arrondissement(
     nombre_pieces: Optional[int] = None,
     source: Optional[str] = None,
 ) -> list[dict]:
+    """Regroupe les annonces par arrondissement."""
     where, params = _where_annonces(
         arrondissement, surface_min, surface_max, nombre_pieces, source
     )
@@ -183,6 +196,7 @@ def stats_scraping_source(
     nombre_pieces: Optional[int] = None,
     source: Optional[str] = None,
 ) -> list[dict]:
+    """Regroupe les annonces par source de scraping."""
     where, params = _where_annonces(
         arrondissement, surface_min, surface_max, nombre_pieces, source
     )
@@ -212,6 +226,7 @@ def distribution_scraping(
     nombre_pieces: Optional[int] = None,
     source: Optional[str] = None,
 ) -> list[dict]:
+    """Construit des tranches de prix pour afficher une distribution."""
     where, params = _where_annonces(
         arrondissement, surface_min, surface_max, nombre_pieces, source
     )
@@ -250,6 +265,8 @@ def comparaison_scraping_dvf_2025(
     nombre_pieces: Optional[int] = None,
     source: Optional[str] = None,
 ) -> list[dict]:
+    """Compare le prix au m2 des annonces avec les ventes DVF 2025."""
+    # C17 : cette route prepare les donnees deja comparees pour le graphique.
     where_scraping, params_scraping = _where_annonces(
         arrondissement, surface_min, surface_max, nombre_pieces, source
     )

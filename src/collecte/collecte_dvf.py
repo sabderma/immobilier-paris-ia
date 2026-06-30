@@ -1,3 +1,10 @@
+"""Collecte ou verification des fichiers DVF publics de Paris.
+
+Le script telecharge les CSV compresses de data.gouv.fr, les decompresse, puis
+verifie que les colonnes importantes sont presentes. C'est la preuve C1 pour la
+source "fichier de donnees".
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -36,6 +43,8 @@ EXPECTED_COLUMNS = {
 
 @dataclass
 class DvfResult:
+    """Resume le resultat de collecte ou verification pour une annee DVF."""
+
     annee: int
     fichier: str
     source_url: str
@@ -47,6 +56,8 @@ class DvfResult:
 
 
 def afficher_chemin(path: Path) -> str:
+    """Affiche un chemin relatif au projet quand c'est possible."""
+
     try:
         return str(path.relative_to(ROOT_DIR))
     except ValueError:
@@ -54,21 +65,29 @@ def afficher_chemin(path: Path) -> str:
 
 
 def maintenant_iso() -> str:
+    """Retourne une date ISO pour dater le rapport DVF."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
 def compter_lignes(path: Path) -> int:
+    """Compte les lignes utiles du CSV, sans compter l'en-tete."""
+
     with path.open("r", encoding="utf-8", errors="replace") as file:
         return max(sum(1 for _line in file) - 1, 0)
 
 
 def verifier_colonnes(path: Path) -> bool:
+    """Verifie que le CSV contient les colonnes attendues par le projet."""
+
     with path.open("r", encoding="utf-8", errors="replace") as file:
         header = file.readline().strip().split(",")
     return EXPECTED_COLUMNS.issubset(set(header))
 
 
 def telecharger_csv_gzip(url: str, output_path: Path, timeout: float) -> None:
+    """Telecharge un fichier CSV gzip puis l'ecrit en CSV normal."""
+
     response = requests.get(url, stream=True, timeout=(3.0, timeout))
     response.raise_for_status()
 
@@ -90,10 +109,13 @@ def traiter_annee(
     force: bool,
     dry_run: bool,
 ) -> DvfResult:
+    """Collecte ou verifie le fichier DVF pour une annee donnee."""
+
     output_path = output_dir / f"{department}-{annee}.csv"
     source_url = GEO_DVF_URL_TEMPLATE.format(year=annee, department=department)
 
     if output_path.exists() and not force:
+        # Si le fichier est deja la, on le controle au lieu de le telecharger.
         lignes = compter_lignes(output_path)
         colonnes_ok = verifier_colonnes(output_path)
         statut = "ok" if lignes > 0 and colonnes_ok else "erreur"
@@ -110,6 +132,7 @@ def traiter_annee(
         )
 
     if dry_run:
+        # Simulation utile pour montrer les URLs sans faire d'appel reseau.
         return DvfResult(
             annee=annee,
             fichier=afficher_chemin(output_path),
@@ -138,6 +161,8 @@ def traiter_annee(
 
 
 def ecrire_rapport(resultats: list[DvfResult], report_path: Path) -> None:
+    """Ecrit un rapport JSON avec le statut des fichiers DVF."""
+
     report_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "genere_le": maintenant_iso(),
@@ -158,6 +183,8 @@ def ecrire_rapport(resultats: list[DvfResult], report_path: Path) -> None:
 
 
 def construire_parser() -> argparse.ArgumentParser:
+    """Prepare les options de ligne de commande pour la collecte DVF."""
+
     parser = argparse.ArgumentParser(
         description="Collecte ou verifie les fichiers bruts Geo-DVF de Paris.",
     )
@@ -205,6 +232,8 @@ def construire_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Point d'entree du script DVF."""
+
     args = construire_parser().parse_args()
     resultats = [
         traiter_annee(

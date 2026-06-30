@@ -1,3 +1,9 @@
+"""Prepare un fichier local de secours depuis la collecte API commerces.
+
+La collecte brute reste dans `data/raw/api/`. Ce script lit ce brut, extrait les
+resultats utilisables et fabrique un JSON final pour l'application.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -13,10 +19,14 @@ DEFAULT_OUTPUT_PATH = ROOT_DIR / "data/final/commerces_paris_secours.json"
 
 
 def maintenant_iso() -> str:
+    """Retourne la date de generation du snapshot de secours."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
 def charger_resultats_api(input_path: Path) -> list[dict[str, Any]]:
+    """Lit le JSON brut de l'API et recupere la liste des resultats."""
+
     payload = json.loads(input_path.read_text(encoding="utf-8"))
 
     if not isinstance(payload, dict):
@@ -43,6 +53,8 @@ def construire_snapshot(
     *,
     input_path: Path,
 ) -> dict[str, Any]:
+    """Construit le JSON final avec la source et le nombre de resultats."""
+
     return {
         "source": "Snapshot local de secours genere depuis Open Data Ile-de-France",
         "genere_le": maintenant_iso(),
@@ -53,6 +65,8 @@ def construire_snapshot(
 
 
 def ecrire_json_atomique(output_path: Path, payload: dict[str, Any]) -> None:
+    """Ecrit le JSON via un fichier temporaire pour eviter un fichier coupe."""
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = output_path.with_suffix(f"{output_path.suffix}.tmp")
     tmp_path.write_text(
@@ -63,12 +77,16 @@ def ecrire_json_atomique(output_path: Path, payload: dict[str, Any]) -> None:
 
 
 def preparer_snapshot_secours(input_path: Path, output_path: Path) -> None:
+    """Transforme la collecte API brute en snapshot local utilisable."""
+
     resultats = charger_resultats_api(input_path)
     snapshot = construire_snapshot(resultats, input_path=input_path)
     ecrire_json_atomique(output_path, snapshot)
 
 
 def construire_parser() -> argparse.ArgumentParser:
+    """Declare les options pour choisir les fichiers d'entree et sortie."""
+
     parser = argparse.ArgumentParser(
         description=(
             "Prepare le snapshot final de secours des commerces depuis la "
@@ -91,6 +109,8 @@ def construire_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Point d'entree du script de preparation du snapshot."""
+
     args = construire_parser().parse_args()
     preparer_snapshot_secours(args.input, args.output)
     print(f"Snapshot commerces de secours genere: {args.output}")

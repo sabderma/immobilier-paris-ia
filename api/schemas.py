@@ -1,3 +1,8 @@
+"""Schemas Pydantic utiles aux routes API developpees en C17.
+
+Ils definissent ce que le client doit envoyer et ce que l'API retourne.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,6 +17,8 @@ NOMBRE_PIECES_MAX = 12
 
 
 class PredictionPrixRequest(BaseModel):
+    """Donnees autorisees en entree pour appeler le modele."""
+
     surface: float = Field(
         ge=SURFACE_MIN_M2,
         le=SURFACE_MAX_M2,
@@ -26,6 +33,8 @@ class PredictionPrixRequest(BaseModel):
 
 
 class PredictionPrixResponse(BaseModel):
+    """Reponse JSON renvoyee apres l'execution du modele."""
+
     surface: float
     nombre_pieces: int
     arrondissement: int
@@ -37,6 +46,8 @@ class PredictionPrixResponse(BaseModel):
 
 
 class PredictionHistoriqueResponse(BaseModel):
+    """Format renvoye pour une prediction sauvegardee."""
+
     id: int
     user_id: int
     surface: float
@@ -47,6 +58,8 @@ class PredictionHistoriqueResponse(BaseModel):
 
 
 class AdresseHistoriqueResponse(BaseModel):
+    """Format renvoye pour une adresse sauvegardee."""
+
     id: int
     user_id: int
     address: str
@@ -56,4 +69,6 @@ class AdresseHistoriqueResponse(BaseModel):
 
 
 class AdresseGeocodageRequest(BaseModel):
+    """Adresse saisie par l'utilisateur depuis l'interface."""
+
     adresse: str = Field(min_length=3, max_length=200, description="Adresse exacte")

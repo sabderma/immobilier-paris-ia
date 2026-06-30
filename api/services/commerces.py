@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Service C17 utilise par l'API pour retourner les commerces par arrondissement.
+
+Le service essaye l'open data, puis un cache, puis un fichier local de secours.
+"""
+
 import json
 import logging
 import os
@@ -35,6 +40,7 @@ SCORE_MAXIMUM_ARRONDISSEMENT = 10.0
 
 
 def lire_float_env(nom: str, valeur_defaut: float) -> float:
+    """Lit un nombre decimal depuis les variables d'environnement."""
     try:
         return float(os.getenv(nom, str(valeur_defaut)))
     except ValueError:
@@ -71,6 +77,7 @@ _CACHE_COMMERCES_EXPIRE_AT = 0.0
 
 
 def valeur_entier(donnees: dict[str, Any], champ: str) -> int:
+    """Convertit une valeur commerce en entier utilisable."""
     valeur = donnees.get(champ)
     if valeur is None or pd.isna(valeur):
         return 0
@@ -78,6 +85,7 @@ def valeur_entier(donnees: dict[str, Any], champ: str) -> int:
 
 
 def densite_pour_10000(nombre: int, population: int) -> float | None:
+    """Calcule une densite pour comparer les arrondissements."""
     return round(nombre / population * 10000, 1) if population else None
 
 
@@ -113,6 +121,8 @@ def nom_arrondissement(donnees: dict[str, Any]) -> str:
 
 
 def normaliser_commerce_arrondissement(donnees: dict[str, Any]) -> dict[str, Any]:
+    """Transforme une ligne brute open data en reponse API plus simple."""
+    # C17 : on transforme les colonnes brutes en indicateurs lisibles par l'interface.
     departement_commune = int(donnees["departement_commune"])
     population = valeur_entier(donnees, "population_2010")
     total_commerces = sum(valeur_entier(donnees, champ) for champ in CHAMPS_COMMERCES)
@@ -254,6 +264,7 @@ def charger_snapshot_local_commerces() -> list[dict[str, Any]]:
 
 
 def recuperer_resultats_commerces() -> tuple[list[dict[str, Any]], str]:
+    """Recupere les donnees commerces depuis la meilleure source disponible."""
     try:
         response = requests.get(
             COMMERCES_PARIS_API_URL,
@@ -283,6 +294,7 @@ def recuperer_resultats_commerces() -> tuple[list[dict[str, Any]], str]:
 
     resultats_cache = charger_cache_disque_commerces()
     if resultats_cache:
+        # Si l'API externe ne repond pas, le cache evite de tout bloquer.
         return resultats_cache, "cache_local"
 
     resultats_fallback = charger_snapshot_local_commerces()
@@ -300,6 +312,7 @@ def normaliser_liste_commerces(
     resultats: list[dict[str, Any]],
     source_donnees: str,
 ) -> tuple[dict[str, Any], ...]:
+    """Nettoie la liste commerces et ajoute des scores simples par arrondissement."""
     commerces = [
         normaliser_commerce_arrondissement(resultat)
         for resultat in resultats
@@ -332,6 +345,7 @@ def normaliser_liste_commerces(
 
 
 def charger_commerces_paris() -> tuple[dict[str, Any], ...]:
+    """Charge les commerces et garde le resultat en memoire quelques minutes."""
     global _CACHE_COMMERCES, _CACHE_COMMERCES_EXPIRE_AT
 
     if _CACHE_COMMERCES is not None and time.monotonic() < _CACHE_COMMERCES_EXPIRE_AT:

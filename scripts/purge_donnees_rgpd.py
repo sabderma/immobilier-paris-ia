@@ -17,6 +17,7 @@ from api.core import construire_engine  # noqa: E402
 DEFAULT_REPORT_PATH = ROOT_DIR / "data/raw/collecte/rapport_purge_rgpd.json"
 
 
+# Tables contenant des historiques utilisateur a purger selon une duree.
 TABLES_PURGE = {
     "adresses_exactes": {
         "table": "exact_address_history",
@@ -32,6 +33,8 @@ TABLES_PURGE = {
 
 
 def masquer_texte(valeur: Any, longueur_visible: int = 8) -> str | None:
+    """Masque une valeur sensible pour l'afficher sans montrer tout le texte."""
+
     if valeur is None:
         return None
     texte = str(valeur)
@@ -41,6 +44,8 @@ def masquer_texte(valeur: Any, longueur_visible: int = 8) -> str | None:
 
 
 def construire_select_apercu(table: str, date_column: str) -> str:
+    """Construit la requete SQL qui liste quelques lignes avant purge."""
+
     if table == "exact_address_history":
         return f"""
             SELECT
@@ -72,6 +77,8 @@ def construire_select_apercu(table: str, date_column: str) -> str:
 
 
 def normaliser_apercu(table: str, lignes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Prepare les lignes d'apercu pour le rapport JSON RGPD."""
+
     apercu = []
     for ligne in lignes:
         item = dict(ligne)
@@ -93,6 +100,8 @@ def lister_apercu_a_purger(
     cutoff: datetime,
     limit: int,
 ) -> list[dict[str, Any]]:
+    """Retourne quelques exemples de lignes qui seraient purgees."""
+
     lignes = connexion.execute(
         text(construire_select_apercu(table, date_column)),
         {"cutoff": cutoff, "limit": limit},
@@ -101,6 +110,8 @@ def lister_apercu_a_purger(
 
 
 def compter_lignes_a_purger(connexion, table: str, date_column: str, cutoff: datetime) -> int:
+    """Compte les lignes plus anciennes que la date limite de conservation."""
+
     resultat = connexion.execute(
         text(
             f"""
@@ -115,6 +126,8 @@ def compter_lignes_a_purger(connexion, table: str, date_column: str, cutoff: dat
 
 
 def supprimer_lignes(connexion, table: str, date_column: str, cutoff: datetime) -> int:
+    """Supprime les lignes plus anciennes que la date limite de conservation."""
+
     resultat = connexion.execute(
         text(
             f"""
@@ -135,6 +148,8 @@ def purger_donnees(
     preview_limit: int,
     execute: bool,
 ) -> dict[str, Any]:
+    """Simule ou execute la purge RGPD et retourne un rapport detaille."""
+
     engine = construire_engine(database_url)
     maintenant = datetime.now(timezone.utc)
     regles = {
@@ -166,6 +181,7 @@ def purger_donnees(
                 preview_limit,
             )
             lignes_supprimees = (
+                # Sans --execute, aucune suppression reelle n'est faite.
                 supprimer_lignes(
                     connexion,
                     config["table"],
@@ -192,6 +208,8 @@ def purger_donnees(
 
 
 def ecrire_rapport(rapport: dict[str, Any], report_path: Path) -> None:
+    """Ecrit le rapport de purge RGPD en JSON."""
+
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(
         json.dumps(rapport, indent=2, ensure_ascii=False),
@@ -200,6 +218,8 @@ def ecrire_rapport(rapport: dict[str, Any], report_path: Path) -> None:
 
 
 def construire_parser() -> argparse.ArgumentParser:
+    """Prepare les options de ligne de commande de la purge RGPD."""
+
     parser = argparse.ArgumentParser(
         description=(
             "Simule ou execute la purge RGPD des historiques utilisateur "
@@ -244,6 +264,8 @@ def construire_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Point d'entree du script de purge."""
+
     args = construire_parser().parse_args()
     rapport = purger_donnees(
         database_url=args.database_url,

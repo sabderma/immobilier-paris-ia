@@ -1,3 +1,9 @@
+"""Scraper des annonces Stephane Plaza Immobilier pour Paris.
+
+Le script charge toutes les annonces disponibles via le scroll, extrait les
+informations visibles, puis les ecrit dans un fichier CSV brut.
+"""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -12,6 +18,7 @@ options = Options()
 options.add_argument("--detach")    
 driver = webdriver.Chrome(options=options)
 
+# Page cible : achats appartement/maison dans le departement Paris.
 url = "https://www.stephaneplazaimmobilier.com/acheter/departement/paris_75/appartement,maison/"
 driver.get(url)
 
@@ -48,6 +55,7 @@ with open("data/raw/scraping/annonces_plaza_paris.csv", "w", newline="", encodin
     print(f"\nTotal final : {len(cards)} cartes à parser\n")
 
     for i, card in enumerate(cards, 1):
+        # Les champs commencent en "non disponible" si le site ne donne pas la valeur.
         type_bien = "non disponible"
         prix = "non disponible"
         surface = "non disponible"

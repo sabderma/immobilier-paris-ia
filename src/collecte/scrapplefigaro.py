@@ -1,3 +1,9 @@
+"""Scraper des annonces immobilieres Le Figaro pour Paris.
+
+Le script gere le bandeau cookies, lit chaque carte d'annonce, extrait prix,
+surface, pieces et localisation, puis passe aux pages suivantes.
+"""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -13,6 +19,7 @@ options = Options()
 options.add_argument("--detach")
 driver = webdriver.Chrome(options=options)
 
+# Page cible : annonces de vente maison/appartement a Paris.
 URL = "https://immobilier.lefigaro.fr/annonces/immobilier-vente-maison-paris.html?types=villa,chalet,appartement,duplex"
 driver.get(URL)
 time.sleep(3)
@@ -95,6 +102,7 @@ with open("data/raw/scraping/annonces_lefigaro_paris.csv", "w", newline="", enco
         print(f"{len(cards)} annonces trouvées.")
 
         for i, card in enumerate(cards, 1):
+            # Donnees par defaut, remplacees si les selecteurs trouvent une valeur.
             type_bien = "non disponible"
             prix = "non disponible"
             prix_m2 = "non disponible"

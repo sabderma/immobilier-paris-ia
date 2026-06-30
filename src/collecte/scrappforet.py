@@ -1,3 +1,9 @@
+"""Scraper des annonces immobilieres La Foret pour Paris.
+
+Ce fichier charge la page de recherche, descend jusqu'en bas pour afficher les
+annonces, puis extrait les champs utiles dans un CSV brut.
+"""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -11,6 +17,7 @@ options = Options()
 options.add_argument("--detach")
 driver = webdriver.Chrome(options=options)
 
+# URL de recherche La Foret pour maisons et appartements sur Paris.
 URL = "https://www.laforet.com/acheter/rechercher?filter%5Btypes%5D%5B%5D=house&filter%5Btypes%5D%5B%5D=apartment&filter%5Bcities%5D%5B%5D=&filter%5Bcities%5D%5B%5D=75056&filter%5Barea%5D=&filter%5Bmin%5D=&filter%5Bmax%5D=&filter%5Bsurface%5D=0"
 driver.get(URL)
 
@@ -51,6 +58,7 @@ with open("data/raw/scraping/annonces_laforet_paris_complet.csv", "w", newline="
     w.writerow(["type", "prix", "surface", "nb_pieces", "localisation", "details"])
 
     for i, card in enumerate(cards, 1):
+        # Chaque champ est initialise pour garder une ligne CSV meme si le site manque une info.
         type_bien = "non disponible"
         prix = "non disponible"
         surface = "non disponible"

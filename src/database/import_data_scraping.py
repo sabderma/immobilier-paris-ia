@@ -1,3 +1,10 @@
+"""Import des donnees scraping dans PostgreSQL pour la competence C4.
+
+Ce script prend les fichiers CSV source, master et golden, puis les ajoute dans
+les tables PostgreSQL correspondantes. Il sert quand je veux importer depuis
+Python au lieu de passer par Docker ou DBeaver.
+"""
+
 import pandas as pd
 
 from db_config import construire_engine
@@ -16,6 +23,7 @@ df_source = pd.read_csv(
     "data/processed/annonces_scraping_fusionnees.csv"
 )
 
+# Import des annonces fusionnees dans la table source.
 df_source.to_sql(
     "source_data_scraping",
     engine,
@@ -36,6 +44,7 @@ df_master = pd.read_csv(
     sep=";"
 )
 
+# Import des annonces apres premier nettoyage dans la table master.
 df_master.to_sql(
     "master_data_scraping",
     engine,
@@ -58,6 +67,7 @@ df_golden = pd.read_csv(
     "data/final/annonces_scraping_nettoyees_golden.csv"
 )
 
+# Import des annonces finales propres dans la table golden.
 df_golden.to_sql(
     "golden_data_scraping",
     engine,

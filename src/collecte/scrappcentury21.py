@@ -1,3 +1,9 @@
+"""Scraper des annonces immobilieres Century 21 pour Paris.
+
+Ce script automatise la navigation avec Selenium, recupere les annonces page par
+page et sauvegarde les donnees brutes dans un CSV.
+"""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,6 +16,7 @@ options = Options()
 options.add_argument("--detach")
 driver = webdriver.Chrome(options=options)
 
+# Page de recherche Century 21 pour achats maison/appartement a Paris.
 url = "https://www.century21.fr/annonces/f/achat-maison-appartement/v-paris/"
 driver.get(url)
 
@@ -34,6 +41,7 @@ with open("data/raw/scraping/annonces_century21_paris.csv", "w", newline="", enc
         print(f"{len(cards)} annonces trouvées sur cette page.\n")
 
         for i, card in enumerate(cards, 1):
+            # Valeurs par defaut pour garder une structure CSV stable.
             type_bien = "non disponible"
             prix = "non disponible"
             surface = "non disponible"

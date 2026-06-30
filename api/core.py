@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+"""Fonctions communes utilisees par les routes de l'API REST en C17.
+
+Ce fichier centralise la connexion PostgreSQL, la lecture SQL, les filtres des
+routes et la verification de la cle API.
+"""
+
 import os
 from hmac import compare_digest
 from pathlib import Path
@@ -24,6 +30,7 @@ COMMERCES_PARIS_API_URL = (
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
+# Liste des colonnes commerces gardees pour construire la reponse API.
 CHAMPS_COMMERCES = [
     "hypermarche",
     "supermarche",
@@ -72,6 +79,7 @@ def construire_engine(database_url: str | None = None) -> Engine:
 
     database_url = database_url or os.getenv("DATABASE_URL")
     if database_url:
+        # pool_pre_ping evite de garder une connexion morte trop longtemps.
         options: dict[str, object] = {"pool_pre_ping": True}
         if database_url.startswith(("postgresql://", "postgresql+psycopg2://")):
             options["connect_args"] = {
@@ -120,6 +128,7 @@ def construire_where_dvf(
     max_lon: float | None = None,
 ) -> tuple[str, dict[str, float | int | str]]:
     """Construit la clause WHERE SQL commune aux routes DVF."""
+    # On part de 1=1 pour pouvoir ajouter facilement les filtres ensuite.
     conditions = ["1=1"]
     params: dict[str, float | int | str] = {}
     filtres = {
@@ -146,6 +155,7 @@ def construire_where_dvf(
     }
     for nom, (condition, valeur) in filtres.items():
         if valeur is not None:
+            # Les valeurs vont dans params, donc elles ne sont pas collees dans le SQL.
             conditions.append(condition)
             params[nom] = valeur
     return " AND ".join(conditions), params
@@ -160,6 +170,7 @@ def construire_where_scraping(
     source: str | None = None,
 ) -> tuple[str, dict[str, float | int | str]]:
     """Construit la clause WHERE commune aux annonces de la table golden."""
+    # Meme logique que pour DVF, mais avec les colonnes de la table scraping.
     conditions = ["1=1"]
     params: dict[str, float | int | str] = {}
     filtres = {
@@ -181,6 +192,7 @@ def construire_where_scraping(
 
 def lire_sql(query: str, params: dict | None = None) -> pd.DataFrame:
     """Exécute une requête SQL et retourne un DataFrame pandas."""
+    # C17 : toutes les routes peuvent reutiliser cette fonction pour lire PostgreSQL.
     return pd.read_sql(text(query), engine, params=params or {})
 
 
@@ -195,12 +207,14 @@ def verifier_cle_api(api_key: Optional[str] = Depends(api_key_header)) -> None:
         )
 
     if not api_key:
+        # C17 : sans cle API, le client ne peut pas acceder aux routes protegees.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Clé API manquante",
         )
 
     if not compare_digest(api_key, api_key_attendue):
+        # compare_digest compare la cle de facon plus propre qu'un simple ==.
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Clé API invalide",

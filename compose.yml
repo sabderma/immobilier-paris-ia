@@ -1,5 +1,6 @@
 services:
   database:
+    # C19 : base PostgreSQL lancee en local avec Docker Compose.
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -7,12 +8,16 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
+      # DBeaver se connecte sur localhost:5434.
       - "5434:5432"
     volumes:
+      # Volume persistant de PostgreSQL.
       - postgres_data:/var/lib/postgresql/data
+      # Scripts executes automatiquement a la premiere creation de la base.
       - ./sql/creation_tables.sql:/docker-entrypoint-initdb.d/01-creation-tables.sql:ro
       - ./sql/import_dvf_docker.sql:/docker-entrypoint-initdb.d/02-import-dvf.sql:ro
       - ./sql/creation_tables_utilisateurs.sql:/docker-entrypoint-initdb.d/03-creation-tables-utilisateurs.sql:ro
+      # CSV montes dans le conteneur pour l'import initial.
       - ./data/final/dvf_paris_clean_2021_2025.csv:/docker-entrypoint-initdb.d/dvf.csv:ro
       - ./data/final/annonces_scraping_nettoyees_golden.csv:/docker-entrypoint-initdb.d/scraping.csv:ro
     healthcheck:
@@ -22,6 +27,7 @@ services:
       retries: 10
 
   api:
+    # C19 : en local, Docker construit l'image API depuis Dockerfile.api.
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -40,12 +46,14 @@ services:
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
       SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
     ports:
+      # L'API est disponible sur http://localhost:8002.
       - "8002:8000"
     depends_on:
       database:
         condition: service_healthy
 
   streamlit:
+    # C19 : en local, Docker construit aussi l'interface Streamlit.
     build:
       context: .
       dockerfile: Dockerfile.streamlit
@@ -54,11 +62,13 @@ services:
       API_BASE_URL: http://api:8000
       API_KEY: ${API_KEY}
     ports:
+      # L'interface est disponible sur http://localhost:8501.
       - "8501:8501"
     depends_on:
       - api
 
   prometheus:
+    # C11/C20 : Prometheus collecte les metriques exposees par l'API.
     image: prom/prometheus:latest
     restart: unless-stopped
     command:
@@ -71,10 +81,11 @@ services:
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     depends_on:
-      - api   
+      - api
 
 
   grafana:
+    # C11/C20 : Grafana affiche les dashboards modele IA et application.
     image: grafana/grafana:latest
     restart: unless-stopped
     environment:

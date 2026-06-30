@@ -1,6 +1,7 @@
 apiVersion: 1
 
 datasources:
+  # C20 : Grafana utilise Prometheus comme source de donnees.
   - name: Prometheus
     uid: prometheus
     type: prometheus
@@ -8,4 +9,3 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
-

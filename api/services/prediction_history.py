@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Service C17 pour sauvegarder l'historique des predictions utilisateur."""
+
 from typing import Any
 
 from sqlalchemy import text
@@ -16,6 +18,7 @@ def enregistrer_prediction_utilisateur(
     predicted_price: float,
 ) -> dict[str, Any]:
     """Enregistre une prédiction réalisée par un utilisateur connecté."""
+    # C17 : l'historique permet d'afficher les anciennes predictions dans Streamlit.
     with engine.begin() as connexion:
         prediction = connexion.execute(
             text(
@@ -58,6 +61,7 @@ def enregistrer_prediction_utilisateur(
 
 def lister_predictions_utilisateur(user_id: int) -> list[dict[str, Any]]:
     """Liste les prédictions de l'utilisateur connecté, de la plus récente à l'ancienne."""
+    # C17 : on filtre toujours par user_id pour ne pas melanger les utilisateurs.
     with engine.connect() as connexion:
         predictions = connexion.execute(
             text(
@@ -83,6 +87,7 @@ def lister_predictions_utilisateur(user_id: int) -> list[dict[str, Any]]:
 
 def supprimer_prediction_utilisateur(*, user_id: int, prediction_id: int) -> bool:
     """Supprime une prédiction seulement si elle appartient à l'utilisateur."""
+    # C17 : la condition user_id evite de supprimer la prediction d'un autre compte.
     with engine.begin() as connexion:
         resultat = connexion.execute(
             text(

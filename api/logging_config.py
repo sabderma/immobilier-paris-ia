@@ -43,6 +43,7 @@ def _valeur_json(valeur: Any) -> Any:
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
+        # C20 : les logs JSON sont plus faciles a lire par des outils de monitoring.
         payload: dict[str, Any] = {
             "timestamp": datetime.fromtimestamp(
                 record.created,
@@ -54,6 +55,7 @@ class JsonFormatter(logging.Formatter):
         }
 
         for key, value in record.__dict__.items():
+            # C20 : on evite les champs internes de Python pour garder un log propre.
             if key.startswith("_") or key in _RESERVED_LOG_RECORD_KEYS:
                 continue
             payload[key] = _valeur_json(value)
@@ -69,6 +71,7 @@ def configurer_journalisation() -> None:
     if any(isinstance(handler.formatter, JsonFormatter) for handler in root_logger.handlers):
         return
 
+    # C20 : les logs sortent sur stdout, ce qui marche bien avec Docker.
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter())
     root_logger.handlers = [handler]

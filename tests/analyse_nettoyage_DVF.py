@@ -1,10 +1,18 @@
+"""Analyse des fichiers DVF bruts avant nettoyage C3.
+
+Ce script ne nettoie pas directement. Il sert a comprendre les colonnes, les
+valeurs manquantes, les doublons et les anomalies avant de lancer le nettoyage.
+"""
+
 import pandas as pd
 from pathlib import Path
 
 RAW_DIR = Path("data/raw/DVF")
 
+# Annees DVF controlees avant le nettoyage final.
 annees = [2021, 2022, 2023, 2024, 2025]
 
+# Textes consideres comme des valeurs manquantes dans les fichiers.
 valeurs_problematiques = [
     "non disponible",
     "non renseigne",
@@ -27,6 +35,7 @@ for annee in annees:
 
     df = pd.read_csv(fichier, low_memory=False)
 
+    # Normalise les noms de colonnes pour faciliter les controles.
     df.columns = df.columns.str.lower().str.strip()
 
     print("\n========== INFORMATIONS GÉNÉRALES ==========\n")
@@ -44,6 +53,7 @@ for annee in annees:
 
     print("\n========== VALEURS PROBLÉMATIQUES ==========\n")
     for colonne in df.columns:
+        # Compte les valeurs textuelles qui indiquent un champ inutilisable.
         total = (
             df[colonne]
             .astype(str)
@@ -62,6 +72,7 @@ for annee in annees:
     print("\n========== ANALYSE DVF IMPORTANTE ==========\n")
 
     if "code_departement" in df.columns:
+        # Verifie combien de lignes concernent bien Paris.
         df["code_departement"] = df["code_departement"].astype(str)
         nb_paris = df[df["code_departement"] == "75"].shape[0]
         print("Nombre de lignes pour Paris :", nb_paris)
@@ -75,6 +86,7 @@ for annee in annees:
         print(df["type_local"].value_counts(dropna=False))
 
     if "surface_reelle_bati" in df.columns:
+        # Controle les surfaces pour preparer les seuils du nettoyage.
         surface = pd.to_numeric(df["surface_reelle_bati"], errors="coerce")
 
         print("\nAnalyse surface bâtie :")
@@ -84,6 +96,7 @@ for annee in annees:
         print("Surface maximale :", surface.max())
 
     if "valeur_fonciere" in df.columns:
+        # Controle les prix pour repérer les valeurs nulles ou extremes.
         prix = pd.to_numeric(df["valeur_fonciere"], errors="coerce")
 
         print("\nAnalyse valeur foncière :")

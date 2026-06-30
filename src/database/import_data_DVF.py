@@ -1,3 +1,9 @@
+"""Import du fichier DVF final dans PostgreSQL pour la competence C4.
+
+Ce script charge le CSV DVF nettoye et l'insere dans la table
+`dvf_paris_appartements`.
+"""
+
 import pandas as pd
 
 from db_config import construire_engine
@@ -20,6 +26,7 @@ df_dvf = pd.read_csv(
 # IMPORT DANS POSTGRESQL
 # =========================================
 
+# Ajoute les lignes DVF dans la table PostgreSQL deja creee.
 df_dvf.to_sql(
     "dvf_paris_appartements",
     engine,

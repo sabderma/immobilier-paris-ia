@@ -1,3 +1,9 @@
+"""Pipeline principal pour lancer les collectes de donnees du projet.
+
+Ce fichier sert de point de controle pour la C1 : il liste les sources a
+collecter, lance chaque script, garde les logs, puis produit un rapport JSON.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -16,6 +22,8 @@ DEFAULT_REPORT_PATH = ROOT_DIR / "data/raw/collecte/rapport_execution_collecte.j
 
 @dataclass(frozen=True)
 class CollecteEtape:
+    """Decrit une etape de collecte a executer."""
+
     nom: str
     type_collecte: str
     script: Path
@@ -25,6 +33,8 @@ class CollecteEtape:
 
 @dataclass
 class CollecteResult:
+    """Stocke le resultat obtenu apres l'execution d'une etape."""
+
     nom: str
     type_collecte: str
     script: str
@@ -39,6 +49,7 @@ class CollecteResult:
 
 
 ETAPES_COLLECTE = (
+    # API REST : donnees de commerces issues de l'open data Ile-de-France.
     CollecteEtape(
         "api_commerces",
         "api_rest",
@@ -46,6 +57,7 @@ ETAPES_COLLECTE = (
         ROOT_DIR / "data/raw/api/commerces_paris_open_data.json",
         "json",
     ),
+    # Preparation d'un fichier local de secours a partir de la collecte API.
     CollecteEtape(
         "commerces_secours",
         "preparation",
@@ -53,6 +65,7 @@ ETAPES_COLLECTE = (
         ROOT_DIR / "data/final/commerces_paris_secours.json",
         "json",
     ),
+    # Fichiers publics DVF : ventes immobilieres reelles de Paris.
     CollecteEtape(
         "dvf",
         "fichier_donnees",
@@ -60,6 +73,7 @@ ETAPES_COLLECTE = (
         ROOT_DIR / "data/raw/DVF",
         "csv",
     ),
+    # Scraping de sites immobiliers pour recuperer les annonces en ligne.
     CollecteEtape(
         "orpi",
         "scraping",
@@ -99,6 +113,8 @@ ETAPES_COLLECTE = (
 
 
 def maintenant_iso() -> str:
+    """Retourne la date courante au format ISO pour tracer les executions."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
@@ -106,6 +122,8 @@ def selectionner_scripts(
     seulement: list[str] | None,
     exclure: list[str] | None,
 ) -> list[CollecteEtape]:
+    """Filtre les scripts a lancer selon les options --only et --skip."""
+
     noms_connus = {script.nom for script in ETAPES_COLLECTE}
     seulement_set = set(seulement or noms_connus)
     exclure_set = set(exclure or [])
@@ -129,11 +147,14 @@ def executer_script(
     log_dir: Path,
     dry_run: bool,
 ) -> CollecteResult:
+    """Execute un script de collecte et enregistre sa sortie dans un log."""
+
     debut_dt = datetime.now(timezone.utc)
     debut = debut_dt.isoformat()
     log_path = log_dir / f"{debut_dt.strftime('%Y%m%d_%H%M%S')}_{script.nom}.log"
 
     if dry_run:
+        # En dry-run on simule seulement l'execution pour verifier le pipeline.
         fin_dt = datetime.now(timezone.utc)
         return CollecteResult(
             nom=script.nom,
@@ -187,6 +208,8 @@ def ecrire_rapport(
     report_path: Path,
     dry_run: bool,
 ) -> None:
+    """Ecrit un rapport JSON avec le statut de toutes les collectes lancees."""
+
     report_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "genere_le": maintenant_iso(),
@@ -217,6 +240,8 @@ def ecrire_rapport(
 
 
 def construire_parser() -> argparse.ArgumentParser:
+    """Prepare les options de ligne de commande du pipeline."""
+
     parser = argparse.ArgumentParser(
         description="Lance les collectes de donnees du projet immobilier Paris IA.",
     )
@@ -263,6 +288,8 @@ def construire_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Point d'entree : selectionne les scripts, les lance et ecrit le rapport."""
+
     parser = construire_parser()
     args = parser.parse_args()
 

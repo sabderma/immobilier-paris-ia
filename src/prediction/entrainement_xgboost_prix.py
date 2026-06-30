@@ -1,3 +1,13 @@
+"""Entrainement du modele XGBoost retenu apres le benchmark C7.
+
+Ce fichier sert a creer le modele final utilise par l'application. Le benchmark
+a choisi XGBoost, donc ici on l'entraine puis on sauvegarde le modele et ses
+metriques.
+
+Pour C12, ce fichier est verifie par les tests automatises du modele.
+Pour C13, GitHub Actions lance aussi ce fichier pour produire un nouveau modele.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -28,9 +38,11 @@ TARGET = "valeur_fonciere"
 
 
 def charger_donnees(input_csv=INPUT_CSV):
+    """Charge les donnees DVF et supprime les lignes qui faussent le modele."""
     df = pd.read_csv(input_csv, low_memory=False)
     df.columns = df.columns.str.lower().str.strip()
 
+    # C12 : seules les colonnes utiles au modele sont gardees pour le test.
     colonnes = FEATURES + [TARGET]
     df = df[colonnes].copy()
 
@@ -38,6 +50,7 @@ def charger_donnees(input_csv=INPUT_CSV):
         df[colonne] = pd.to_numeric(df[colonne], errors="coerce")
 
     df = df.dropna()
+    # Les valeurs impossibles sont retirees avant l'entrainement.
     df = df[
         (df["surface_reelle_bati"] > 0)
         & (df["nombre_pieces_principales"] > 0)
@@ -52,6 +65,7 @@ def charger_donnees(input_csv=INPUT_CSV):
 
 
 def construire_modele():
+    """Construit le pipeline complet : preparation des colonnes + XGBoost."""
     preprocesseur = ColumnTransformer(
         transformers=[
             ("numerique", "passthrough", FEATURES_NUMERIQUES),
@@ -63,6 +77,7 @@ def construire_modele():
         ]
     )
 
+    # XGBoost est garde car il a gagne le benchmark contre Random Forest.
     modele = XGBRegressor(
         objective="reg:squarederror",
         n_estimators=300,
@@ -89,6 +104,8 @@ def entrainer_xgboost(
     test_size=0.2,
     random_state=42,
 ):
+    """Entraine XGBoost, calcule les metriques et sauvegarde les fichiers."""
+    # C13 : dans GitHub Actions, cette fonction recree le modele livre.
     x, y = charger_donnees(input_csv)
     x_train, x_test, y_train, y_test = train_test_split(
         x,
@@ -102,6 +119,7 @@ def entrainer_xgboost(
 
     predictions = pipeline.predict(x_test)
 
+    # C12 : ces metriques servent de controle automatique de qualite.
     mae = mean_absolute_error(y_test, predictions)
     mse = mean_squared_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
@@ -123,6 +141,7 @@ def entrainer_xgboost(
 
     output_model = Path(output_model)
     output_model.parent.mkdir(parents=True, exist_ok=True)
+    # Le fichier .joblib est ensuite recharge dans les tests C12 et livre en C13.
     joblib.dump(pipeline, output_model)
 
     output_metrics = Path(output_metrics)
@@ -136,6 +155,8 @@ def entrainer_xgboost(
 
 
 def predire_prix(modele, surface, nombre_pieces, arrondissement):
+    """Teste rapidement une prediction avec le modele deja entraine."""
+    # Meme format que les donnees d'entrainement, sinon le modele refuse.
     donnees = pd.DataFrame(
         [
             {
@@ -149,6 +170,7 @@ def predire_prix(modele, surface, nombre_pieces, arrondissement):
 
 
 def main():
+    """Permet de lancer l'entrainement depuis le terminal."""
     parser = argparse.ArgumentParser(
         description="Entraine un XGBoost pour predire directement le prix DVF.",
     )

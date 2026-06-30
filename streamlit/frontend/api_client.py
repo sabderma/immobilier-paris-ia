@@ -1,3 +1,9 @@
+"""Client HTTP Streamlit utilise pour integrer l'API FastAPI en C17.
+
+Ce fichier evite de repeter les appels `requests` dans chaque page Streamlit.
+Il ajoute les bons headers et transforme les erreurs API en messages lisibles.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -23,10 +29,12 @@ class ErreurApi(RuntimeError):
 
 
 def tuple_params(params: dict[str, Any]) -> tuple[tuple[str, Any], ...]:
+    """Transforme les filtres en tuple stable pour le cache Streamlit."""
     return tuple(sorted((k, v) for k, v in params.items() if v is not None))
 
 
 def _headers_api() -> dict[str, str]:
+    """Ajoute la cle API et le token utilisateur si l'utilisateur est connecte."""
     headers = headers_api()
     token = st.session_state.get("auth_token")
     if token:
@@ -47,6 +55,7 @@ def _message_validation(detail: list[Any]) -> str:
 
 
 def _message_erreur_api(response: requests.Response) -> str:
+    """Recupere le message d'erreur renvoye par FastAPI."""
     try:
         detail = response.json().get("detail")
     except ValueError:
@@ -78,6 +87,7 @@ def api_get_json(
     *,
     arreter_sur_erreur: bool = True,
 ) -> Any:
+    """Appelle une route GET JSON de FastAPI."""
     try:
         response = requests.get(
             f"{API_BASE_URL}{path}",
@@ -110,6 +120,7 @@ def api_get_csv(
     *,
     arreter_sur_erreur: bool = True,
 ) -> bytes:
+    """Recupere un fichier CSV renvoye par l'API."""
     try:
         response = requests.get(
             f"{API_BASE_URL}{path}",
@@ -142,6 +153,7 @@ def api_post_json(
     *,
     arreter_sur_erreur: bool = True,
 ) -> Any:
+    """Envoie un POST JSON a l'API, par exemple prediction ou connexion."""
     try:
         response = requests.post(
             f"{API_BASE_URL}{path}",
@@ -174,6 +186,7 @@ def api_patch_json(
     *,
     arreter_sur_erreur: bool = True,
 ) -> Any:
+    """Envoie une modification partielle vers l'API."""
     try:
         response = requests.patch(
             f"{API_BASE_URL}{path}",
@@ -205,6 +218,7 @@ def api_delete(
     *,
     arreter_sur_erreur: bool = True,
 ) -> None:
+    """Supprime une ressource cote API."""
     try:
         response = requests.delete(
             f"{API_BASE_URL}{path}",
@@ -326,6 +340,7 @@ def charger_commerces_paris() -> pd.DataFrame:
 
 
 def geocoder_adresse(adresse: str) -> dict[str, Any]:
+    """Envoie l'adresse saisie a l'API de geocodage."""
     return api_post_json(
         API_ENDPOINTS["adresse_geocodage"],
         {"adresse": adresse},
@@ -351,6 +366,7 @@ def charger_admin_addresses(limit: int = 100) -> pd.DataFrame:
 
 
 def modifier_role_admin_user(user_id: int, role: str) -> dict[str, Any]:
+    """Demande a l'API de modifier le role d'un utilisateur."""
     return api_patch_json(
         f"{API_ENDPOINTS['admin_users']}/{user_id}/role",
         {"role": role},
@@ -359,6 +375,7 @@ def modifier_role_admin_user(user_id: int, role: str) -> dict[str, Any]:
 
 
 def supprimer_admin_user(user_id: int) -> None:
+    """Demande a l'API de supprimer un utilisateur depuis l'admin."""
     api_delete(
         f"{API_ENDPOINTS['admin_users']}/{user_id}",
         arreter_sur_erreur=False,

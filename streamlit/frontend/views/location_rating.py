@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Vue Streamlit C17 pour analyser une adresse et son environnement."""
+
 from html import escape
 from typing import Any
 
@@ -20,6 +22,7 @@ from frontend.map_view import creer_carte_adresse
 
 
 def supprimer_adresse_historique(address_id: int) -> None:
+    """Supprime une adresse sauvegardee dans l'historique utilisateur."""
     try:
         api_delete(
             f"{API_ENDPOINTS['user_addresses']}/{address_id}",
@@ -76,6 +79,7 @@ def _carte_adresse_historique(ligne: dict[str, Any]) -> str:
 
 
 def afficher_historique_adresses() -> None:
+    """Affiche les adresses exactes deja recherchees par l'utilisateur."""
     with st.container(border=True, key="location_section_history"):
         _entete_section_analyse("Historique de mes adresses exactes")
 
@@ -114,6 +118,7 @@ def afficher_lieux_proches(
     colonnes: list[str],
     libelles: dict[str, str],
 ) -> None:
+    """Affiche les lieux proches dans un tableau simple."""
     if not lieux:
         st.caption("Aucun résultat disponible dans ce rayon.")
         return
@@ -132,6 +137,7 @@ def afficher_lieux_proches(
 
 
 def afficher_resultat_geocodage(resultat: dict[str, Any]) -> None:
+    """Affiche le resultat renvoye par l'API de geocodage."""
     if resultat.get("erreur"):
         st.error(
             resultat.get(
@@ -187,6 +193,7 @@ def afficher_resultat_geocodage(resultat: dict[str, Any]) -> None:
 
     resume_ia = resultat.get("resume_ia") or {}
     if resume_ia.get("texte"):
+        # C17 : le resume OpenAI est affiche dans l'interface quand il existe.
         with st.container(border=True):
             st.markdown("##### Résumé du secteur par OpenAI")
             st.write(resume_ia["texte"])
@@ -235,6 +242,7 @@ def afficher_resultat_arrondissement(
     commerces: pd.DataFrame,
     arrondissement: int,
 ) -> None:
+    """Affiche la note commerce pour un arrondissement."""
     selection = commerces[commerces["arrondissement"].astype(int) == arrondissement]
     if selection.empty:
         st.info("Aucune information disponible pour cet arrondissement.")
@@ -315,6 +323,7 @@ def afficher_resultat_arrondissement(
 
 
 def afficher_noter_endroit() -> None:
+    """Affiche la page complete d'analyse de localisation."""
     st.markdown("### Analyser votre endroit")
 
     commerces = charger_commerces_paris()
@@ -366,6 +375,7 @@ def afficher_noter_endroit() -> None:
         if not adresse_exacte.strip():
             st.error("Renseigne une adresse complète à Paris.")
         else:
+            # C17 : l'adresse est envoyee a l'API seulement apres validation simple.
             with st.spinner("Recherche de l’adresse et des lieux proches..."):
                 resultat_adresse = geocoder_adresse(adresse_exacte.strip())
             st.session_state["resultat_geocodage_adresse"] = resultat_adresse

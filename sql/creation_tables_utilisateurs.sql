@@ -3,6 +3,7 @@
 -- =========================================================
 -- Ce script peut etre execute dans DBeaver sans supprimer les
 -- donnees deja presentes dans les tables DVF et scraping.
+-- Il sert aussi de support pour le document RGPD du bloc 1.
 --
 -- Important : password_hash doit contenir un mot de passe hache
 -- par le backend avec Argon2 ou bcrypt, jamais le mot de passe brut.
@@ -64,6 +65,7 @@ CREATE TABLE IF NOT EXISTS predictions (
         CHECK (predicted_price >= 0)
 );
 
+-- Index pour retrouver rapidement les predictions d'un utilisateur.
 CREATE INDEX IF NOT EXISTS idx_predictions_user_created_at
     ON predictions (user_id, created_at DESC);
 
@@ -85,6 +87,7 @@ CREATE TABLE IF NOT EXISTS exact_address_history (
         CHECK (longitude BETWEEN -180 AND 180)
 );
 
+-- Index pour retrouver rapidement les adresses recentes d'un utilisateur.
 CREATE INDEX IF NOT EXISTS idx_exact_address_user_created_at
     ON exact_address_history (user_id, created_at DESC);
 

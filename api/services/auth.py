@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Service C17 pour gerer les comptes, les mots de passe et les roles."""
+
 from datetime import datetime, timedelta, timezone
 import os
 import re
@@ -121,6 +123,7 @@ def creer_token_acces(utilisateur: dict[str, Any]) -> tuple[str, int]:
 
     expiration_secondes = JWT_EXPIRATION_MINUTES * 60
     maintenant = datetime.now(timezone.utc)
+    # C17 : le token contient juste les infos utiles pour reconnaitre l'utilisateur.
     token = jwt.encode(
         {
             "sub": str(utilisateur["id"]),
@@ -208,6 +211,7 @@ def obtenir_utilisateur_depuis_payload(payload: dict[str, Any]) -> dict[str, Any
         ) from exc
 
     with engine.connect() as connexion:
+        # C17 : on recharge l'utilisateur en base pour verifier qu'il existe encore.
         utilisateur = connexion.execute(
             text(
                 """
@@ -368,6 +372,7 @@ def connecter_utilisateur(*, email: str, password: str) -> dict[str, Any]:
         cle: utilisateur[cle]
         for cle in ["id", "email", "first_name", "last_name", "role", "created_at"]
     }
+    # C17 : le mot de passe ne sort jamais dans la reponse API.
     token, expiration_secondes = creer_token_acces(utilisateur_public)
     return {
         "access_token": token,
@@ -385,6 +390,7 @@ def creer_utilisateur(
     last_name: str | None,
 ) -> dict[str, Any]:
     """Crée un compte utilisateur avec le rôle user imposé côté serveur."""
+    # C17 : le role est impose ici, l'utilisateur ne choisit pas admin.
     params = {
         "email": email,
         "password_hash": hacher_mot_de_passe(password),

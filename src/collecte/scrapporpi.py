@@ -1,3 +1,9 @@
+"""Scraper des annonces immobilieres ORPI pour Paris.
+
+Le script ouvre la page ORPI avec Selenium, parcourt les pages de resultats,
+recupere les informations utiles des annonces, puis ecrit un CSV brut.
+"""
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -12,6 +18,7 @@ options = Options()
 options.add_argument("--detach")
 driver = webdriver.Chrome(options=options)
 
+# Page de recherche ORPI ciblee sur les biens a acheter a Paris.
 url = "https://www.orpi.com/recherche/buy?transaction=buy&realEstateTypes%5B0%5D=maison&realEstateTypes%5B1%5D=appartement&locations%5B0%5D%5Bvalue%5D=paris"
 driver.get(url)
 
@@ -68,6 +75,7 @@ with open("data/raw/scraping/annonces_orpi_paris.csv", "w", newline="", encoding
     writer = csv.writer(file)
     writer.writerow(["type", "prix", "prix_m2", "surface", "nb_pieces", "localisation", "details"])
 
+    # On limite le nombre de pages pour eviter une boucle infinie si le site change.
     page = 1
     while page < 100:
         print(f"\n========== PAGE {page} ==========\n")
@@ -95,6 +103,7 @@ with open("data/raw/scraping/annonces_orpi_paris.csv", "w", newline="", encoding
         print(f"{len(results)} annonces trouvées sur cette page.\n")
 
         for i, result in enumerate(results, 1):
+            # Valeurs par defaut si une information n'est pas trouvee dans la carte.
             type_bien = "non disponible"
             prix = "non disponible"
             prix_m2 = "non disponible"

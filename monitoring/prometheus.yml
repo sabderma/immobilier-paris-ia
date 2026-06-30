@@ -1,9 +1,12 @@
+# C20 : Prometheus recupere les metriques de l'application toutes les 5 secondes.
 global:
   scrape_interval: 5s
 
+# C20 : les alertes de l'application sont chargees depuis ce fichier.
 rule_files:
   - "/etc/prometheus/alerts.yml"
 
+# C20 : Prometheus lit la route /metrics exposee par l'API FastAPI.
 scrape_configs:
   - job_name: "immobilier-paris-api"
     metrics_path: "/metrics"

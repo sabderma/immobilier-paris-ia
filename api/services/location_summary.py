@@ -1,3 +1,10 @@
+"""Service OpenAI utilise par l'application C17 pour le resume d'adresse.
+
+OpenAI n'est pas utilise pour calculer le prix ni pour inventer des donnees.
+Le service sert seulement a rediger un court texte a partir des informations de
+proximite deja calculees par l'application.
+"""
+
 from __future__ import annotations
 
 import json
@@ -33,6 +40,7 @@ def _lieux_proches(
     categorie: str | None = None,
     limite: int = 5,
 ) -> list[dict[str, Any]]:
+    """Garde seulement quelques lieux utiles pour ne pas envoyer trop de donnees."""
     selection = [
         lieu
         for lieu in lieux
@@ -54,6 +62,7 @@ def construire_donnees_resume(
     adresse_normalisee: str,
     proximite: dict[str, Any],
 ) -> dict[str, Any]:
+    """Prepare un petit JSON propre qui sera donne a OpenAI."""
     equipements = proximite.get("equipements") or []
     return {
         "adresse_normalisee": adresse_normalisee,
@@ -73,7 +82,9 @@ def generer_resume_lieu(
     adresse_normalisee: str,
     proximite: dict[str, Any],
 ) -> dict[str, str]:
+    """Appelle OpenAI pour rediger un resume court et controle."""
     charger_env()
+    # Le modele et la cle viennent de l'environnement, pas du code en dur.
     modele = os.getenv("OPENAI_MODEL", MODELE_RESUME_LIEU_PAR_DEFAUT)
     api_key = os.getenv("OPENAI_API_KEY")
     OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model=modele).set(
@@ -82,10 +93,12 @@ def generer_resume_lieu(
     if not api_key:
         return {"erreur": "Le résumé OpenAI n'est pas configuré."}
 
+    # Les donnees envoyees viennent deja de l'application, pas d'une invention IA.
     donnees = construire_donnees_resume(adresse_normalisee, proximite)
     debut = time.perf_counter()
 
     try:
+        # Timeout et retries limitent l'appel si le service OpenAI repond mal.
         client = OpenAI(
             api_key=api_key,
             timeout=TIMEOUT_OPENAI_SECONDES,
@@ -97,6 +110,7 @@ def generer_resume_lieu(
             instructions=INSTRUCTIONS_RESUME_LIEU,
             input=json.dumps(donnees, ensure_ascii=False),
             max_output_tokens=220,
+            # On demande a OpenAI de ne pas stocker cette requete.
             store=False,
         )
         texte = response.output_text.strip()

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+"""Filtres Streamlit utilises par les pages DVF et annonces en C17."""
+
 from typing import Any
 
 import streamlit as st
 
 
 def afficher_filtres(options: dict[str, Any]) -> dict[str, Any]:
+    """Affiche les filtres pour les ventes DVF."""
     col1, col2, col3, col4 = st.columns([1.1, 1.25, 1.4, 1.4])
 
     with col1:
@@ -42,6 +45,7 @@ def afficher_filtres(options: dict[str, Any]) -> dict[str, Any]:
 
 
 def afficher_filtres_annonces(options: dict[str, Any]) -> dict[str, Any] | None:
+    """Affiche les filtres pour les annonces issues du scraping."""
     if options.get("surface_min") is None or options.get("surface_max") is None:
         st.info(
             "Aucune annonce n’est disponible dans la base de données. "

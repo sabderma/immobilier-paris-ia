@@ -1,19 +1,27 @@
+# C19 : ce workflow sert a livrer l'application complete.
+# Il teste le code, valide le modele, construit les images Docker,
+# puis deploie sur le serveur si la livraison est autorisee.
 name: Livraison continue application
 
 on:
+  # A chaque push sur main, la chaine peut tester, publier et deployer.
   push:
     branches:
       - main
+  # Sur une pull request vers main, on teste sans deployer sur le serveur.
   pull_request:
     branches:
       - main
+  # Permet aussi de lancer la chaine a la main depuis GitHub Actions.
   workflow_dispatch:
 
 permissions:
   contents: read
+  # C19 : cette permission permet de publier les images dans GHCR.
   packages: write
 
 env:
+  # Noms utilises pour publier les images Docker dans GitHub Container Registry.
   REGISTRY: ghcr.io
   API_IMAGE_NAME: immobilier-paris-api
   STREAMLIT_IMAGE_NAME: immobilier-paris-streamlit
@@ -31,6 +39,7 @@ env:
 
 jobs:
   tester-application:
+    # C19 reutilise les tests C18 avant de livrer l'application.
     runs-on: ubuntu-latest
 
     steps:
@@ -56,6 +65,7 @@ jobs:
         run: python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 
   valider-modele-ia:
+    # C19 reutilise aussi la validation C12/C13 avant de construire Docker.
     runs-on: ubuntu-latest
     env:
       DONNEES_ENTRAINEMENT: data/final/dvf_paris_clean_2021_2025.csv
@@ -78,9 +88,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Verifier les donnees d'entrainement
+        # C12 : controle que le fichier DVF est pret pour l'IA.
         run: python -m unittest discover -s tests -p "test_donnees_livraison.py" -v
 
       - name: Entrainer un nouveau modele IA
+        # C13 : on entraine un modele propre pour la livraison.
         run: |
           mkdir -p "$DOSSIER_LIVRAISON"
           python -m src.prediction.entrainement_xgboost_prix \
@@ -89,6 +101,7 @@ jobs:
             --output-metrics "$METRIQUES_LIVREES"
 
       - name: Tester le nouveau modele IA
+        # C13 : le modele livre doit passer les tests de prediction.
         run: |
           cp "$MODELE_LIVRE" models/xgboost_prix_dvf.joblib
           cp "$METRIQUES_LIVREES" models/xgboost_prix_dvf_metrics.json
@@ -102,6 +115,7 @@ jobs:
             --minimum-r2 0.80
 
   construire-et-publier:
+    # Ce job ne commence que si les tests application et modele sont valides.
     needs:
       - tester-application
       - valider-modele-ia
@@ -118,18 +132,22 @@ jobs:
         run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       - name: Verifier la configuration Docker Compose locale
+        # C19 : on verifie que la configuration locale est lisible par Docker.
         run: docker compose -f compose.yml config
 
       - name: Verifier la configuration Docker Compose production
+        # C19 : on verifie aussi la version utilisee sur le serveur.
         env:
           IMAGE_OWNER: ${{ steps.images.outputs.owner }}
           IMAGE_TAG: ${{ github.sha }}
         run: docker compose -f compose.prod.yml config
 
       - name: Preparer Docker Buildx
+        # Buildx sert a construire les images Docker dans GitHub Actions.
         uses: docker/setup-buildx-action@v3
 
       - name: Connexion a GitHub Container Registry
+        # Sur une pull request, on ne publie pas les images.
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
@@ -138,6 +156,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Construire et publier l'image API
+        # L'image API contient FastAPI, le modele et le code Python serveur.
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -148,6 +167,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ steps.images.outputs.owner }}/${{ env.API_IMAGE_NAME }}:${{ github.sha }}
 
       - name: Construire et publier l'image Streamlit
+        # L'image Streamlit contient l'interface web de l'application.
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -160,6 +180,7 @@ jobs:
   deployer-serveur:
     needs: construire-et-publier
     runs-on: ubuntu-latest
+    # Le deploiement se fait seulement sur main et si la variable GitHub l'autorise.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_APPLICATION == 'true'
 
     steps:
@@ -167,6 +188,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configurer SSH
+        # C19 : la cle SSH permet a GitHub Actions de se connecter au VPS.
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -177,6 +199,7 @@ jobs:
           ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
       - name: Preparer les fichiers de deploiement
+        # On envoie seulement les fichiers utiles au serveur de production.
         run: |
           tar --exclude='._*' --exclude='.DS_Store' -czf deploy-files.tar.gz \
             compose.prod.yml \
@@ -185,6 +208,7 @@ jobs:
             monitoring
 
       - name: Envoyer les fichiers de deploiement sur le serveur
+        # Le serveur recoit le compose production, SQL, donnees et monitoring.
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -201,6 +225,7 @@ jobs:
              rm /tmp/immobilier-paris-deploy-files.tar.gz"
 
       - name: Mettre a jour l'application Docker sur le serveur
+        # Le VPS recupere les dernieres images et relance les conteneurs.
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}

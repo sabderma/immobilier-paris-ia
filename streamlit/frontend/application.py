@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Organisation principale de l'interface Streamlit pour C17.
+
+Ce fichier choisit quelle page afficher selon la navigation de l'utilisateur.
+"""
+
 from typing import Any
 
 import requests
@@ -76,6 +81,7 @@ HTML_CHARGEMENT_CARTE = """
 
 
 def verifier_api() -> bool:
+    """Verifie que FastAPI repond avant d'afficher les pages."""
     try:
         api_get_json(API_ENDPOINTS["health"])
         return True
@@ -92,11 +98,13 @@ def afficher_carte(
     filtres: dict[str, Any],
     params: tuple[tuple[str, Any], ...],
 ) -> None:
+    """Affiche la carte DVF quand l'utilisateur demande la generation."""
     params_carte_generee = st.session_state.get("params_carte_dvf_generee")
     if params_carte_generee != params:
         st.session_state["params_carte_dvf_generee"] = None
 
     if st.session_state["params_carte_dvf_generee"] is None:
+        # C17 : la carte est generee seulement apres un clic pour eviter un chargement lourd.
         with st.container(border=True):
             st.markdown(
                 """
@@ -151,6 +159,7 @@ def afficher_carte(
 
 
 def main() -> None:
+    """Lance l'interface apres connexion et route vers la bonne vue."""
     styles()
     if not verifier_api():
         st.stop()
@@ -161,16 +170,19 @@ def main() -> None:
         return
 
     options = charger_filtres()
+    # C17 : ces entrees correspondent aux pages principales de l'application.
     navigation = [
         "Carte",
         "Appartements à vendre",
         "Tableau",
+        # C17 : cette vue affiche le formulaire de prediction dans l'interface.
         "Prédire appartement",
         "Analyser votre endroit",
         "Sources",
     ]
     vue_admin = "Admin"
     if utilisateur.get("role") in {"admin", "super_admin"}:
+        # C17 : la page admin est ajoutee seulement pour les roles autorises.
         navigation.append(vue_admin)
     navigation_active = st.session_state.get("navigation_principale")
     if navigation_active is not None and navigation_active not in navigation:
@@ -193,6 +205,7 @@ def main() -> None:
         st.session_state["params_carte_dvf_generee"] = None
 
     if vue_active == navigation[1]:
+        # C17 : page annonces avec filtres, pagination et graphiques.
         filtres_annonces = afficher_filtres_annonces(charger_filtres_scraping())
         if filtres_annonces is None:
             return
@@ -241,10 +254,12 @@ def main() -> None:
         return
 
     if vue_active == navigation[3]:
+        # C17 : affiche le formulaire qui appelle POST /prediction/prix.
         afficher_prediction(options)
         return
 
     if vue_active == navigation[4]:
+        # C17 : affiche l'analyse d'une adresse exacte et des lieux proches.
         afficher_noter_endroit()
         return
 
@@ -253,6 +268,7 @@ def main() -> None:
         return
 
     if vue_active == vue_admin:
+        # C17 : espace de gestion reserve aux administrateurs.
         afficher_admin()
         return
 
@@ -260,6 +276,7 @@ def main() -> None:
     params = tuple_params(filtres)
 
     if vue_active == navigation[0]:
+        # C17 : page carte DVF avec resume, graphiques et carte Folium.
         gauche, droite = st.columns([0.34, 0.66], gap="medium")
         resume = charger_resume(params)
         evolution = charger_evolution(params)

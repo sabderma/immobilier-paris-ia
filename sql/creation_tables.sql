@@ -4,6 +4,7 @@
 -- Ce script prépare la base PostgreSQL du projet.
 -- Il supprime les anciennes tables si elles existent déjà,
 -- puis il recrée les tables utilisées pour stocker les données.
+-- C'est une preuve centrale pour la competence C4 : création et stockage.
 --
 -- Logique des tables :
 -- 1. source_data_scraping   : annonces brutes récupérées par scraping
@@ -90,6 +91,7 @@ CREATE TABLE golden_data_scraping (
     date_scraping TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Index utiles pour les filtres de l'API et de DBeaver.
 CREATE INDEX idx_golden_scraping_localisation ON golden_data_scraping (localisation);
 CREATE INDEX idx_golden_scraping_source ON golden_data_scraping (source);
 CREATE INDEX idx_golden_scraping_surface ON golden_data_scraping (surface);

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Schemas C17 pour les routes de connexion et de profil utilisateur."""
+
 import re
 from datetime import datetime
 from typing import Optional
@@ -8,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class InscriptionRequest(BaseModel):
+    """Donnees envoyees par le formulaire d'inscription."""
+
     model_config = ConfigDict(extra="forbid")
 
     email: str = Field(min_length=5, max_length=255)
@@ -32,6 +36,8 @@ class InscriptionRequest(BaseModel):
 
 
 class UtilisateurResponse(BaseModel):
+    """Utilisateur renvoye a l'interface sans mot de passe."""
+
     id: int
     email: str
     first_name: Optional[str]
@@ -41,6 +47,8 @@ class UtilisateurResponse(BaseModel):
 
 
 class ConnexionRequest(BaseModel):
+    """Donnees envoyees par le formulaire de connexion."""
+
     model_config = ConfigDict(extra="forbid")
 
     email: str = Field(min_length=5, max_length=255)
@@ -56,6 +64,8 @@ class ConnexionRequest(BaseModel):
 
 
 class ConnexionResponse(BaseModel):
+    """Reponse renvoyee apres une connexion reussie."""
+
     access_token: str
     token_type: str
     expires_in: int
@@ -67,6 +77,8 @@ class MessageResponse(BaseModel):
 
 
 class ProfilUpdateRequest(BaseModel):
+    """Donnees autorisees pour modifier le profil."""
+
     model_config = ConfigDict(extra="forbid")
 
     first_name: Optional[str] = Field(default=None, max_length=100)
@@ -81,6 +93,8 @@ class ProfilUpdateRequest(BaseModel):
 
 
 class MotDePasseUpdateRequest(BaseModel):
+    """Donnees demandees pour changer le mot de passe."""
+
     model_config = ConfigDict(extra="forbid")
 
     current_password: str = Field(min_length=1, max_length=128)

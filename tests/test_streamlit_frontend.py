@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# C18 : ce fichier est lance dans la CI pour verifier une partie du frontend.
+# C19 : la livraison le relance pour eviter de publier une interface cassee.
+
 import os
 import sys
 import unittest
@@ -25,7 +28,10 @@ from frontend.views import listings, location_rating, prediction  # noqa: E402
 
 
 class TestStreamlitFrontend(unittest.TestCase):
+    """Tests C17/C18 sur le client API Streamlit et l'affichage HTML."""
+
     def test_formatage_prepare_les_valeurs_affichees(self):
+        # C17 : les valeurs doivent etre lisibles dans l'interface.
         self.assertEqual(formater_entier(12345.6), "12 346")
         self.assertEqual(formater_euros(350000), "350 000 \u20ac")
         self.assertEqual(formater_decimal(7.25, "/10"), "7,2/10")
@@ -33,6 +39,7 @@ class TestStreamlitFrontend(unittest.TestCase):
         self.assertEqual(formater_entier(None), "\u2014")
 
     def test_headers_streamlit_ajoutent_token_utilisateur(self):
+        # C17 : Streamlit ajoute le token JWT quand l'utilisateur est connecte.
         with (
             patch.object(api_client, "headers_api", return_value={"X-API-Key": "test-key"}),
             patch.object(
@@ -47,6 +54,7 @@ class TestStreamlitFrontend(unittest.TestCase):
         self.assertEqual(headers["Authorization"], "Bearer jwt-test-token")
 
     def test_api_get_json_nettoie_les_parametres_et_retourne_json(self):
+        # C17 : les parametres vides ne sont pas envoyes a l'API.
         response = Mock()
         response.raise_for_status.return_value = None
         response.json.return_value = {"status": "ok"}
@@ -99,7 +107,41 @@ class TestStreamlitFrontend(unittest.TestCase):
         self.assertEqual(contexte.exception.status_code, 422)
         self.assertIn("body.surface", contexte.exception.message)
 
+    def test_api_post_json_envoie_la_prediction_a_l_api(self):
+        # C10 : le frontend doit envoyer le payload vers l'endpoint de prediction.
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"prix_estime": 465328.0}
+        payload = {
+            "surface": 45,
+            "nombre_pieces": 2,
+            "arrondissement": 11,
+        }
+
+        with (
+            patch.object(
+                api_client,
+                "_headers_api",
+                return_value={"X-API-Key": "test-key"},
+            ),
+            patch.object(api_client.requests, "post", return_value=response) as post,
+        ):
+            resultat = api_client.api_post_json(
+                "/prediction/prix",
+                payload,
+                arreter_sur_erreur=False,
+            )
+
+        self.assertEqual(resultat, {"prix_estime": 465328.0})
+        post.assert_called_once_with(
+            f"{api_client.API_BASE_URL}/prediction/prix",
+            json=payload,
+            headers={"X-API-Key": "test-key"},
+            timeout=120,
+        )
+
     def test_cartes_html_echappent_les_donnees_utilisateur(self):
+        # C17 : les textes utilisateur sont echappes avant affichage HTML.
         html_prediction = prediction._carte_prediction_historique(
             {
                 "arrondissement": "<11>",

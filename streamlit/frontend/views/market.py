@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Vue C17 pour afficher le marche DVF : resume, graphiques et tableau."""
+
 from io import BytesIO
 from typing import Any
 
@@ -11,6 +13,7 @@ from frontend.formatting import formater_entier, formater_euros
 
 
 def afficher_resume(resume: dict[str, Any]) -> None:
+    """Affiche les indicateurs principaux des ventes DVF."""
     st.markdown('<div class="breadcrumb">France &gt; Paris (75)</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Département</div>', unsafe_allow_html=True)
     st.markdown('<div class="city-title">Paris (75)</div>', unsafe_allow_html=True)
@@ -38,6 +41,7 @@ def afficher_resume(resume: dict[str, Any]) -> None:
 
 
 def afficher_graphiques(evolution: pd.DataFrame, distribution: pd.DataFrame) -> None:
+    """Affiche les graphiques calcules a partir des filtres."""
     if evolution.empty:
         st.info("Aucune vente ne correspond à ces filtres.")
         return
@@ -65,6 +69,7 @@ def afficher_graphiques(evolution: pd.DataFrame, distribution: pd.DataFrame) -> 
 
 
 def afficher_tableau(csv_bytes: bytes) -> None:
+    """Affiche le tableau DVF et propose le telechargement CSV."""
     tableau = pd.read_csv(BytesIO(csv_bytes))
     tableau["date_mutation"] = pd.to_datetime(tableau["date_mutation"], errors="coerce")
 

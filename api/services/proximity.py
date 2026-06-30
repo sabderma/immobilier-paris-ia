@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+"""Service de proximite utilise par l'API de localisation en C17.
+
+Il cherche les transports proches avec Ile-de-France Mobilites et les equipements
+proches avec OpenStreetMap Overpass.
+"""
+
 import math
 import os
 from typing import Any
@@ -65,6 +71,8 @@ def chercher_transports_idfm(
     longitude: float,
     rayon_metres: int = RAYON_PROXIMITE_METRES,
 ) -> list[dict[str, Any]]:
+    """Cherche les arrets de transport autour d'une adresse."""
+    # C17 : la cle IDFM reste dans l'environnement et pas dans le code.
     charger_env()
     api_key = os.getenv("IDFM_API_KEY")
     if not api_key:
@@ -93,6 +101,7 @@ def chercher_transports_idfm(
         payload = response.json()
     except (requests.RequestException, ValueError) as exc:
         erreur_prim = exc
+        # Si PRIM ne repond pas, on essaye la source open data IDFM.
         return chercher_transports_idfm_open_data(
             latitude,
             longitude,
@@ -146,6 +155,7 @@ def chercher_transports_idfm_open_data(
     erreur_prim: Exception | None = None,
 ) -> list[dict[str, Any]]:
     """Utilise le référentiel officiel IDFM si l'API PRIM est inaccessible."""
+    # C17 : cette source sert de secours si l'API principale IDFM ne repond pas.
     try:
         response = requests.get(
             IDFM_ARRETS_OPEN_DATA_URL,
@@ -220,6 +230,7 @@ def construire_requete_overpass(
     longitude: float,
     rayon_metres: int,
 ) -> str:
+    """Construit la requete envoyee a OpenStreetMap Overpass."""
     return f"""
 [out:json][timeout:25];
 (
@@ -232,6 +243,7 @@ out center tags;
 
 
 def categorie_equipement(tags: dict[str, Any]) -> tuple[str, str] | None:
+    """Classe un lieu OpenStreetMap en commerce, education ou sante."""
     type_commerce = tags.get("shop")
     if type_commerce and type_commerce != "vacant":
         return "commerce", str(type_commerce)
@@ -249,6 +261,7 @@ def normaliser_equipement_overpass(
     latitude_adresse: float,
     longitude_adresse: float,
 ) -> dict[str, Any] | None:
+    """Transforme un lieu Overpass en objet JSON simple pour l'API."""
     tags = element.get("tags") or {}
     categorie = categorie_equipement(tags)
     if categorie is None:
@@ -287,10 +300,12 @@ def chercher_equipements_overpass(
     longitude: float,
     rayon_metres: int = RAYON_PROXIMITE_METRES,
 ) -> list[dict[str, Any]]:
+    """Cherche les commerces, ecoles et lieux de sante autour d'un point."""
     requete = construire_requete_overpass(latitude, longitude, rayon_metres)
     derniere_erreur: Exception | None = None
 
     for api_url in OVERPASS_API_URLS:
+        # C17 : plusieurs URLs Overpass sont essayees pour eviter un blocage simple.
         try:
             response = requests.post(
                 api_url,
@@ -326,6 +341,8 @@ def analyser_proximite(
     longitude: float,
     rayon_metres: int = RAYON_PROXIMITE_METRES,
 ) -> dict[str, Any]:
+    """Regroupe les transports et equipements proches dans une seule reponse."""
+    # C17 : la reponse est deja organisee pour etre affichee directement par Streamlit.
     resultat: dict[str, Any] = {
         "rayon_metres": rayon_metres,
         "distance": "à vol d'oiseau",
@@ -341,6 +358,7 @@ def analyser_proximite(
             rayon_metres,
         )
     except HTTPException as exc:
+        # On garde l'erreur mais on continue avec les autres sources possibles.
         resultat["erreurs"].append(str(exc.detail))
 
     try:

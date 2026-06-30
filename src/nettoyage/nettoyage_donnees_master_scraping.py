@@ -1,3 +1,9 @@
+"""Nettoyage master vers golden pour les annonces de scraping.
+
+Ce script complete certaines valeurs depuis le texte details, garde seulement
+les annonces de Paris, retire les lignes incompletes et cree le fichier golden.
+"""
+
 import re
 import pandas as pd
 from pathlib import Path
@@ -9,10 +15,14 @@ OUTPUT_PATH = BASE_DIR / "data" / "final" / "annonces_scraping_nettoyees_golden.
 
 
 def est_non_disponible(val):
+    """Indique si une valeur correspond au texte non disponible."""
+
     return str(val).strip().lower() == "non disponible"
 
 
 def nettoyer_details(val):
+    """Nettoie le texte details avant l'extraction par petites regles NLP."""
+
     if est_non_disponible(val):
         return ""
 
@@ -20,6 +30,8 @@ def nettoyer_details(val):
 
 
 def extraire_prix(details):
+    """Essaie d'extraire un prix depuis le texte details."""
+
     s = str(details).lower().replace("\xa0", " ")
     m = re.search(r"(\d[\d\s]{2,})\s*€", s)
 
@@ -30,6 +42,8 @@ def extraire_prix(details):
 
 
 def extraire_surface(details):
+    """Essaie d'extraire une surface depuis le texte details."""
+
     s = str(details).lower().replace("\xa0", " ")
     m = re.search(r"(\d+(?:[,.]\d+)?)\s*(m²|m2)", s)
 
@@ -40,6 +54,8 @@ def extraire_surface(details):
 
 
 def extraire_nb_pieces(details):
+    """Essaie d'extraire le nombre de pieces depuis le texte details."""
+
     s = str(details).lower()
 
     if "studio" in s:
@@ -54,6 +70,8 @@ def extraire_nb_pieces(details):
 
 
 def extraire_prix_m2(details):
+    """Essaie d'extraire le prix au m2 depuis le texte details."""
+
     s = str(details).lower().replace("\xa0", " ")
     m = re.search(r"(\d[\d\s]*)\s*€\s*/\s*m[²2]", s)
 
@@ -64,6 +82,8 @@ def extraire_prix_m2(details):
 
 
 def extraire_code_paris(val):
+    """Recupere un code postal Paris valide entre 75001 et 75020."""
+
     if pd.isna(val):
         return None
 
@@ -123,11 +143,14 @@ for colonne in colonnes_obligatoires:
 df = df.fillna("non disponible")
 df = df.replace("", "non disponible")
 
+# Le texte details sert de reserve pour completer les colonnes encore vides.
 df["details"] = df["details"].apply(nettoyer_details)
 
 
 # ================================
-# 1) NLP depuis details
+# 1) NLP simple depuis details
+# Ici le NLP est un traitement texte par regex. Ce n'est pas une IA avancee,
+# mais ca permet de recuperer des valeurs quand elles sont cachees dans details.
 # ================================
 
 avant_prix = df["prix"].apply(est_non_disponible).sum()
@@ -168,7 +191,8 @@ print()
 
 
 # ================================
-# 2) Géolocalisation Paris
+# 2) Geolocalisation Paris
+# On garde seulement les annonces avec un code postal Paris exploitable.
 # ================================
 
 print("Nettoyage de la localisation...")
@@ -191,7 +215,8 @@ print()
 
 
 # ================================
-# 3) Suppression des lignes incomplètes
+# 3) Suppression des lignes incompletes
+# Le golden doit garder les annonces exploitables pour l'analyse.
 # ================================
 
 colonnes_a_verifier = ["prix", "surface", "nb_pieces", "prix_m2"]
@@ -216,6 +241,7 @@ print("Lignes supprimées car encore incomplètes :", lignes_supprimees)
 print("Nombre de lignes finales :", len(df))
 
 if "details" in df.columns:
+    # La colonne details a servi au nettoyage, mais elle n'est plus utile en golden.
     df = df.drop(columns=["details"])
 
 # ================================

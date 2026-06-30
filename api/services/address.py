@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Service de geocodage utilise par les routes API en C17.
+
+Il transforme une adresse saisie en adresse normalisee avec latitude et longitude.
+"""
+
 from typing import Any
 
 import requests
@@ -11,6 +16,7 @@ TIMEOUT_GEOCODAGE_SECONDES = 15
 
 
 def arrondissement_depuis_code_postal(code_postal: str) -> int | None:
+    """Recupere l'arrondissement depuis un code postal parisien."""
     if len(code_postal) != 5 or not code_postal.startswith("750"):
         return None
 
@@ -23,6 +29,7 @@ def arrondissement_depuis_code_postal(code_postal: str) -> int | None:
 
 
 def est_adresse_exacte_paris(feature: dict[str, Any]) -> bool:
+    """Verifie que le resultat est bien une adresse exacte dans Paris."""
     proprietes = feature.get("properties", {})
     code_postal = str(proprietes.get("postcode") or "")
     return (
@@ -36,6 +43,7 @@ def normaliser_resultat_ign(
     adresse_saisie: str,
     feature: dict[str, Any],
 ) -> dict[str, Any]:
+    """Met la reponse geocodage dans un format simple pour l'API."""
     proprietes = feature["properties"]
     longitude, latitude = feature["geometry"]["coordinates"]
     code_postal = str(proprietes["postcode"])
@@ -58,6 +66,8 @@ def normaliser_resultat_ign(
 
 
 def geocoder_adresse_ign(adresse: str) -> dict[str, Any]:
+    """Appelle le service de geocodage et gere les cas d'erreur."""
+    # C17 : on nettoie les espaces pour envoyer une adresse plus propre a IGN.
     adresse_saisie = " ".join(adresse.strip().split())
 
     try:
@@ -81,6 +91,7 @@ def geocoder_adresse_ign(adresse: str) -> dict[str, Any]:
     features = payload.get("features", [])
     meilleur_resultat = features[0] if features else None
     if meilleur_resultat is not None and est_adresse_exacte_paris(meilleur_resultat):
+        # C17 : seule une adresse exacte a Paris est acceptee.
         return normaliser_resultat_ign(adresse_saisie, meilleur_resultat)
 
     if meilleur_resultat is not None and (

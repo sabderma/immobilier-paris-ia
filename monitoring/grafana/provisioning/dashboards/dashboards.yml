@@ -1,6 +1,7 @@
 apiVersion: 1
 
 providers:
+  # C20 : Grafana charge automatiquement les dashboards du dossier monte par Docker.
   - name: Immobilier Paris
     orgId: 1
     folder: Immobilier Paris
@@ -10,4 +11,3 @@ providers:
     updateIntervalSeconds: 10
     options:
       path: /var/lib/grafana/dashboards
-

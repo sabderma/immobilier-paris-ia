@@ -1,3 +1,10 @@
+"""Benchmark C7 pour comparer Random Forest et XGBoost.
+
+Ce script sert a ne pas choisir le modele au hasard. Il entraine les deux
+modeles sur les memes donnees DVF, calcule les memes metriques, puis sauvegarde
+les resultats pour justifier le choix final.
+"""
+
 import argparse
 import json
 from contextlib import nullcontext
@@ -25,6 +32,7 @@ TARGET = "valeur_fonciere"
 
 
 def charger_donnees(input_csv=INPUT_CSV):
+    """Charge les donnees DVF et garde seulement les lignes utilisables."""
     df = pd.read_csv(input_csv, low_memory=False)
     df.columns = df.columns.str.lower().str.strip()
 
@@ -48,6 +56,7 @@ def charger_donnees(input_csv=INPUT_CSV):
 
 
 def creer_preprocesseur():
+    """Prepare les colonnes avant de les donner au modele."""
     return ColumnTransformer(
         transformers=[
             ("numerique", "passthrough", FEATURES_NUMERIQUES),
@@ -61,6 +70,7 @@ def creer_preprocesseur():
 
 
 def charger_mlflow():
+    """Charge MLflow si la bibliotheque est disponible dans l'environnement."""
     try:
         import mlflow
         import mlflow.sklearn  # noqa: F401
@@ -71,6 +81,7 @@ def charger_mlflow():
 
 
 def configurer_mlflow(experiment_name=MLFLOW_EXPERIMENT, tracking_uri=None):
+    """Prepare MLflow pour suivre les essais, mais seulement si possible."""
     mlflow = charger_mlflow()
 
     if mlflow is None:
@@ -85,6 +96,7 @@ def configurer_mlflow(experiment_name=MLFLOW_EXPERIMENT, tracking_uri=None):
 
 
 def creer_modeles(random_state=42):
+    """Cree les deux modeles candidats du benchmark C7."""
     return {
         "RandomForestRegressor": RandomForestRegressor(
             n_estimators=200,
@@ -106,6 +118,7 @@ def creer_modeles(random_state=42):
 
 
 def entrainer_et_evaluer_modele(modele, x_train, x_test, y_train, y_test):
+    """Entraine un modele et retourne ses scores sur les donnees de test."""
     pipeline = Pipeline(
         steps=[
             ("preparation", creer_preprocesseur()),
@@ -115,6 +128,7 @@ def entrainer_et_evaluer_modele(modele, x_train, x_test, y_train, y_test):
     pipeline.fit(x_train, y_train)
 
     predictions = pipeline.predict(x_test)
+    # Les trois metriques permettent de comparer les modeles de facon simple.
     mae = mean_absolute_error(y_test, predictions)
     mse = mean_squared_error(y_test, predictions)
     r2 = r2_score(y_test, predictions)
@@ -129,11 +143,13 @@ def entrainer_et_evaluer_modele(modele, x_train, x_test, y_train, y_test):
 
 
 def evaluer_modele(modele, x_train, x_test, y_train, y_test):
+    """Retourne seulement les metriques, utile pour les tests rapides."""
     _, metrics = entrainer_et_evaluer_modele(modele, x_train, x_test, y_train, y_test)
     return metrics
 
 
 def nettoyer_parametres_mlflow(modele):
+    """Transforme les parametres du modele pour les envoyer proprement a MLflow."""
     return {
         f"param_{cle}": str(valeur)
         for cle, valeur in modele.get_params(deep=False).items()
@@ -152,6 +168,7 @@ def enregistrer_essai_mlflow(
     lignes_train,
     lignes_test,
 ):
+    """Sauvegarde un essai dans MLflow pour garder une trace du benchmark."""
     with mlflow.start_run(run_name=nom_modele, nested=True):
         mlflow.set_tags(
             {
@@ -207,6 +224,7 @@ def comparer_modeles(
     mlflow_experiment=MLFLOW_EXPERIMENT,
     mlflow_tracking_uri=None,
 ):
+    """Lance toute la comparaison et sauvegarde les resultats JSON et CSV."""
     x, y = charger_donnees(input_csv)
     x_train, x_test, y_train, y_test = train_test_split(
         x,
@@ -280,6 +298,7 @@ def comparer_modeles(
         df_resultats = pd.DataFrame(resultats).sort_values(
             by=["rmse_euros", "mae_euros"],
         )
+        # Le modele retenu est celui qui fait le moins de grosses erreurs.
         meilleur_modele = df_resultats.iloc[0].to_dict()
 
         output_json = Path(output_json)
@@ -313,6 +332,7 @@ def comparer_modeles(
 
 
 def main():
+    """Point d'entree pour lancer le benchmark depuis le terminal."""
     parser = argparse.ArgumentParser(
         description="Compare RandomForestRegressor et XGBRegressor sur le prix DVF.",
     )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Cartes Folium utilisees par l'interface C17."""
+
 from html import escape
 from typing import Any
 
@@ -48,6 +50,7 @@ class MasquerArrondissementsAuZoom(MacroElement):
 
 
 def extraire_vue_carte(etat: dict[str, Any] | None) -> tuple[list[float], int]:
+    """Recupere le centre et le zoom de la carte, ou Paris par defaut."""
     if not etat:
         return list(carte_paris.PARIS_CENTER), 12
 
@@ -59,6 +62,7 @@ def extraire_vue_carte(etat: dict[str, Any] | None) -> tuple[list[float], int]:
 
 
 def extraire_bounds(etat: dict[str, Any] | None) -> dict[str, float]:
+    """Recupere la zone visible de la carte quand elle existe."""
     if not etat or not etat.get("bounds"):
         return {}
 
@@ -80,6 +84,7 @@ def creer_carte_adresse(
     adresse: str,
     proximite: dict[str, Any] | None = None,
 ) -> folium.Map:
+    """Cree la carte autour d'une adresse exacte."""
     carte = folium.Map(
         location=[latitude, longitude],
         zoom_start=16,
@@ -107,6 +112,7 @@ def creer_carte_adresse(
     ).add_to(carte)
 
     groupes = {
+        # C17 : chaque categorie a son groupe de marqueurs sur la carte.
         "transport": (
             MarkerCluster(name="Transports").add_to(carte),
             "blue",
@@ -160,6 +166,7 @@ def creer_carte_adresse(
 def enrichir_geojson_arrondissements(
     stats_arrondissements: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], LinearColormap | None]:
+    """Ajoute les prix DVF dans le GeoJSON des arrondissements."""
     stats = pd.DataFrame(stats_arrondissements)
     stats_index = stats.set_index("arrondissement") if not stats.empty else pd.DataFrame()
     geojson = carte_paris.charger_arrondissements()
@@ -199,6 +206,7 @@ def creer_carte(
     centre: list[float],
     zoom: int,
 ) -> folium.Map:
+    """Cree la carte principale des ventes DVF."""
     carte = folium.Map(
         location=centre,
         zoom_start=zoom,
@@ -242,6 +250,7 @@ def creer_carte(
 
     points_layer = None
     if not points.empty:
+        # C17 : on garde seulement les colonnes utiles pour alleger la carte.
         colonnes_points = [
             "latitude",
             "longitude",
@@ -289,6 +298,7 @@ def creer_carte(
         }
         """
         points_layer = FastMarkerCluster(
+            # C17 : FastMarkerCluster garde la carte plus fluide avec beaucoup de points.
             donnees_points,
             callback=callback_points,
             options={

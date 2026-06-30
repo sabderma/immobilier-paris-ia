@@ -1,3 +1,9 @@
+"""Suppression finale des anomalies dans le fichier golden scraping.
+
+Ce script controle les prix, surfaces, prix au m2 et pieces, puis retire les
+lignes qui restent trop incoherentes pour les analyses.
+"""
+
 import pandas as pd
 
 # =========================================
@@ -31,36 +37,37 @@ colonnes_numeriques = [
 ]
 
 for col in colonnes_numeriques:
+    # Conversion obligatoire avant les comparaisons avec les seuils.
     df[col] = pd.to_numeric(df[col], errors="coerce")
 
 # =========================================
 # DÉTECTION DES ANOMALIES
 # =========================================
 
-# Prix aberrants
+# Prix aberrants : prix trop bas ou trop haut pour Paris.
 anomalie_prix = (
     (df["prix"] < 50000) |
     (df["prix"] > 10000000)
 )
 
-# Surface aberrante
+# Surface aberrante : biens trop petits ou trop grands pour ce perimetre.
 anomalie_surface = (
     (df["surface"] < 9) |
     (df["surface"] > 500)
 )
 
-# Prix au m² aberrant
+# Prix au m2 aberrant : seuils utiles pour eviter les erreurs de scraping.
 anomalie_prix_m2 = (
     (df["prix_m2"] < 2000) |
     (df["prix_m2"] > 50000)
 )
 
-# Surface par pièce
+# Surface par piece : controle la coherence surface / nombre de pieces.
 surface_par_piece = (
     df["surface"] / df["nb_pieces"]
 )
 
-# Nombre de pièces incohérent
+# Nombre de pieces incoherent : 0 piece ou surface par piece impossible.
 anomalie_pieces = (
     (df["nb_pieces"] <= 0) |
     (surface_par_piece < 8) |
@@ -93,6 +100,7 @@ print(f"Total lignes supprimées : {anomalies.sum()}")
 # SUPPRESSION
 # =========================================
 
+# On garde uniquement les lignes qui ne sont pas detectees comme anomalies.
 df = df[~anomalies]
 
 print(f"\nNombre de lignes restantes : {len(df)}")

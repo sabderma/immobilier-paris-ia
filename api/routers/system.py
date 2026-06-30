@@ -1,3 +1,5 @@
+"""Routes systeme utilisees pour la sante et le monitoring de l'application."""
+
 from __future__ import annotations
 
 import os
@@ -28,6 +30,7 @@ def accueil() -> dict[str, str]:
 
 
 def actualiser_sante_base() -> Exception | None:
+    # C20 : on teste PostgreSQL avec une requete tres simple.
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -39,6 +42,7 @@ def actualiser_sante_base() -> Exception | None:
 
 
 def actualiser_configuration_openai() -> None:
+    """Met a jour la metrique qui dit si OpenAI est configure."""
     charger_env()
     modele = os.getenv("OPENAI_MODEL", OPENAI_MODEL_PAR_DEFAUT)
     OPENAI_SUMMARY_SERVICE_CONFIGURED.labels(model=modele).set(
@@ -48,6 +52,7 @@ def actualiser_configuration_openai() -> None:
 
 @router.get("/health")
 def health_check() -> dict[str, str]:
+    # C20 : cette route permet de verifier vite que l'API et la base repondent.
     erreur = actualiser_sante_base()
     if erreur is not None:
         exc = erreur
@@ -58,6 +63,8 @@ def health_check() -> dict[str, str]:
 
 @router.get("/metrics")
 def metrics() -> Response:
+    """Expose les metriques que Prometheus lit pour le monitoring."""
+    # C11/C20 : Prometheus appelle cette route pour recuperer les metriques.
     actualiser_sante_base()
     actualiser_configuration_openai()
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

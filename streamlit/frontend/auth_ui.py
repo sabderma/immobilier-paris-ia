@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Composants Streamlit pour la connexion et le compte utilisateur en C17."""
+
 from html import escape
 from typing import Any
 
@@ -10,17 +12,20 @@ from frontend.config import API_ENDPOINTS
 
 
 def utilisateur_connecte() -> dict[str, Any] | None:
+    """Retourne l'utilisateur de la session Streamlit s'il est connecte."""
     token = st.session_state.get("auth_token")
     utilisateur = st.session_state.get("auth_user")
     return utilisateur if token and utilisateur else None
 
 
 def _connecter_session(payload_connexion: dict[str, Any]) -> None:
+    """Garde le token JWT et les infos utilisateur dans la session."""
     st.session_state["auth_token"] = payload_connexion["access_token"]
     st.session_state["auth_user"] = payload_connexion["utilisateur"]
 
 
 def _vider_session_utilisateur() -> None:
+    """Nettoie les donnees de session quand l'utilisateur se deconnecte."""
     for cle in (
         "auth_token",
         "auth_user",
@@ -38,6 +43,7 @@ def _nom_affiche(utilisateur: dict[str, Any]) -> str:
 
 
 def _formulaire_connexion() -> None:
+    """Affiche le formulaire de connexion et appelle l'API auth."""
     with st.form("formulaire_connexion_utilisateur"):
         email = st.text_input("Email", placeholder="exemple@mail.com")
         password = st.text_input("Mot de passe", type="password")
@@ -65,6 +71,7 @@ def _formulaire_connexion() -> None:
 
 
 def _formulaire_inscription() -> None:
+    """Affiche le formulaire d'inscription avec controles simples cote interface."""
     with st.form("formulaire_inscription_utilisateur"):
         col1, col2 = st.columns(2)
         with col1:
@@ -120,6 +127,7 @@ def _formulaire_inscription() -> None:
 
 
 def afficher_page_authentification() -> None:
+    """Affiche la page de connexion avant d'entrer dans l'application."""
     st.markdown(
         """
         <div class="auth-shell">
@@ -160,6 +168,7 @@ def afficher_page_authentification() -> None:
 
 
 def _modifier_profil(utilisateur: dict[str, Any]) -> None:
+    """Permet a l'utilisateur de modifier son prenom et son nom."""
     st.markdown("##### Modifier mon profil")
     with st.form("formulaire_modifier_profil"):
         first_name = st.text_input(
@@ -193,6 +202,7 @@ def _modifier_profil(utilisateur: dict[str, Any]) -> None:
 
 
 def _changer_mot_de_passe() -> None:
+    """Permet de changer le mot de passe depuis l'espace compte."""
     st.markdown("##### Changer mon mot de passe")
     with st.form("formulaire_modifier_mot_de_passe"):
         current_password = st.text_input("Mot de passe actuel", type="password")
@@ -230,6 +240,7 @@ def _changer_mot_de_passe() -> None:
 
 
 def afficher_menu_compte() -> None:
+    """Affiche le menu compte avec profil, mot de passe et deconnexion."""
     utilisateur = utilisateur_connecte()
     if not utilisateur:
         return

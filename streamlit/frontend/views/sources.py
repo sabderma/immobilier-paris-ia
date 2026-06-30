@@ -4,6 +4,7 @@ import streamlit as st
 
 
 def afficher_sources_et_guide() -> None:
+    """Affiche aussi la source OpenAI utilisee pour le resume C8."""
     st.markdown("### Guide utilisateur et sources des données")
     st.write(
         "Cette application aide à explorer les ventes d’appartements à Paris, "

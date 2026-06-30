@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Vue Streamlit C17 reservee a l'administration."""
+
 from html import escape
 
 import pandas as pd
@@ -53,6 +55,7 @@ def _utilisateur_connecte_id() -> int | None:
 
 
 def _modifier_role_utilisateur(user_id: int, role: str) -> None:
+    """Envoie la modification de role a l'API admin."""
     try:
         modifier_role_admin_user(user_id, role)
     except ErreurApi as exc:
@@ -64,6 +67,7 @@ def _modifier_role_utilisateur(user_id: int, role: str) -> None:
 
 
 def _supprimer_utilisateur(user_id: int) -> None:
+    """Demande la suppression d'un utilisateur a l'API admin."""
     try:
         supprimer_admin_user(user_id)
     except ErreurApi as exc:
@@ -75,6 +79,7 @@ def _supprimer_utilisateur(user_id: int) -> None:
 
 
 def afficher_gestion_utilisateurs(utilisateurs: pd.DataFrame) -> None:
+    """Affiche les comptes et les actions autorisees pour l'admin."""
     admin_id = _utilisateur_connecte_id()
 
     for index_utilisateur, (_, utilisateur) in enumerate(
@@ -85,6 +90,7 @@ def afficher_gestion_utilisateurs(utilisateurs: pd.DataFrame) -> None:
         role_actuel = str(utilisateur["role"])
         est_compte_connecte = user_id == admin_id
         est_super_admin = role_actuel == ROLE_SUPER_ADMIN
+        # C17 : on bloque les actions dangereuses sur soi-meme et le super admin.
         est_protege = est_compte_connecte or est_super_admin
         actif = "Oui" if bool(utilisateur.get("is_active")) else "Non"
         if est_super_admin:
@@ -163,6 +169,7 @@ def afficher_gestion_utilisateurs(utilisateurs: pd.DataFrame) -> None:
 
 
 def afficher_predictions_admin(predictions: pd.DataFrame) -> None:
+    """Affiche l'historique global des predictions pour l'admin."""
     if predictions.empty:
         _afficher_tableau_vide("Aucune prédiction enregistrée.")
         return
@@ -193,6 +200,7 @@ def afficher_predictions_admin(predictions: pd.DataFrame) -> None:
 
 
 def afficher_adresses_admin(addresses: pd.DataFrame) -> None:
+    """Affiche l'historique global des adresses pour l'admin."""
     if addresses.empty:
         _afficher_tableau_vide("Aucune adresse enregistrée.")
         return
@@ -220,6 +228,7 @@ def afficher_adresses_admin(addresses: pd.DataFrame) -> None:
 
 
 def afficher_admin() -> None:
+    """Affiche le tableau de bord administrateur."""
     st.markdown("### Administration")
     st.caption(
         "Espace réservé aux administrateurs : suivi des utilisateurs, "

@@ -1,3 +1,9 @@
+"""Vue Streamlit qui integre la prediction dans l'application C17.
+
+Cette page affiche le formulaire, appelle `/prediction/prix` et montre le
+resultat renvoye par l'API.
+"""
+
 from __future__ import annotations
 
 from html import escape
@@ -22,6 +28,7 @@ NOMBRE_PIECES_MAX = 12
 
 
 def supprimer_prediction_historique(prediction_id: int) -> None:
+    """Supprime une prediction de l'historique de l'utilisateur."""
     try:
         api_delete(
             f"{API_ENDPOINTS['user_predictions']}/{prediction_id}",
@@ -75,6 +82,7 @@ def _carte_prediction_historique(ligne: dict[str, Any]) -> str:
 
 
 def afficher_historique_predictions() -> None:
+    """Affiche les predictions sauvegardees pour l'utilisateur connecte."""
     st.markdown("#### Historique de mes prédictions")
 
     try:
@@ -108,6 +116,7 @@ def afficher_historique_predictions() -> None:
 
 
 def afficher_prediction(options: dict[str, Any]) -> None:
+    """Affiche le formulaire et appelle l'API du modele quand il est valide."""
     st.markdown("### Prédire le prix d’un appartement")
 
     arrondissements = [int(a) for a in options.get("arrondissements", range(1, 21))]
@@ -166,12 +175,14 @@ def afficher_prediction(options: dict[str, Any]) -> None:
         )
 
     if erreurs_saisie:
+        # C17 : les erreurs de saisie sont montrees avant l'appel API.
         for erreur in erreurs_saisie:
             st.error(erreur)
         afficher_historique_predictions()
         return
 
     try:
+        # C17 : Streamlit envoie les valeurs du formulaire a l'API du modele.
         resultat_prediction = api_post_json(
             API_ENDPOINTS["prediction_prix"],
             {
@@ -190,6 +201,7 @@ def afficher_prediction(options: dict[str, Any]) -> None:
         return
 
     prix_m2 = prix_estime / surface if surface else None
+    # On affiche une fourchette lisible au lieu de montrer seulement le JSON.
     st.markdown(
         f"""
         <div class="prediction-result">

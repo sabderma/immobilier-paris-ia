@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 def charger_env() -> None:
     """Charge les variables du fichier .env local si elles existent."""
+
     env_path = ROOT_DIR / ".env"
     if not env_path.exists():
         return
@@ -26,13 +27,16 @@ def charger_env() -> None:
 
 
 def construire_engine(database_url: str | None = None) -> Engine:
-    """Construit la connexion PostgreSQL sans mot de passe écrit en dur."""
+    """Construit la connexion PostgreSQL sans mot de passe ecrit en dur."""
+
     charger_env()
 
+    # DATABASE_URL est pratique en production ou en Docker.
     database_url = database_url or os.getenv("DATABASE_URL")
     if database_url:
         return create_engine(database_url)
 
+    # Sinon on reconstruit l'URL avec les variables DB_*.
     url = URL.create(
         "postgresql+psycopg2",
         username=os.getenv("DB_USER", "postgres"),

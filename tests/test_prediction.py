@@ -1,3 +1,13 @@
+"""Tests C12 qui montrent que le modele choisi en C7 reste utilisable.
+
+Ces tests verifient le nettoyage, l'entrainement, les metriques et la prediction
+avec le modele XGBoost sauvegarde.
+
+En C13, la chaine les relance sur le nouveau modele avant de le livrer.
+En C17, le meme modele est appele par l'API et affiche dans l'interface.
+En C19, Docker relance ces tests avant de construire l'image API.
+"""
+
 from __future__ import annotations
 
 import json
@@ -19,6 +29,7 @@ from src.prediction import entrainement_xgboost_prix as entrainement  # noqa: E4
 from src.prediction import prediction  # noqa: E402
 
 
+# C12 : le fichier de metriques doit garder ces informations au minimum.
 METRIQUES_OBLIGATOIRES = {
     "modele",
     "type_probleme",
@@ -36,7 +47,10 @@ METRIQUES_OBLIGATOIRES = {
 
 
 class TestDonneesModele(unittest.TestCase):
+    """Controle que les donnees invalides ne partent pas dans le modele."""
+
     def test_charger_donnees_supprime_les_lignes_invalides(self):
+        # Le jeu de donnees contient volontairement des lignes fausses.
         donnees = pd.DataFrame(
             [
                 [50, 2, 11, 500000],
@@ -57,6 +71,7 @@ class TestDonneesModele(unittest.TestCase):
             x, y = entrainement.charger_donnees(chemin_csv)
 
         self.assertEqual(list(x.columns), entrainement.FEATURES)
+        # Il reste seulement les deux lignes valides apres nettoyage.
         self.assertEqual(len(x), 2)
         self.assertEqual(len(y), 2)
         self.assertFalse(x.isna().any().any())
@@ -68,7 +83,10 @@ class TestDonneesModele(unittest.TestCase):
 
 
 class TestPreparationPrediction(unittest.TestCase):
+    """Controle le format attendu par le modele au moment de predire."""
+
     def test_preparer_donnees_prediction_cree_le_format_attendu(self):
+        # C12 : la prediction doit garder le meme format que l'entrainement.
         donnees = prediction.preparer_donnees_prediction(
             surface=50,
             nombre_pieces=2,
@@ -83,7 +101,10 @@ class TestPreparationPrediction(unittest.TestCase):
 
 
 class TestEntrainementModele(unittest.TestCase):
+    """Controle que l'entrainement produit bien un modele et des scores."""
+
     def test_entrainement_cree_un_modele_et_des_metriques(self):
+        # Petit jeu de donnees pour tester vite le code d'entrainement.
         donnees = pd.DataFrame(
             [
                 [20, 1, 1, 220000],
@@ -99,6 +120,7 @@ class TestEntrainementModele(unittest.TestCase):
         )
 
         modele_rapide = entrainement.construire_modele()
+        # Le modele est rendu plus petit pour que le test soit rapide.
         modele_rapide.set_params(
             modele__n_estimators=2,
             modele__max_depth=2,
@@ -127,6 +149,7 @@ class TestEntrainementModele(unittest.TestCase):
 
             self.assertTrue(chemin_modele.exists())
             self.assertTrue(chemin_metriques.exists())
+            # C12 : ces metriques prouvent que l'entrainement a ete evalue.
             self.assertEqual(metriques["lignes_total"], 8)
             self.assertEqual(metriques["lignes_train"], 6)
             self.assertEqual(metriques["lignes_test"], 2)
@@ -143,9 +166,12 @@ class TestEntrainementModele(unittest.TestCase):
 
 
 class TestModeleEnregistre(unittest.TestCase):
+    """Controle le modele final deja sauvegarde dans le projet."""
+
     def test_modele_enregistre_retourne_un_prix_positif(self):
         chemin_modele = ROOT_DIR / "models/xgboost_prix_dvf.joblib"
 
+        # C12 : le modele final doit pouvoir produire une prediction utilisable.
         prix = prediction.predire_prix(
             surface=50,
             nombre_pieces=2,
@@ -161,6 +187,7 @@ class TestModeleEnregistre(unittest.TestCase):
         chemin_metriques = ROOT_DIR / "models/xgboost_prix_dvf_metrics.json"
         metriques = json.loads(chemin_metriques.read_text(encoding="utf-8"))
 
+        # Le modele est accepte seulement si son score R2 reste au-dessus du seuil.
         self.assertGreaterEqual(metriques["r2_score"], 0.80)
         self.assertGreater(metriques["mae_euros"], 0)
         self.assertGreater(metriques["rmse_euros"], 0)
@@ -169,6 +196,7 @@ class TestModeleEnregistre(unittest.TestCase):
         chemin_metriques = ROOT_DIR / "models/xgboost_prix_dvf_metrics.json"
         metriques = json.loads(chemin_metriques.read_text(encoding="utf-8"))
 
+        # Les metriques doivent etre assez completes pour comprendre le modele.
         self.assertTrue(METRIQUES_OBLIGATOIRES.issubset(metriques))
         self.assertEqual(metriques["modele"], "XGBRegressor")
         self.assertEqual(metriques["cible"], entrainement.TARGET)

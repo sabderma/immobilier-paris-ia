@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+"""Routes API C17 de statistiques sur les donnees DVF.
+
+Ces routes retournent des indicateurs deja calcules pour le frontend.
+"""
+
 from typing import Optional
 
 import pandas as pd
@@ -25,6 +30,8 @@ def resume_dvf(
     min_lon: Optional[float] = None,
     max_lon: Optional[float] = None,
 ) -> dict:
+    """Retourne un resume global des ventes DVF filtrees."""
+    # C17 : cette route alimente les cartes de chiffres dans Streamlit.
     where, params = construire_where_dvf(
         arrondissement=arrondissement,
         annee_min=annee_min,
@@ -61,6 +68,7 @@ def stats_dvf_arrondissement(
     surface_max: Optional[float] = None,
     nombre_pieces: Optional[int] = None,
 ) -> list[dict]:
+    """Retourne les statistiques DVF groupees par arrondissement."""
     where, params = construire_where_dvf(
         annee_min=annee_min,
         annee_max=annee_max,
@@ -101,6 +109,7 @@ def evolution_mensuelle(
     min_lon: Optional[float] = None,
     max_lon: Optional[float] = None,
 ) -> list[dict]:
+    """Retourne l'evolution mensuelle du prix au m2 median."""
     where, params = construire_where_dvf(
         arrondissement=arrondissement,
         annee_min=annee_min,
@@ -128,6 +137,7 @@ def evolution_mensuelle(
         params,
     )
     if not df.empty:
+        # On transforme la date en texte simple pour une reponse JSON propre.
         df["mois"] = (
             pd.to_datetime(df["mois"], utc=True)
             .dt.tz_convert(None)
@@ -151,6 +161,7 @@ def distribution_dvf(
     min_lon: Optional[float] = None,
     max_lon: Optional[float] = None,
 ) -> list[dict]:
+    """Construit des tranches de prix au m2 pour les graphiques."""
     where, params = construire_where_dvf(
         arrondissement=arrondissement,
         annee_min=annee_min,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Routes C17 pour les actions du compte utilisateur connecte."""
+
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -34,6 +36,7 @@ def modifier_profil(
     payload: ProfilUpdateRequest,
     utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
 ) -> UtilisateurResponse:
+    """Modifie le prenom ou le nom de l'utilisateur connecte."""
     donnees = payload.model_dump(exclude_unset=True)
     if not donnees:
         raise HTTPException(
@@ -54,6 +57,7 @@ def modifier_mot_de_passe(
     payload: MotDePasseUpdateRequest,
     utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
 ) -> MessageResponse:
+    """Change le mot de passe de l'utilisateur connecte."""
     changer_mot_de_passe_utilisateur(
         user_id=utilisateur["id"],
         current_password=payload.current_password,
@@ -66,6 +70,7 @@ def modifier_mot_de_passe(
 def historique_predictions(
     utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
 ) -> list[PredictionHistoriqueResponse]:
+    """Liste les predictions sauvegardees de l'utilisateur."""
     predictions = lister_predictions_utilisateur(utilisateur["id"])
     return [
         PredictionHistoriqueResponse.model_validate(prediction)
@@ -78,6 +83,7 @@ def supprimer_prediction(
     prediction_id: int,
     utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
 ) -> Response:
+    """Supprime une prediction seulement si elle appartient a l'utilisateur."""
     prediction_supprimee = supprimer_prediction_utilisateur(
         user_id=utilisateur["id"],
         prediction_id=prediction_id,
@@ -95,6 +101,7 @@ def supprimer_prediction(
 def historique_adresses(
     utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
 ) -> list[AdresseHistoriqueResponse]:
+    """Liste les adresses sauvegardees de l'utilisateur."""
     adresses = lister_adresses_utilisateur(utilisateur["id"])
     return [
         AdresseHistoriqueResponse.model_validate(adresse)
@@ -107,6 +114,7 @@ def supprimer_adresse(
     address_id: int,
     utilisateur: dict[str, Any] = Depends(obtenir_utilisateur_courant),
 ) -> Response:
+    """Supprime une adresse seulement si elle appartient a l'utilisateur."""
     adresse_supprimee = supprimer_adresse_utilisateur(
         user_id=utilisateur["id"],
         address_id=address_id,

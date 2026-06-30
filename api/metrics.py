@@ -1,3 +1,12 @@
+"""Metriques Prometheus pour surveiller l'API et le modele IA.
+
+Pour la C11, les metriques importantes sont surtout celles du modele :
+predictions, erreurs, temps de reponse et qualite du modele.
+
+Pour la C20, les metriques importantes sont celles de l'application complete :
+requetes HTTP, latence, exceptions et etat de la base PostgreSQL.
+"""
+
 from __future__ import annotations
 
 import json
@@ -19,6 +28,7 @@ API_HTTP_REQUESTS_TOTAL = Counter(
     "Nombre total de requetes HTTP recues par l'API.",
     ["method", "route", "status_code"],
 )
+# C20 : cette metrique permet de voir combien de temps les routes mettent a repondre.
 API_HTTP_REQUEST_DURATION_SECONDS = Histogram(
     "api_http_request_duration_seconds",
     "Duree des requetes HTTP traitees par l'API.",
@@ -30,16 +40,19 @@ API_HTTP_REQUESTS_IN_PROGRESS = Gauge(
     "Nombre de requetes HTTP API en cours de traitement.",
     ["method"],
 )
+# C20 : si une erreur non geree arrive, elle est comptee ici.
 API_EXCEPTIONS_TOTAL = Counter(
     "api_exceptions_total",
     "Nombre total d'exceptions non gerees par l'API.",
     ["method", "route", "exception_type"],
 )
+# C20 : cette jauge dit si PostgreSQL repond correctement.
 API_DATABASE_HEALTH_STATUS = Gauge(
     "api_database_health_status",
     "Etat de la connexion PostgreSQL de l'application: 1 disponible, 0 indisponible.",
 )
 
+# C11 : ces metriques surveillent l'utilisation du modele de prediction.
 MODEL_PREDICTIONS_TOTAL = Counter(
     "model_predictions_total",
     "Nombre total de predictions realisees par le modele.",
@@ -70,6 +83,7 @@ MODEL_INPUT_SURFACE_M2 = Gauge(
     "Derniere surface envoyee au modele.",
     ["arrondissement"],
 )
+# C11 : ces metriques gardent la qualite du modele apres l'entrainement.
 MODEL_EVALUATION_MAE_EUROS = Gauge(
     "model_evaluation_mae_euros",
     "Erreur moyenne absolue du modele sur les donnees de test, en euros.",
@@ -90,6 +104,7 @@ MODEL_EVALUATION_TEST_SAMPLES = Gauge(
     "Nombre de ventes utilisees pour evaluer le modele.",
     ["model"],
 )
+# C11 : le dashboard suit aussi OpenAI, car c'est une fonctionnalite IA visible.
 OPENAI_SUMMARY_CALLS_TOTAL = Counter(
     "openai_summary_calls_total",
     "Nombre total d'appels au service OpenAI de resume de quartier.",
@@ -133,11 +148,13 @@ def charger_metriques_evaluation(
         (MODEL_EVALUATION_TEST_SAMPLES, "lignes_test"),
     )
     for gauge, cle in metriques_prometheus:
+        # Ces valeurs viennent du fichier cree quand le modele a ete teste.
         valeur = metrics.get(cle)
         if isinstance(valeur, (int, float)):
             gauge.labels(model=nom_modele).set(valeur)
 
 
+# Initialisation simple pour que Grafana voie deja les series de metriques.
 MODEL_PREDICTIONS_TOTAL.labels(model="XGBRegressor")
 MODEL_PREDICTION_ERRORS_TOTAL.labels(model="XGBRegressor")
 MODEL_PREDICTION_DURATION_SECONDS.labels(model="XGBRegressor")

@@ -1,3 +1,9 @@
+"""Service C17 qui execute le modele de prediction depuis l'API.
+
+Il charge le modele sauvegarde, prepare les donnees envoyees par l'utilisateur
+et retourne une estimation de prix.
+"""
+
 from __future__ import annotations
 
 import json
@@ -15,6 +21,7 @@ modele_prediction: Any | None = None
 
 def charger_mae_prediction() -> float:
     """Lit le MAE produit lors du dernier entraînement du modèle."""
+    # La MAE permet de donner une marge indicative autour du prix predit.
     if not PREDICTION_METRICS_PATH.exists():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -42,6 +49,7 @@ def charger_modele_prediction() -> Any:
     """Charge le modele XGBoost une seule fois pour les predictions API."""
     global modele_prediction
 
+    # On garde le modele en memoire pour eviter de relire le fichier a chaque appel.
     if modele_prediction is not None:
         return modele_prediction
 
@@ -63,7 +71,9 @@ def predire_prix_xgboost(
     nombre_pieces: int,
     arrondissement: int,
 ) -> float:
+    """Prepare les donnees API et lance le modele XGBoost."""
     modele = charger_modele_prediction()
+    # Les noms de colonnes doivent rester identiques a ceux de l'entrainement.
     donnees = pd.DataFrame(
         [
             {

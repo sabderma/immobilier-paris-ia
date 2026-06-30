@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Routes C17 reservees a l'espace administrateur."""
+
 from datetime import datetime
 from typing import Any, Optional
 
@@ -69,6 +71,7 @@ class AdminAddressResponse(BaseModel):
 def overview_admin(
     _: dict[str, Any] = Depends(obtenir_admin_courant),
 ) -> AdminOverviewResponse:
+    """Retourne les compteurs globaux affiches dans l'admin."""
     with engine.connect() as connexion:
         ligne = connexion.execute(
             text(
@@ -92,6 +95,7 @@ def lister_utilisateurs_admin(
     _: dict[str, Any] = Depends(obtenir_admin_courant),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[AdminUserResponse]:
+    """Liste les utilisateurs pour l'ecran admin."""
     with engine.connect() as connexion:
         lignes = connexion.execute(
             text(
@@ -114,6 +118,7 @@ def modifier_role_utilisateur_admin(
     payload: AdminRoleUpdateRequest,
     admin: dict[str, Any] = Depends(obtenir_admin_courant),
 ) -> AdminUserResponse:
+    """Modifie le role d'un utilisateur si l'action est autorisee."""
     if user_id == admin["id"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -140,6 +145,7 @@ def modifier_role_utilisateur_admin(
             )
 
         if utilisateur_cible["role"] == ROLE_SUPER_ADMIN:
+            # C17 : le super admin reste protege contre les changements de role.
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Le super admin ne peut pas être modifié.",
@@ -171,6 +177,7 @@ def supprimer_utilisateur_admin(
     user_id: int,
     admin: dict[str, Any] = Depends(obtenir_admin_courant),
 ) -> Response:
+    """Supprime un utilisateur si ce n'est pas le compte protege."""
     if user_id == admin["id"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -197,6 +204,7 @@ def supprimer_utilisateur_admin(
             )
 
         if utilisateur_cible["role"] == ROLE_SUPER_ADMIN:
+            # C17 : le super admin reste protege contre la suppression.
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Le super admin ne peut pas être supprimé.",
@@ -220,6 +228,7 @@ def lister_predictions_admin(
     _: dict[str, Any] = Depends(obtenir_admin_courant),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[AdminPredictionResponse]:
+    """Liste les predictions de tous les utilisateurs pour l'admin."""
     with engine.connect() as connexion:
         lignes = connexion.execute(
             text(
@@ -252,6 +261,7 @@ def lister_adresses_admin(
     _: dict[str, Any] = Depends(obtenir_admin_courant),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> list[AdminAddressResponse]:
+    """Liste les adresses de tous les utilisateurs pour l'admin."""
     with engine.connect() as connexion:
         lignes = connexion.execute(
             text(

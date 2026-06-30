@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Vue C17 pour afficher les annonces immobilieres nettoyees."""
+
 from html import escape
 from importlib import reload
 from textwrap import dedent
@@ -30,6 +32,7 @@ if any(not hasattr(graphiques, nom) for nom in FONCTIONS_GRAPHIQUES_ANNONCES):
 
 
 def _charger_graphiques_annonces():
+    """Recharge les fonctions de graphiques si Streamlit a garde une ancienne version."""
     global graphiques
     if any(not hasattr(graphiques, nom) for nom in FONCTIONS_GRAPHIQUES_ANNONCES):
         graphiques = reload(graphiques)
@@ -37,6 +40,7 @@ def _charger_graphiques_annonces():
 
 
 def afficher_resume_annonces(resume: dict[str, Any]) -> None:
+    """Affiche les indicateurs principaux des annonces."""
     st.markdown('<div class="breadcrumb">France &gt; Paris (75)</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-title">Marché des annonces</div>', unsafe_allow_html=True)
     st.markdown(
@@ -78,6 +82,7 @@ def afficher_graphiques_annonces(
     distribution: pd.DataFrame,
     comparaison_2025: pd.DataFrame,
 ) -> None:
+    """Affiche les graphiques des annonces et la comparaison DVF."""
     config = {"displayModeBar": False}
     graphiques_annonces = _charger_graphiques_annonces()
 
@@ -116,6 +121,7 @@ def afficher_graphiques_annonces(
 
 
 def _carte_annonce(annonce: pd.Series) -> str:
+    """Transforme une annonce en carte HTML lisible."""
     source = escape(str(annonce.get("source", "Source inconnue")).title())
     type_bien = escape(str(annonce.get("type", "Appartement")))
     arrondissement = formater_entier(annonce.get("arrondissement"))
@@ -145,6 +151,7 @@ def afficher_cartes_annonces(
     nombre_pages: int,
     nombre_total: int,
 ) -> None:
+    """Affiche les annonces avec pagination."""
     st.markdown(
         '<div class="listing-panel-title">Annonces disponibles</div>',
         unsafe_allow_html=True,

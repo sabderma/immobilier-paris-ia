@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+"""Routes API C17 de localisation utiles aux donnees exposees.
+
+La route commerces donne des informations par arrondissement. La route geocodage
+retourne une adresse parisienne normalisee avec ses coordonnees.
+"""
+
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -23,6 +29,8 @@ def geocoder_adresse(
     _: None = Depends(verifier_cle_api),
     utilisateur: Optional[dict[str, Any]] = Depends(obtenir_utilisateur_optionnel),
 ) -> dict[str, Any]:
+    """Recoit une adresse et retourne les coordonnees si elle est valide."""
+    # C17 : la route regroupe geocodage, proximite, resume et historique.
     resultat = geocoder_adresse_ign(payload.adresse)
     if not resultat.get("erreur"):
         if utilisateur is not None:
@@ -37,6 +45,7 @@ def geocoder_adresse(
             resultat["longitude"],
         )
         resultat["proximite"] = proximite
+        # C8 : OpenAI redige seulement le resume avec les donnees deja calculees.
         resultat["resume_ia"] = generer_resume_lieu(
             resultat["adresse_normalisee"],
             proximite,
@@ -49,6 +58,8 @@ def commerces_paris(
     _: None = Depends(verifier_cle_api),
     arrondissement: Optional[int] = Query(None, ge=1, le=20),
 ) -> dict:
+    """Retourne les commerces parisiens, avec filtre optionnel par arrondissement."""
+    # C17 : cette route sert a la notation simple des arrondissements.
     commerces = list(charger_commerces_paris())
     source_etat = "disponible" if commerces else "indisponible"
     if arrondissement is not None:

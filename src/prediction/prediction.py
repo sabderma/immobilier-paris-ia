@@ -1,3 +1,13 @@
+"""Prediction locale avec le modele XGBoost sauvegarde.
+
+Ce fichier sert surtout a tester le modele retenu sans passer par l'API. Il
+charge le modele `.joblib`, prepare les donnees comme pendant l'entrainement et
+retourne un prix estime.
+
+Pour C12, les tests verifient que ce fichier retourne bien un prix positif.
+En C13, ces memes tests sont relances par GitHub Actions avant livraison.
+"""
+
 import argparse
 from pathlib import Path
 
@@ -9,10 +19,14 @@ MODEL_PATH = Path("models/xgboost_prix_dvf.joblib")
 
 
 def charger_modele(model_path=MODEL_PATH):
+    """Recharge le modele entraine depuis le dossier `models`."""
+    # C12 : le test verifie que le modele sauvegarde peut encore etre recharge.
     return joblib.load(model_path)
 
 
 def preparer_donnees_prediction(surface, nombre_pieces, arrondissement):
+    """Met les valeurs utilisateur dans le meme format que l'entrainement."""
+    # Les noms de colonnes doivent rester identiques a ceux de l'entrainement.
     return pd.DataFrame(
         [
             {
@@ -25,16 +39,20 @@ def preparer_donnees_prediction(surface, nombre_pieces, arrondissement):
 
 
 def predire_prix_avec_modele(modele, surface, nombre_pieces, arrondissement):
+    """Lance la prediction avec un modele deja charge en memoire."""
     donnees = preparer_donnees_prediction(surface, nombre_pieces, arrondissement)
+    # Le resultat doit etre un nombre positif dans les tests C12.
     return float(modele.predict(donnees)[0])
 
 
 def predire_prix(surface, nombre_pieces, arrondissement, model_path=MODEL_PATH):
+    """Charge le modele puis retourne le prix estime."""
     modele = charger_modele(model_path)
     return predire_prix_avec_modele(modele, surface, nombre_pieces, arrondissement)
 
 
 def main():
+    """Permet de tester une prediction depuis le terminal."""
     parser = argparse.ArgumentParser(
         description="Predire un prix avec le modele XGBoost DVF.",
     )
