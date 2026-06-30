@@ -908,7 +908,7 @@ class TestApiSecurity(unittest.TestCase):
 
     def test_super_admin_accede_a_l_administration(self):
         main.app.dependency_overrides[auth_service.obtenir_utilisateur_courant] = (
-            lambda: {"id": 1, "email": "admin@gmail.com", "role": "super_admin"}
+            lambda: {"id": 1, "email": "admin@example.com", "role": "super_admin"}
         )
         connexion = MagicMock()
         contexte = MagicMock()

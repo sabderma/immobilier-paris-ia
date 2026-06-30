@@ -44,7 +44,6 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
-      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
     ports:
       # L'API est disponible sur http://localhost:8002.
       - "8002:8000"

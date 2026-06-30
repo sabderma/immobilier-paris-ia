@@ -39,70 +39,36 @@ def verifier_mot_de_passe(password: str, password_hash: str) -> bool:
 
 
 def initialiser_super_admin_depuis_env() -> bool:
-    """Crée ou répare le compte super admin configuré dans l'environnement."""
+    """Donne le role super admin au compte existant configure par email."""
     charger_env()
 
     email = (os.getenv("SUPER_ADMIN_EMAIL") or "").strip().lower()
-    password = os.getenv("SUPER_ADMIN_PASSWORD")
 
-    if not email and not password:
+    if not email:
         return False
-
-    if not email or not password:
-        raise RuntimeError(
-            "SUPER_ADMIN_EMAIL et SUPER_ADMIN_PASSWORD doivent être configurés ensemble."
-        )
 
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
         raise RuntimeError("SUPER_ADMIN_EMAIL doit contenir une adresse email valide.")
 
-    if len(password) < 8:
-        raise RuntimeError(
-            "SUPER_ADMIN_PASSWORD doit contenir au moins 8 caractères."
-        )
-
-    password_hash = hacher_mot_de_passe(password)
-
     with engine.begin() as connexion:
-        connexion.execute(
+        resultat = connexion.execute(
             text(
                 """
-                WITH utilisateur_existant AS (
-                    UPDATE users
-                    SET
-                        password_hash = :password_hash,
-                        role = :role,
-                        is_active = TRUE,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE LOWER(email) = LOWER(:email)
-                    RETURNING id
-                )
-                INSERT INTO users (
-                    email,
-                    password_hash,
-                    first_name,
-                    last_name,
-                    role,
-                    is_active
-                )
-                SELECT
-                    :email,
-                    :password_hash,
-                    'Admin',
-                    'Principal',
-                    :role,
-                    TRUE
-                WHERE NOT EXISTS (SELECT 1 FROM utilisateur_existant);
+                UPDATE users
+                SET
+                    role = :role,
+                    is_active = TRUE,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE LOWER(email) = LOWER(:email);
                 """
             ),
             {
                 "email": email,
-                "password_hash": password_hash,
                 "role": ROLE_SUPER_ADMIN,
             },
         )
 
-    return True
+    return bool(resultat.rowcount)
 
 
 def obtenir_cle_jwt() -> str:

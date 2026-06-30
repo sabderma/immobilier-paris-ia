@@ -39,7 +39,6 @@ services:
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-}
-      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-}
     ports:
       # Le port reste local au serveur, puis Nginx gere l'acces public.
       - "127.0.0.1:8002:8000"

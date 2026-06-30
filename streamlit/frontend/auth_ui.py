@@ -254,8 +254,6 @@ def afficher_menu_compte() -> None:
     with conteneur_compte:
         st.markdown(f"**{_nom_affiche(utilisateur)}**")
         email_affiche = utilisateur.get("email", "")
-        if email_affiche == "malek@gmail.com":
-            email_affiche = "maleksilarbi@gmail.com"
         st.markdown(
             f'<div class="account-email">{escape(email_affiche)}</div>',
             unsafe_allow_html=True,

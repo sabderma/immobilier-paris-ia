@@ -74,7 +74,6 @@ OPENAI_API_KEY=cle_openai_a_remplacer
 OPENAI_MODEL=gpt-5.4-mini
 
 SUPER_ADMIN_EMAIL=admin@example.com
-SUPER_ADMIN_PASSWORD=mot_de_passe_admin_a_remplacer
 
 GRAFANA_ADMIN_PASSWORD=mot_de_passe_grafana_a_remplacer
 ```

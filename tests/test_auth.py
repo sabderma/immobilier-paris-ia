@@ -129,8 +129,9 @@ class TestInitialisationSuperAdmin(unittest.TestCase):
 
         self.assertFalse(resultat)
 
-    def test_initialisation_cree_ou_repare_le_super_admin(self):
+    def test_initialisation_promeut_un_compte_existant_en_super_admin(self):
         connexion = MagicMock()
+        connexion.execute.return_value.rowcount = 1
         contexte = MagicMock()
         contexte.__enter__.return_value = connexion
         contexte.__exit__.return_value = None
@@ -139,17 +140,11 @@ class TestInitialisationSuperAdmin(unittest.TestCase):
             patch.dict(
                 os.environ,
                 {
-                    "SUPER_ADMIN_EMAIL": " Admin@Gmail.com ",
-                    "SUPER_ADMIN_PASSWORD": "admin123",
+                    "SUPER_ADMIN_EMAIL": " Admin@Example.com ",
                 },
                 clear=True,
             ),
             patch.object(auth_service, "charger_env"),
-            patch.object(
-                auth_service,
-                "hacher_mot_de_passe",
-                return_value="hash-admin",
-            ),
             patch.object(auth_service.engine, "begin", return_value=contexte),
         ):
             resultat = auth_service.initialiser_super_admin_depuis_env()
@@ -157,8 +152,7 @@ class TestInitialisationSuperAdmin(unittest.TestCase):
         self.assertTrue(resultat)
         connexion.execute.assert_called_once()
         params = connexion.execute.call_args.args[1]
-        self.assertEqual(params["email"], "admin@gmail.com")
-        self.assertEqual(params["password_hash"], "hash-admin")
+        self.assertEqual(params["email"], "admin@example.com")
         self.assertEqual(params["role"], "super_admin")
 
 
