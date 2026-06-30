@@ -7,7 +7,8 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-# C17 : Streamlit utilise cette URL pour communiquer avec l'API FastAPI.
+# C17 : hors Docker, Streamlit parle a l'API locale sur 8000 par defaut.
+# Docker Compose remplace cette valeur par http://api:8000.
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 API_ENDPOINTS = {
     "health": "/health",

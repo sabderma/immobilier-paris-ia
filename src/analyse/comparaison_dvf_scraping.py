@@ -40,6 +40,8 @@ def construire_engine():
         username=os.getenv("DB_USER", "postgres"),
         password=os.getenv("DB_PASSWORD"),
         host=os.getenv("DB_HOST", "localhost"),
+        # 5433 cible PostgreSQL installe sur le PC. Docker expose sa base sur
+        # 5434 cote PC et utilise 5432 entre conteneurs.
         port=int(os.getenv("DB_PORT", "5433")),
         database=os.getenv("DB_NAME", "immobilier_paris"),
     )

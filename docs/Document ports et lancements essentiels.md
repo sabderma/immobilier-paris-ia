@@ -43,6 +43,24 @@ Point important :
 - en production, elle reste accessible seulement depuis le VPS sur
   `127.0.0.1:8002`.
 
+La logique est la meme pour tous les services : il faut distinguer l'adresse
+interne Docker, l'adresse vue depuis mon PC et l'adresse locale du VPS.
+
+| Service | Adresse entre conteneurs Docker | Adresse depuis mon PC en Docker local | Adresse locale sur le VPS |
+|---|---|---|---|
+| PostgreSQL | `database:5432` | `localhost:5434` | `127.0.0.1:5434` |
+| API FastAPI | `api:8000` | `localhost:8002` | `127.0.0.1:8002` |
+| Streamlit | `streamlit:8501` | `localhost:8501` | `127.0.0.1:8501` |
+| Prometheus | `prometheus:9090` | `localhost:9090` | `127.0.0.1:9090` |
+| Grafana | `grafana:3000` | `localhost:3000` | `127.0.0.1:3000` |
+
+Exemple important :
+
+- Streamlit dans Docker appelle l'API avec `http://api:8000` ;
+- mon navigateur appelle l'API avec `http://localhost:8002` ;
+- Prometheus dans Docker collecte les metriques avec `api:8000` ;
+- Grafana dans Docker parle a Prometheus avec `prometheus:9090`.
+
 ## 3. Ports en Docker local
 
 Le fichier utilise est :
@@ -416,11 +434,20 @@ set +a
 
 Etape 4 : adapter la connexion base pour le PC local.
 
-Quand l'API tourne hors Docker, elle doit parler a PostgreSQL avec :
+Quand l'API tourne hors Docker, il y a deux cas possibles.
+
+Cas 1 : l'API du PC parle a PostgreSQL lance dans Docker local.
 
 ```text
 DB_HOST=127.0.0.1
 DB_PORT=5434
+```
+
+Cas 2 : l'API du PC parle a PostgreSQL installe directement sur le PC.
+
+```text
+DB_HOST=localhost
+DB_PORT=5433
 ```
 
 Quand l'API tourne dans Docker, elle utilise plutot :
@@ -429,6 +456,12 @@ Quand l'API tourne dans Docker, elle utilise plutot :
 DB_HOST=database
 DB_PORT=5432
 ```
+
+Donc la regle est :
+
+- `5433` pour PostgreSQL installe sur le PC dans ma configuration locale ;
+- `5434` pour PostgreSQL Docker vu depuis le PC ou DBeaver ;
+- `5432` pour PostgreSQL vu depuis les autres conteneurs Docker.
 
 ## 15. Lancer FastAPI manuellement sur PC
 

@@ -92,6 +92,8 @@ def construire_engine(database_url: str | None = None) -> Engine:
         username=os.getenv("DB_USER", "postgres"),
         password=os.getenv("DB_PASSWORD"),
         host=os.getenv("DB_HOST", "localhost"),
+        # 5433 cible PostgreSQL installe sur le PC. Docker Compose force 5432
+        # dans le conteneur API, et PostgreSQL Docker est expose au PC sur 5434.
         port=int(os.getenv("DB_PORT", "5433")),
         database=os.getenv("DB_NAME", "immobilier_paris"),
     )

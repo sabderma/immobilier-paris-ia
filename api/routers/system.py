@@ -25,7 +25,7 @@ OPENAI_MODEL_PAR_DEFAUT = "gpt-5.4-mini"
 def accueil() -> dict[str, str]:
     return {
         "message": "API Immobilier Paris fonctionne",
-        "documentation": "http://127.0.0.1:8000/docs",
+        "documentation": "/docs",
     }
 
 
