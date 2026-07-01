@@ -117,6 +117,7 @@ docker compose up -d --build
 Cette commande lance :
 
 - PostgreSQL
+- les migrations SQL automatiques
 - l'API FastAPI
 - l'interface Streamlit
 - Prometheus
@@ -139,6 +140,45 @@ Pour arreter l'application :
 ```bash
 docker compose down
 ```
+
+## Migrations SQL
+
+Les changements SQL importants sont places dans :
+
+```text
+sql/migrations/
+```
+
+Chaque fichier est numerote et garde dans Git l'historique des changements de
+la base.
+
+Exemple :
+
+```text
+sql/migrations/001_ajout_index_production.sql
+```
+
+Quand Docker demarre, le service `migrations` verifie la table technique
+`schema_migrations`, puis execute seulement les fichiers SQL qui n'ont pas
+encore ete appliques.
+
+Pour appliquer les migrations a la main en Docker local :
+
+```bash
+docker compose run --rm migrations
+```
+
+Pour ajouter un nouveau changement SQL :
+
+1. creer un nouveau fichier dans `sql/migrations/` ;
+2. lui donner un numero superieur, par exemple `002_ajout_colonne.sql` ;
+3. mettre le SQL dedans avec des commandes prudentes comme `IF NOT EXISTS` ;
+4. tester avec `docker compose run --rm migrations` ;
+5. pousser sur GitHub.
+
+En production, GitHub Actions lance aussi les migrations pendant le
+deploiement. Il n'est donc plus necessaire de refaire ces changements a la main
+dans DBeaver, sauf pour verifier.
 
 ## URLs utiles en local
 
