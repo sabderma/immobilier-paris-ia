@@ -26,25 +26,6 @@ services:
       timeout: 5s
       retries: 10
 
-  migrations:
-    # Applique automatiquement les nouveaux fichiers SQL de sql/migrations.
-    image: postgres:16-alpine
-    restart: "no"
-    environment:
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: database
-      DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
-      MIGRATIONS_DIR: /migrations
-    volumes:
-      - ./sql/migrations:/migrations:ro
-      - ./scripts/apply_sql_migrations.sh:/usr/local/bin/apply_sql_migrations.sh:ro
-    depends_on:
-      database:
-        condition: service_healthy
-    command: ["sh", "/usr/local/bin/apply_sql_migrations.sh"]
-
   api:
     # C19 : en local, Docker construit l'image API depuis Dockerfile.api.
     build:
@@ -69,8 +50,6 @@ services:
     depends_on:
       database:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
   streamlit:
     # C19 : en local, Docker construit aussi l'interface Streamlit.

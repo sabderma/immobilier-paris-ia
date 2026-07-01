@@ -203,7 +203,6 @@ jobs:
         run: |
           tar --exclude='._*' --exclude='.DS_Store' -czf deploy-files.tar.gz \
             compose.prod.yml \
-            scripts/apply_sql_migrations.sh \
             sql \
             data/final \
             monitoring
@@ -240,7 +239,5 @@ jobs:
              printf '%s\n' '$GHCR_TOKEN' | docker login ghcr.io -u '$GHCR_USERNAME' --password-stdin && \
              export REGISTRY='ghcr.io' IMAGE_OWNER='$IMAGE_OWNER' IMAGE_TAG='latest' && \
              docker compose -f compose.prod.yml pull && \
-             docker compose -f compose.prod.yml up -d database && \
-             docker compose -f compose.prod.yml run --rm migrations && \
              docker compose -f compose.prod.yml up -d && \
              docker compose -f compose.prod.yml ps"
