@@ -184,7 +184,6 @@ Tests principaux :
 ```bash
 python3 -m unittest discover -s tests -p "test_api.py" -v
 python3 -m unittest discover -s tests -p "test_auth.py" -v
-python3 -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 python3 -m unittest discover -s tests -p "test_prediction.py" -v
 python3 -m unittest discover -s tests -p "test_donnees_livraison.py" -v
 ```

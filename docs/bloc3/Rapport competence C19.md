@@ -128,15 +128,13 @@ Il fait :
 2. installer Python 3.12 ;
 3. installer les dependances avec `requirements.txt` ;
 4. lancer les tests API ;
-5. lancer les tests auth ;
-6. lancer les tests frontend Streamlit.
+5. lancer les tests auth.
 
 Commandes lancees :
 
 ```bash
 python -m unittest discover -s tests -p "test_api.py" -v
 python -m unittest discover -s tests -p "test_auth.py" -v
-python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 ```
 
 Ces tests verifient :
@@ -148,8 +146,6 @@ Ces tests verifient :
 - les routes admin ;
 - le geocodage ;
 - la prediction ;
-- le client Streamlit ;
-- le HTML affiche par certaines cartes.
 
 Si ce job echoue, la livraison s'arrete.
 L'application n'est pas construite ni publiee.
@@ -584,7 +580,6 @@ GHCR stocke les images, puis le VPS lance les services avec Docker Compose.
 | `scripts/generer_rapport_livraison_modele.py` | Controle le score du modele avant livraison. |
 | `tests/test_api.py` | Tests application avant livraison. |
 | `tests/test_auth.py` | Tests connexion avant livraison. |
-| `tests/test_streamlit_frontend.py` | Tests frontend avant livraison. |
 | `tests/test_donnees_livraison.py` | Tests donnees modele avant livraison. |
 | `tests/test_prediction.py` | Tests modele avant livraison. |
 | `sql/` | Scripts SQL envoyes au serveur. |

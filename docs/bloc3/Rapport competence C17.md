@@ -510,7 +510,6 @@ Les tests utiles pour C17 sont surtout :
 |---|---|
 | `tests/test_api.py` | Routes API, cle API, DVF, scraping, prediction, geocodage. |
 | `tests/test_auth.py` | Inscription, connexion, JWT, mot de passe, profil. |
-| `tests/test_streamlit_frontend.py` | Client API Streamlit, formatage, securite HTML. |
 | `tests/test_prediction.py` | Modele disponible et prediction utilisable. |
 
 Ces tests montrent que certaines parties de l'application sont verifiees sans
@@ -521,7 +520,6 @@ Commandes utiles :
 ```bash
 python -m pytest tests/test_api.py
 python -m pytest tests/test_auth.py
-python -m pytest tests/test_streamlit_frontend.py
 python -m pytest tests/test_prediction.py
 ```
 
@@ -565,7 +563,7 @@ Ensuite :
 | Schemas | `api/schemas.py`, `api/auth_schemas.py` |
 | Routes API | `api/routers/*.py` |
 | Services metier | `api/services/*.py` |
-| Tests | `tests/test_api.py`, `tests/test_auth.py`, `tests/test_streamlit_frontend.py`, `tests/test_prediction.py` |
+| Tests | `tests/test_api.py`, `tests/test_auth.py`, `tests/test_prediction.py` |
 
 ## 24. Versionnement Git
 

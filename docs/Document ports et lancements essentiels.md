@@ -623,7 +623,6 @@ Dans GitHub Actions, le workflow lance notamment :
 ```bash
 python -m unittest discover -s tests -p "test_api.py" -v
 python -m unittest discover -s tests -p "test_auth.py" -v
-python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 python -m unittest discover -s tests -p "test_donnees_livraison.py" -v
 python -m unittest discover -s tests -p "test_prediction.py" -v
 docker compose -f compose.yml config

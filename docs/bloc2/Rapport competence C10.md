@@ -49,7 +49,7 @@ Dans mon projet, cela correspond a :
 - le formulaire de prediction envoie les valeurs a l'API ;
 - le resultat est affiche sous forme de fourchette de prix ;
 - les erreurs API sont gerees ;
-- des tests frontend verifient l'appel API client.
+- le parcours peut etre verifie directement dans l'interface.
 
 ## 4. Fichiers concernes par la C10
 
@@ -62,7 +62,6 @@ Dans mon projet, cela correspond a :
 | `streamlit/frontend/config.py` | Contient l'URL API, les endpoints et la cle `X-API-Key`. |
 | `streamlit/frontend/styles.py` | Style visuel du resultat de prediction et de l'historique. |
 | `streamlit/frontend/auth_ui.py` | Connexion utilisateur, utile pour l'historique connecte. |
-| `tests/test_streamlit_frontend.py` | Tests du frontend et du client API. |
 | `api/routers/prediction.py` | Route FastAPI appelee par Streamlit. |
 | `api/schemas.py` | Contrat d'entree et de sortie utilise par Streamlit. |
 
@@ -324,23 +323,11 @@ Dans mon interface, j'ai fait simple :
 Ce n'est pas un audit complet d'accessibilite, mais l'interface est lisible et
 comprehensible pour l'utilisateur.
 
-## 17. Tests d'integration
+## 17. Verification du parcours utilisateur
 
-Les tests lies a C10 sont dans :
-
-`tests/test_streamlit_frontend.py`
-
-Ils verifient notamment :
-
-- que les headers ajoutent `X-API-Key` ;
-- que le token utilisateur est ajoute quand l'utilisateur est connecte ;
-- que le client API nettoie les parametres ;
-- que les erreurs de validation API deviennent lisibles ;
-- que le HTML de l'historique echappe les donnees utilisateur ;
-- que le POST vers `/prediction/prix` envoie bien le payload.
-
-Les tests API dans `tests/test_api.py` completent la verification, mais pour C10, le
-plus important est le test cote frontend.
+Le parcours de prediction se verifie directement dans Streamlit : saisie du
+formulaire, appel de l'API et affichage de la fourchette de prix. Les tests API
+dans `tests/test_api.py` verifient separement la route de prediction.
 
 ## 18. Comment lancer l'application
 
@@ -378,13 +365,7 @@ Ensuite :
 5. cliquer sur **Predire le prix** ;
 6. verifier que la fourchette apparait.
 
-## 19. Comment lancer les tests C10
-
-```bash
-python3 -m unittest discover -s tests -p 'test_streamlit_frontend.py' -v
-```
-
-Pour verifier aussi l'API appelee :
+## 19. Comment tester l'API appelee
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_api.py' -v
@@ -398,8 +379,6 @@ python3 -m unittest discover -s tests -p 'test_api.py' -v
 | `requests` | Appeler l'API FastAPI depuis Streamlit. |
 | `pandas` | Manipuler certains resultats sous forme de tableau. |
 | `html.escape` | Eviter d'afficher du HTML utilisateur non protege dans l'historique. |
-| `unittest` | Tester le frontend et le client API. |
-| `unittest.mock` | Simuler les reponses API dans les tests. |
 
 ## 21. Elements principaux
 
@@ -409,7 +388,6 @@ Les elements principaux sont :
 - l'appel `api_post_json(API_ENDPOINTS["prediction_prix"], payload)` ;
 - la cle `X-API-Key` envoyee par le client ;
 - l'affichage de la fourchette de prix ;
-- les tests frontend ;
 - les sources versionnees dans Git.
 
 ## 22. Versionnement Git
@@ -423,7 +401,6 @@ git add streamlit/frontend/application.py
 git add streamlit/frontend/views/prediction.py
 git add streamlit/frontend/api_client.py
 git add streamlit/frontend/config.py
-git add tests/test_streamlit_frontend.py
 git commit -m "docs: ajouter le rapport competence C10"
 ```
 

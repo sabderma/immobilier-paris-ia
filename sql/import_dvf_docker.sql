@@ -7,7 +7,7 @@
 -- =========================================================
 
 -- Table temporaire pour charger le CSV DVF avant insertion finale.
-CREATE TEMPORARY TABLE dvf_import (
+CREATE TEMP TABLE dvf_import (
     id_mutation VARCHAR(50),
     date_mutation DATE,
     annee_vente INTEGER,
@@ -19,7 +19,7 @@ CREATE TEMPORARY TABLE dvf_import (
     type_local VARCHAR(50),
     code_postal VARCHAR(10),
     arrondissement INTEGER,
-    nom_commune VARCHAR(100),
+    nom_commune VARCHAR(10 0),
     adresse_nom_voie TEXT,
     longitude NUMERIC,
     latitude NUMERIC
@@ -66,7 +66,7 @@ SELECT
 FROM dvf_import;
 
 -- Table temporaire pour charger le CSV golden scraping.
-CREATE TEMPORARY TABLE scraping_import (
+CREATE TEMP TABLE scraping_import (
     source VARCHAR(100),
     type VARCHAR(50),
     prix NUMERIC,

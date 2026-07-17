@@ -134,3 +134,26 @@ CREATE TABLE dvf_paris_appartements (
     longitude NUMERIC(10,6) NOT NULL,
     latitude NUMERIC(10,6) NOT NULL
 );
+
+
+--index utiles pour les filtres de l'API et de DBeaver.
+CREATE INDEX IF NOT EXISTS idx_dvf_arrondissement
+ON dvf_paris_appartements (arrondissement);
+
+CREATE INDEX IF NOT EXISTS idx_dvf_annee_vente
+ON dvf_paris_appartements (annee_vente);
+
+CREATE INDEX IF NOT EXISTS idx_dvf_date_mutation
+ON dvf_paris_appartements (date_mutation DESC);
+
+CREATE INDEX IF NOT EXISTS idx_dvf_surface
+ON dvf_paris_appartements (surface_reelle_bati);
+
+CREATE INDEX IF NOT EXISTS idx_dvf_nombre_pieces
+ON dvf_paris_appartements (nombre_pieces_principales);
+
+CREATE INDEX IF NOT EXISTS idx_dvf_prix_m2
+ON dvf_paris_appartements (prix_m2);
+
+CREATE INDEX IF NOT EXISTS idx_dvf_coordonnees
+ON dvf_paris_appartements (latitude, longitude);

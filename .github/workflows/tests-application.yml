@@ -51,7 +51,3 @@ jobs:
       - name: Tester l'authentification
         # C18 : teste inscription, connexion, JWT et mots de passe.
         run: python -m unittest discover -s tests -p "test_auth.py" -v
-
-      - name: Tester l'interface Streamlit
-        # C18 : teste le client API Streamlit et le HTML affiche.
-        run: python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v

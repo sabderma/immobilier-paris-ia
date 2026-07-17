@@ -13,7 +13,6 @@ Le but est simple :
 - eviter de garder une erreur sans la voir ;
 - tester les routes API ;
 - tester la connexion utilisateur ;
-- tester une partie de l'interface Streamlit ;
 - lancer toujours les memes commandes dans un environnement propre.
 
 C18 ne parle pas encore de deploiement complet.
@@ -77,11 +76,9 @@ flowchart TD
     H --> I["Installation requirements.txt"]
     I --> J["Tests API"]
     I --> K["Tests Auth"]
-    I --> L["Tests Streamlit"]
 
     J --> M{"Tous les tests OK ?"}
     K --> M
-    L --> M
 
     M -->|Oui| N["Code valide"]
     M -->|Non| O["Erreur dans GitHub Actions"]
@@ -187,7 +184,6 @@ Le workflow fait plusieurs etapes.
 | Installer dependances | `pip install -r requirements.txt` | Installe les bibliotheques du projet. |
 | Tester API | `python -m unittest discover -s tests -p "test_api.py" -v` | Lance les tests API. |
 | Tester auth | `python -m unittest discover -s tests -p "test_auth.py" -v` | Lance les tests de connexion. |
-| Tester Streamlit | `python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v` | Lance les tests frontend. |
 
 ## 10. Pourquoi utiliser `unittest`
 
@@ -359,35 +355,7 @@ Il verifie :
 Ces tests sont importants parce que la connexion protege plusieurs parties de
 l'application.
 
-## 14. Tests Streamlit frontend
-
-Le fichier est :
-
-`tests/test_streamlit_frontend.py`
-
-La commande CI est :
-
-```bash
-python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
-```
-
-Ce fichier ne lance pas toute l'interface dans un navigateur.
-Il teste les fonctions Python utilisees par l'interface.
-
-Il verifie :
-
-- le formatage des nombres ;
-- le formatage des euros ;
-- le formatage des dates ;
-- l'ajout du token utilisateur dans les headers ;
-- le nettoyage des parametres envoyes a l'API ;
-- la transformation des erreurs de validation ;
-- l'envoi d'une prediction vers l'API ;
-- l'echappement HTML pour eviter d'afficher du code dangereux.
-
-Cela permet de tester une partie de Streamlit sans ouvrir l'application.
-
-## 15. Ce qui se passe si un test echoue
+## 14. Ce qui se passe si un test echoue
 
 Si un test echoue, GitHub Actions met le workflow en erreur.
 
@@ -401,7 +369,7 @@ Dans ce cas :
 Cela evite de penser que le code marche alors qu'une route ou une fonction est
 cassee.
 
-## 16. Comment lancer les memes tests en local
+## 15. Comment lancer les memes tests en local
 
 Je peux lancer les memes tests sur mon ordinateur.
 
@@ -410,7 +378,6 @@ Commandes :
 ```bash
 python3 -m unittest discover -s tests -p "test_api.py" -v
 python3 -m unittest discover -s tests -p "test_auth.py" -v
-python3 -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 ```
 
 Pour lancer tous les tests Python du dossier `tests` :
@@ -419,7 +386,7 @@ Pour lancer tous les tests Python du dossier `tests` :
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
-## 17. Fichiers concernes par C18
+## 16. Fichiers concernes par C18
 
 | Fichier | Role |
 |---|---|
@@ -427,9 +394,8 @@ python3 -m unittest discover -s tests -p "test_*.py"
 | `requirements.txt` | Dependances installees dans la CI. |
 | `tests/test_api.py` | Tests des routes API, securite, prediction, geocodage et admin. |
 | `tests/test_auth.py` | Tests de l'inscription, connexion, JWT et mots de passe. |
-| `tests/test_streamlit_frontend.py` | Tests du client Streamlit et du HTML affiche. |
 
-## 18. Fichiers proches mais plutot pour autres competences
+## 17. Fichiers proches mais plutot pour autres competences
 
 Il y a aussi d'autres workflows dans le projet.
 
@@ -442,7 +408,7 @@ Pour C18, le fichier principal reste donc :
 
 `.github/workflows/tests-application.yml`
 
-## 19. Versionnement Git
+## 18. Versionnement Git
 
 La configuration de la CI est dans le projet.
 
@@ -451,12 +417,12 @@ Les commandes utiles pour verifier sont :
 ```bash
 git status
 git ls-files .github/workflows/tests-application.yml
-git ls-files tests/test_api.py tests/test_auth.py tests/test_streamlit_frontend.py
+git ls-files tests/test_api.py tests/test_auth.py
 ```
 
 Comme ces fichiers sont dans le depot, la configuration de test suit le code.
 
-## 20. Schema Draw.io
+## 19. Schema Draw.io
 
 J'ai aussi cree un schema Draw.io pour representer la CI et les tests executes.
 

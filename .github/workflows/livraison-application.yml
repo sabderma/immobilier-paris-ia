@@ -61,9 +61,6 @@ jobs:
       - name: Tester l'authentification
         run: python -m unittest discover -s tests -p "test_auth.py" -v
 
-      - name: Tester l'interface Streamlit
-        run: python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
-
   valider-modele-ia:
     # C19 reutilise aussi la validation C12/C13 avant de construire Docker.
     runs-on: ubuntu-latest

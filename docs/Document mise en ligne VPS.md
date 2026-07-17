@@ -204,7 +204,6 @@ Commandes :
 ```bash
 python -m unittest discover -s tests -p "test_api.py" -v
 python -m unittest discover -s tests -p "test_auth.py" -v
-python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 python -m unittest discover -s tests -p "test_prediction.py" -v
 python -m unittest discover -s tests -p "test_donnees_livraison.py" -v
 ```
@@ -359,7 +358,6 @@ Les commandes lancees sont :
 ```bash
 python -m unittest discover -s tests -p "test_api.py" -v
 python -m unittest discover -s tests -p "test_auth.py" -v
-python -m unittest discover -s tests -p "test_streamlit_frontend.py" -v
 ```
 
 Si ce job echoue, la livraison s'arrete.
@@ -1007,7 +1005,6 @@ Avant de deployer, GitHub Actions verifie :
 
 - les tests API ;
 - les tests auth ;
-- les tests Streamlit ;
 - les donnees du modele ;
 - le modele IA ;
 - Docker Compose ;
