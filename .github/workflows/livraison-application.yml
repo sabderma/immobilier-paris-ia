@@ -111,6 +111,18 @@ jobs:
             --output "$RAPPORT_LIVRAISON" \
             --minimum-r2 0.80
 
+      - name: Transmettre le modele valide au job Docker
+        # Le job Docker tourne sur une autre machine GitHub.
+        # Cet artifact lui transmet le modele qui vient d'etre entraine et teste.
+        uses: actions/upload-artifact@v4
+        with:
+          name: modele-ia-valide
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            livraison/xgboost_prix_dvf.joblib
+            livraison/xgboost_prix_dvf_metrics.json
+
   construire-et-publier:
     # Ce job ne commence que si les tests application et modele sont valides.
     needs:
@@ -123,6 +135,20 @@ jobs:
     steps:
       - name: Recuperer le projet
         uses: actions/checkout@v4
+
+      - name: Recuperer le modele IA valide
+        uses: actions/download-artifact@v4
+        with:
+          name: modele-ia-valide
+          path: modele-valide
+
+      - name: Installer le modele valide dans l'image API
+        # On remplace explicitement l'ancien modele avant la construction Docker.
+        run: |
+          cp modele-valide/xgboost_prix_dvf.joblib models/xgboost_prix_dvf.joblib
+          cp modele-valide/xgboost_prix_dvf_metrics.json models/xgboost_prix_dvf_metrics.json
+          test -s models/xgboost_prix_dvf.joblib
+          test -s models/xgboost_prix_dvf_metrics.json
 
       - name: Preparer les noms des images
         id: images
